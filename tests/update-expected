@@ -1,0 +1,27 @@
+#!/bin/sh
+# SPDX-License-Identifier: copyleft-next-0.3.1
+#
+# Regenerate tests/expected/dryrun.txt from the examples. Review the
+# diff: this file is the conformance record of the format. Whatever
+# depends on the checkout or on the build environment (the same
+# variables build.rs reads) becomes a placeholder that tests/examples.rs
+# fills back in.
+set -eu
+cd "$(dirname "$0")/.."
+cargo build --quiet
+qemu="${QEMU_BINDIR:-/usr/bin}/qemu-system-$(uname --machine)"
+virtiofsd="${VIRTIOFSD:-/usr/libexec/virtiofsd}"
+qmp_powerdown="${QMP_POWERDOWN:-/usr/share/qemu/systemd/qmp-powerdown}"
+socat="${SOCAT:-socat}"
+varlinkctl="${VARLINKCTL:-varlinkctl}"
+ssh="${SSH:-ssh}"
+QEMU_SYSTEMD_UNIT_DIRS="$PWD/examples" ./target/debug/qemu-system-generator --system --dryrun \
+	| sed --expression "s|$PWD/examples|@EXAMPLES@|g" \
+		--expression "s|^ExecStart=$qemu |ExecStart=@QEMU@ |" \
+		--expression "s|^ExecStart=$virtiofsd |ExecStart=@VIRTIOFSD@ |" \
+		--expression "s|OPEN:$qmp_powerdown!!|OPEN:@QMP_POWERDOWN@!!|" \
+		--expression "s|^ExecStop=-$socat |ExecStop=-@SOCAT@ |" \
+		--expression "s|^ExecStartPost=-$varlinkctl |ExecStartPost=-@VARLINKCTL@ |" \
+		--expression "s|^ExecStop=-$ssh |ExecStop=-@SSH@ |" \
+	> tests/expected/dryrun.txt
+git --no-pager diff --stat -- tests/expected/dryrun.txt
