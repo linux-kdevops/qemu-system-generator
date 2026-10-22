@@ -10,8 +10,8 @@ and `/nix/store` is the host's own, shared over [virtiofs]. No step
 needs root.
 
 The file format is specified in
-[`qemu-systemd.unit(5)`](qemu-systemd.unit.5.scd) and the generator in
-[`qemu-system-generator(8)`](qemu-system-generator.8.scd). To boot your
+[`qemu-systemd.unit(5)`](../man/qemu-systemd.unit.5.scd) and the generator in
+[`qemu-system-generator(8)`](../man/qemu-system-generator.8.scd). To boot your
 own kernel and [QEMU] instead, continue with
 [bootstrap-knix.md](bootstrap-knix.md) once this page works.
 

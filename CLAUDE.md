@@ -5,7 +5,7 @@
 qemu-system-generator: a systemd generator, in Rust with no dependencies
 outside the standard library, that reads `.qemu` files and writes the
 units that run them. The format is the deliverable; the man page in
-`docs/qemu-systemd.unit.5.scd` is its specification and
+`man/qemu-systemd.unit.5.scd` is its specification and
 `tests/expected/dryrun.txt` its conformance record.
 
 **License**: copyleft-next-0.3.1. SPDX header on every source file.

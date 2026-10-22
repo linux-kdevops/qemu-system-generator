@@ -29,7 +29,7 @@ rustPlatform.buildRustPackage (finalAttrs: {
       ../build.rs
       ../src
       ../data
-      ../docs
+      ../man
       ../examples
       ../tests
       ../README.md
@@ -54,8 +54,8 @@ rustPlatform.buildRustPackage (finalAttrs: {
   };
 
   postInstall = ''
-    scdoc < docs/qemu-systemd.unit.5.scd > qemu-systemd.unit.5
-    scdoc < docs/qemu-system-generator.8.scd > qemu-system-generator.8
+    scdoc < man/qemu-systemd.unit.5.scd > qemu-systemd.unit.5
+    scdoc < man/qemu-system-generator.8.scd > qemu-system-generator.8
     installManPage qemu-systemd.unit.5 qemu-system-generator.8
     mkdir --parents $out/share/qemu/systemd $out/lib/systemd/system-generators $out/lib/systemd/user-generators
     install --mode=0644 data/qmp-powerdown $out/share/qemu/systemd/

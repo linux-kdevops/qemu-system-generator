@@ -5,7 +5,7 @@
 //! allow what the lifecycle needs; it never rewrites, drops or reorders
 //! them. Each `[virtiofsd]` section is decoded the same way into one
 //! virtiofsd process. The format is specified in
-//! `docs/qemu-systemd.unit.5.scd`.
+//! `man/qemu-systemd.unit.5.scd`.
 
 use std::error::Error;
 use std::fmt;

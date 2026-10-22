@@ -8,8 +8,8 @@ line passed through line by line. The generator runs at boot and on
 machine shares, then exits. Nothing stays between systemd and QEMU.
 
 Status: research draft. The format is documented in
-[docs/qemu-systemd.unit.5.scd](docs/qemu-systemd.unit.5.scd) and the
-program in [docs/qemu-system-generator.8.scd](docs/qemu-system-generator.8.scd).
+[man/qemu-systemd.unit.5.scd](man/qemu-systemd.unit.5.scd) and the
+program in [man/qemu-system-generator.8.scd](man/qemu-system-generator.8.scd).
 Nothing is released yet.
 
 **License**: copyleft-next-0.3.1
@@ -107,7 +107,8 @@ src/launcher/systemd.rs  a Plan into .service/.socket files and symlinks
 src/main.rs              generator entry point and command line
 data/qmp-powerdown       the QMP commands ExecStop= sends
 data/qemu-system-generator.*  user units that run it without root
-docs/                    man pages, scdoc
+man/                     man pages, scdoc
+docs/                    walk-throughs and the writing guide
 examples/                one file per feature; the conformance inputs
 tests/                   expected generator output, verify script
 nix/                     package and NixOS module
