@@ -1,0 +1,16 @@
+# SPDX-License-Identifier: copyleft-next-0.3.1
+#
+# Watches only the top directory: an edit inside a name.qemu.d/
+# drop-in directory needs systemctl --user start
+# qemu-system-generator.service.
+
+[Unit]
+Description=Watch .qemu files for changes
+Documentation=man:qemu-system-generator(8)
+
+[Path]
+PathChanged=%E/qemu/systemd
+MakeDirectory=yes
+
+[Install]
+WantedBy=default.target
