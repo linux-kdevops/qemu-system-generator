@@ -7,10 +7,10 @@ Bootstrap: a NixOS guest from a .qemu file
 This walk-through boots a `NixOS`_ guest under your user's `systemd`_
 manager, from one ``.qemu`` file that grows by one feature per step. The
 guest's kernel, initrd and system come from `nixpkgs`_. It first boots
-from a disk image, through firmware and a boot loader like any machine.
-Then QEMU loads the kernel itself, the root file system becomes a tmpfs,
-and ``/nix/store`` is the host's own, shared over `virtiofs`_. No step
-needs root.
+from a disk image, through firmware and a boot loader, the way a
+physical machine does. Then QEMU loads the kernel itself, the root file
+system becomes a tmpfs, and ``/nix/store`` is the host's own, shared
+over `virtiofs`_. No step needs root.
 
 The file format is specified in
 :doc:`qemu-systemd.unit(5) <man/qemu-systemd.unit.5>` and the generator in
@@ -416,12 +416,12 @@ Add both, with your own path in ``init=``:
    +uid-map=:0:%U:1:
    +gid-map=:0:%G:1:
 
-A ``[virtiofsd]`` section is one `virtiofsd`_ daemon, one share. Its keys
-are the long options of ``virtiofsd --help`` without the dashes. The
-generator runs the daemon from its own socket unit and adds the QEMU
-lines that connect to it. ``sandbox=``, ``uid-map=`` and ``gid-map=`` let it
-run without root: ``%U`` and ``%G`` are your user and group ids, which the
-guest's root maps to.
+Each ``[virtiofsd]`` section runs one `virtiofsd`_ daemon for one shared
+directory. Its keys are the long options of ``virtiofsd --help``
+without the dashes. The generator runs the daemon from its own socket
+unit and adds the QEMU lines that connect to it. ``sandbox=``,
+``uid-map=`` and ``gid-map=`` let it run without root: ``%U`` and ``%G``
+are your user and group ids, which the guest's root maps to.
 
 Regenerate and start. NixOS boots in about 14 seconds, faster than
 from the disk:
@@ -623,7 +623,7 @@ hand after rewriting it.
 
 ``[Unit]``, ``[Service]`` and ``[Install]`` are copied into the generated
 service, so the machine takes a description, `resource limits`_ and an
-install target like any unit:
+install target the way a hand-written unit does:
 
 .. code-block:: diff
 
@@ -656,13 +656,16 @@ machines.target`` stops all of them, not only this one.
 12. A share of your own
 =======================
 
-One more ``[virtiofsd]`` section is one more share:
+Sharing a directory of your own takes another ``[virtiofsd]`` section.
+Make the directory and put a file in it:
 
 .. code-block:: console
    :class: cmd-host
 
    $ mkdir --parents ~/nixos-bootstrap/share
    $ echo "hello from the host" > ~/nixos-bootstrap/share/hello.txt
+
+Then add the section:
 
 .. code-block:: diff
 
@@ -701,7 +704,8 @@ Rebuild, rewrite the drop-in as in step 10, regenerate and restart:
    -rw-r--r-- 1 user user  0 Oct 22 16:47 from-guest
    -rw-rw-r-- 1 user user 20 Oct 22 16:47 hello.txt
 
-The guest's root wrote ``from-guest``; on the host it is yours.
+The guest's root wrote ``from-guest``, and on the host the file belongs
+to you.
 
 Notes
 =====
