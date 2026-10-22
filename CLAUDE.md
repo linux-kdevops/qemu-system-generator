@@ -182,7 +182,7 @@ All commits must follow these six rules.
    ln --symbolic --relative scripts/commit-msg "$(git rev-parse --git-path hooks)/commit-msg"
    ```
 
-What a message, a doc or a comment says follows `docs/writing.md`, taken
+What a message, a doc or a comment says follows `docs/writing.rst`, taken
 from how the kernel's maintainers write: read two of its example commits
 before writing one, and hand anything longer than a few lines to a
 fresh-context editor with the brief there. `scripts/check-prose.py`, run

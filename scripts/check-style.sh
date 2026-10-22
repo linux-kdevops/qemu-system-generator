@@ -112,7 +112,7 @@ done < <(git ls-files "${scope[@]}")
 
 # 3. HEAD's commit message trailers (check_trailers above) and prose: its
 #    message and the docs and comments it adds (scripts/check-prose.py,
-#    docs/writing.md).
+#    docs/writing.rst).
 msg="$(git log --max-count=1 --format=%B 2>/dev/null || true)"
 if [ -n "$msg" ]; then
 		check_trailers HEAD "$msg" "$(git log --max-count=1 --format='%cn <%ce>')"

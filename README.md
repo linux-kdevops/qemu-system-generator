@@ -9,7 +9,9 @@ machine shares, then exits. Nothing stays between systemd and QEMU.
 
 Status: research draft. The format is documented in
 [man/qemu-systemd.unit.5.scd](man/qemu-systemd.unit.5.scd) and the
-program in [man/qemu-system-generator.8.scd](man/qemu-system-generator.8.scd).
+program in [man/qemu-system-generator.8.scd](man/qemu-system-generator.8.scd);
+`docs/` holds the walk-throughs and builds them, with the man pages, into
+a Sphinx site for Read the Docs.
 Nothing is released yet.
 
 **License**: copyleft-next-0.3.1
@@ -69,9 +71,9 @@ sudo install --mode=0644 data/qmp-powerdown /usr/share/qemu/systemd/
 ```
 
 Without root, a user runs it through two user units instead; see
-`qemu-system-generator(8)`. [docs/bootstrap.md](docs/bootstrap.md) walks
+`qemu-system-generator(8)`. [docs/bootstrap.rst](docs/bootstrap.rst) walks
 through booting a NixOS guest that way, and
-[docs/bootstrap-knix.md](docs/bootstrap-knix.md) moves it onto a kernel
+[docs/bootstrap-knix.rst](docs/bootstrap-knix.rst) moves it onto a kernel
 and a QEMU of your own.
 
 The generated units call `socat`, `varlinkctl` and `ssh` by name; the
@@ -108,7 +110,7 @@ src/main.rs              generator entry point and command line
 data/qmp-powerdown       the QMP commands ExecStop= sends
 data/qemu-system-generator.*  user units that run it without root
 man/                     man pages, scdoc
-docs/                    walk-throughs and the writing guide
+docs/                    walk-throughs and the Sphinx site
 examples/                one file per feature; the conformance inputs
 tests/                   expected generator output, verify script
 nix/                     package and NixOS module
@@ -132,3 +134,10 @@ nix flake check
 `tests/verify` generates the examples and loads them with
 `systemd-analyze verify` in both scopes. `tests/update-expected` rewrites
 the expected output after a deliberate format change.
+
+`nix flake check` also builds the documentation as Read the Docs does.
+To preview it while editing:
+
+```shell
+nix develop --command sphinx-autobuild docs docs/_build/html
+```

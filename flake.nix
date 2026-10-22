@@ -23,6 +23,17 @@
             }
           )
         );
+
+      # Sphinx and its extensions, kept to the major versions in
+      # docs/requirements.txt, which Read the Docs installs.
+      docsPython =
+        pkgs:
+        pkgs.python3.withPackages (ps: [
+          ps.sphinx
+          ps.sphinx-autobuild
+          ps.sphinx-copybutton
+          ps.pydata-sphinx-theme
+        ]);
     in
     {
       overlays.default = final: prev: {
@@ -58,6 +69,13 @@
             pkgs.clippy
             pkgs.rust-analyzer
             pkgs.scdoc
+            # mandoc's own man would shadow the host's, and tests/verify needs
+            # that one to find the systemd and QEMU pages Documentation= cites.
+            (pkgs.runCommand "mandoc-only" { } ''
+              mkdir --parents $out/bin
+              ln --symbolic ${pkgs.mandoc}/bin/mandoc $out/bin/
+            '')
+            (docsPython pkgs)
             pkgs.systemd
             pkgs.nixfmt
             pkgs.python3
@@ -82,6 +100,30 @@
             installPhase = "touch $out";
             doCheck = false;
           });
+
+          # The pages must build without a warning, as Read the Docs builds
+          # them (.readthedocs.yaml).
+          docs =
+            pkgs.runCommand "${package.pname}-docs"
+              {
+                src = pkgs.lib.fileset.toSource {
+                  root = ./.;
+                  fileset = pkgs.lib.fileset.unions [
+                    ./docs
+                    ./man
+                  ];
+                };
+                nativeBuildInputs = [
+                  (docsPython pkgs)
+                  pkgs.scdoc
+                  pkgs.mandoc
+                ];
+              }
+              ''
+                cp --recursive $src source
+                chmod --recursive u+w source
+                sphinx-build --fail-on-warning --builder html source/docs $out
+              '';
 
           rustfmt = pkgs.runCommand "${package.pname}-rustfmt" { nativeBuildInputs = [ pkgs.rustfmt ]; } ''
             cd ${src}
