@@ -1,0 +1,71 @@
+# SPDX-License-Identifier: copyleft-next-0.3.1
+#
+# Imageless boot: a kernel and initrd from the host, the root file
+# system served over virtiofs, NVMe controllers with explicit
+# namespaces, a UUID that machined records with the registration.
+
+[Unit]
+Description=NixOS over virtiofs
+
+[QEMU]
+machine=q35
+accel=kvm
+cpu=host,pmu=on
+m=4G
+smp=4
+uuid=7f3a2b1c-4d5e-4f60-8a7b-9c0d1e2f3a4b
+kernel=/srv/kernel/bzImage
+initrd=/srv/nixos/initrd
+append=console=ttyS0,115200 console=hvc0 init=/nix/store/current-system/init
+drive=file=nvme0.qcow2,if=none,format=qcow2,id=nvme0-drive
+device=nvme,serial=nvme0,drive=nvme0-drive,logical_block_size=4096,physical_block_size=4096
+device=nvme,id=nvme1,serial=nvme1,max_ioqpairs=8
+drive=file=nvme1n1.qcow2,if=none,format=qcow2,id=nvme1-ns1
+device=nvme-ns,drive=nvme1-ns1,bus=nvme1,nsid=1
+drive=driver=null-co,if=none,size=1G,read-zeroes=on,id=nvme1-ns2
+device=nvme-ns,drive=nvme1-ns2,bus=nvme1,nsid=2,zoned=on,zoned.zone_size=64M
+nic=user,model=virtio-net-pci-non-transitional,hostfwd=tcp:127.0.0.1:10122-:22
+device=virtio-rng-pci-non-transitional
+device=vhost-vsock-pci-non-transitional,guest-cid=155
+device=virtio-serial-pci
+chardev=socket,id=console0,path=%t/qemu-system/%i/console.sock,server=on,wait=off
+device=virtconsole,chardev=console0
+nographic=
+serial=mon:stdio
+
+[virtiofsd]
+shared-dir=/nix/store
+tag=store
+sandbox=namespace
+uid-map=:0:%U:1:
+gid-map=:0:%G:1:
+xattr=
+no-announce-submounts=
+
+[virtiofsd]
+shared-dir=/srv/kernel/lib/modules
+tag=modules
+sandbox=namespace
+uid-map=:0:%U:1:
+gid-map=:0:%G:1:
+translate-uid=map:0:1000:1
+translate-gid=map:0:1000:1
+xattr=
+no-announce-submounts=
+
+[virtiofsd]
+shared-dir=%h
+tag=home
+sandbox=namespace
+uid-map=:0:%U:1:
+gid-map=:0:%G:1:
+xattr=
+no-announce-submounts=
+
+[Service]
+# Passed through verbatim. See: man systemd.exec, man systemd.resource-control.
+MemoryMax=6G
+CPUWeight=200
+
+[Install]
+WantedBy=machines.target

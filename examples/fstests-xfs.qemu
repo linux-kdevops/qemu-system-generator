@@ -1,0 +1,14 @@
+# SPDX-License-Identifier: copyleft-next-0.3.1
+#
+# One of a family: fstests-xfs.qemu and fstests-btrfs.qemu each hold
+# what differs, and fstests-.qemu.d/ holds the lines every fstests-*
+# machine shares. Each gets its own state and runtime directories.
+
+[Unit]
+Description=fstests on xfs
+
+[QEMU]
+append=console=ttyS0 root=/dev/vda rw fstests=xfs
+
+[Install]
+WantedBy=machines.target

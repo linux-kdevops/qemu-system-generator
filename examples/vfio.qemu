@@ -1,0 +1,26 @@
+# SPDX-License-Identifier: copyleft-next-0.3.1
+#
+# PCIe passthrough behind an emulated IOMMU, UEFI firmware from OVMF.
+# The host must bind the device to vfio-pci first (driver_override via
+# udev, or vfio-pci.ids= on the kernel command line); the generator
+# only grants the service access to /dev/vfio and raises the memlock
+# limit to what pinning guest memory needs.
+
+[Unit]
+Description=GPU passthrough guest
+
+[QEMU]
+machine=q35
+accel=kvm,kernel-irqchip=split
+cpu=host
+m=8G
+smp=8
+device=intel-iommu,intremap=on,caching-mode=on
+drive=if=pflash,format=raw,readonly=on,file=/usr/share/OVMF/OVMF_CODE_4M.fd
+drive=if=pflash,format=raw,file=ovmf-vars.fd
+drive=file=root.qcow2,if=virtio,format=qcow2
+device=vfio-pci,host=0000:01:00.0
+nic=user,model=virtio-net-pci-non-transitional
+device=virtio-rng-pci-non-transitional
+nographic=
+serial=mon:stdio

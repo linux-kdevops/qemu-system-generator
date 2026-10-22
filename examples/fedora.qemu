@@ -1,0 +1,49 @@
+# SPDX-License-Identifier: copyleft-next-0.3.1
+#
+# A cloud image booted from its own bootloader, provisioned by a
+# cloud-init seed ISO, reachable over SSH on a forwarded host port and
+# through machined over AF_VSOCK. Relative paths resolve in the state
+# directory: /var/lib/qemu-system/fedora under the system manager,
+# ~/.local/state/qemu-system/fedora under a user manager.
+
+[Unit]
+Description=Fedora cloud image
+
+[VM]
+# With a key, stopping the service asks the guest to power off over SSH
+# through the vsock device below, before the QMP power button.
+SshPrivateKey=%h/.ssh/id_ed25519
+
+[QEMU]
+# Each key is a QEMU option without its dash; the value is passed
+# verbatim as the option's argument. See: man qemu-system.
+machine=q35
+accel=kvm
+cpu=host
+m=2048
+smp=2
+drive=file=fedora.raw,if=virtio,format=raw
+drive=file=seed.iso,if=virtio,format=raw,readonly=on
+nic=user,model=virtio-net-pci-non-transitional,hostfwd=tcp:127.0.0.1:10022-:22
+device=virtio-rng-pci-non-transitional
+device=vhost-vsock-pci-non-transitional,guest-cid=42
+device=virtio-serial-pci
+chardev=socket,id=console0,path=%t/qemu-system/%i/console.sock,server=on,wait=off
+device=virtconsole,chardev=console0
+nographic=
+serial=mon:stdio
+
+# One virtiofsd per section; keys are virtiofsd options without their
+# dashes. tag= names the daemon's units and the guest mount tag.
+# See: /usr/libexec/virtiofsd --help.
+[virtiofsd]
+shared-dir=%h
+tag=home
+sandbox=namespace
+uid-map=:0:%U:1:
+gid-map=:0:%G:1:
+xattr=
+no-announce-submounts=
+
+[Install]
+WantedBy=machines.target

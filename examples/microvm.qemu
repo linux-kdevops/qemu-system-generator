@@ -1,0 +1,37 @@
+# SPDX-License-Identifier: copyleft-next-0.3.1
+#
+# The microvm machine type carries virtio over MMIO, so devices take
+# their *-device names. The generated vhost-user-fs device follows the
+# machine type; the 9p share is two ordinary [QEMU] lines and needs no
+# daemon.
+
+[Unit]
+Description=microvm guest
+
+[QEMU]
+machine=microvm,rtc=on,acpi=on
+accel=kvm
+cpu=host
+m=1024
+smp=2
+kernel=/srv/kernel/bzImage
+append=console=ttyS0 root=/dev/vda rw
+drive=file=root.raw,if=none,format=raw,id=root
+device=virtio-blk-device,drive=root
+netdev=user,id=net0,hostfwd=tcp:127.0.0.1:10222-:22
+device=virtio-net-device,netdev=net0
+device=virtio-rng-device
+device=vhost-vsock-device,guest-cid=43
+fsdev=local,id=fsdev_share,path=/srv/share,security_model=none,multidevs=remap
+device=virtio-9p-device,fsdev=fsdev_share,mount_tag=share
+nographic=
+serial=mon:stdio
+
+[virtiofsd]
+shared-dir=%h
+tag=home
+sandbox=namespace
+uid-map=:0:%U:1:
+gid-map=:0:%G:1:
+xattr=
+no-announce-submounts=

@@ -1,0 +1,12 @@
+# SPDX-License-Identifier: copyleft-next-0.3.1
+#
+# See fstests-xfs.qemu; the shared lines are in fstests-.qemu.d/.
+
+[Unit]
+Description=fstests on btrfs
+
+[QEMU]
+append=console=ttyS0 root=/dev/vda rw fstests=btrfs
+
+[Install]
+WantedBy=machines.target
