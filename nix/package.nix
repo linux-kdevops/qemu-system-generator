@@ -61,6 +61,10 @@ rustPlatform.buildRustPackage (finalAttrs: {
     install --mode=0644 data/qmp-powerdown $out/share/qemu/systemd/
     ln --symbolic ../../../bin/qemu-system-generator $out/lib/systemd/system-generators/qemu-system-generator
     ln --symbolic ../../../bin/qemu-system-generator $out/lib/systemd/user-generators/qemu-system-generator
+    mkdir --parents $out/lib/systemd/user
+    install --mode=0644 data/qemu-system-generator.path $out/lib/systemd/user/
+    substitute data/qemu-system-generator.service $out/lib/systemd/user/qemu-system-generator.service \
+      --replace-fail "ExecStart=qemu-system-generator" "ExecStart=$out/bin/qemu-system-generator"
     mkdir --parents $out/share/doc/qemu-system-generator
     cp --recursive examples $out/share/doc/qemu-system-generator/
   '';
