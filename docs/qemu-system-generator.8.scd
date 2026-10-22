@@ -24,6 +24,20 @@ _/usr/lib/systemd/user-generators/_ as symlinks to one binary. The scope
 is taken from *$SYSTEMD_SCOPE*, which the service manager sets, or from
 *--user* and *--system*; without either, the effective user id decides.
 
+A user manager runs generators only from root-owned directories
+(*systemd.generator*(7)). Without root, enable the two user units shipped
+next to the binary:
+
+```
+systemctl --user enable --now qemu-system-generator.service qemu-system-generator.path
+```
+
+The service runs the generator with _$XDG_RUNTIME_DIR/systemd/user/_ as
+_normal-dir_, after removing what an earlier run wrote there, and then
+*systemctl --user daemon-reload*. It starts at login and whenever the
+path unit sees a change in _$XDG_CONFIG_HOME/qemu/systemd/_. Changes in
+a drop-in directory are not seen; start the service by hand after those.
+
 With *--dryrun* nothing is written: every generated file is printed after
 a *---path---* line, and every symlink as *---path -> target---*. Together
 with *$QEMU_SYSTEMD_UNIT_DIRS* this checks a file before deploying it:
@@ -68,6 +82,10 @@ _/usr/share/qemu/systemd/qmp-powerdown_
 
 _/run/systemd/generator/_, _$XDG_RUNTIME_DIR/systemd/generator/_
 	Where the generated units land.
+
+_/usr/lib/systemd/user/qemu-system-generator.service_,
+_/usr/lib/systemd/user/qemu-system-generator.path_
+	The user units that run the generator without root.
 
 # EXIT STATUS
 
