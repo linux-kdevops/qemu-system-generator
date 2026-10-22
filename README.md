@@ -68,6 +68,12 @@ sudo mkdir --parents /usr/share/qemu/systemd
 sudo install --mode=0644 data/qmp-powerdown /usr/share/qemu/systemd/
 ```
 
+Without root, a user runs it through two user units instead; see
+`qemu-system-generator(8)`. [docs/bootstrap.md](docs/bootstrap.md) walks
+through booting a NixOS guest that way, and
+[docs/bootstrap-knix.md](docs/bootstrap-knix.md) moves it onto a kernel
+and a QEMU of your own.
+
 The generated units call `socat`, `varlinkctl` and `ssh` by name; the
 build environment can pin them, and the QEMU and virtiofsd binaries, to
 absolute paths (see `build.rs`).
@@ -100,6 +106,7 @@ src/backend/qemu.rs      [VM], [QEMU], [virtiofsd]
 src/launcher/systemd.rs  a Plan into .service/.socket files and symlinks
 src/main.rs              generator entry point and command line
 data/qmp-powerdown       the QMP commands ExecStop= sends
+data/qemu-system-generator.*  user units that run it without root
 docs/                    man pages, scdoc
 examples/                one file per feature; the conformance inputs
 tests/                   expected generator output, verify script
