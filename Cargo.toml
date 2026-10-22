@@ -1,0 +1,18 @@
+[package]
+name = "qemu-system-generator"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.85"
+license = "copyleft-next-0.3.1"
+description = "systemd generator that turns .qemu files into QEMU services"
+readme = "README.md"
+build = "build.rs"
+
+[dependencies]
+
+[[bin]]
+name = "qemu-system-generator"
+path = "src/main.rs"
+
+[profile.release]
+strip = true
