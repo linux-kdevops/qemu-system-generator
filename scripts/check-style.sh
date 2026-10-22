@@ -3,10 +3,11 @@
 # Style and commit-message checks. Run from the checkout:
 #   scripts/check-style.sh
 # Needs git, awk, sed, grep and python3. Hand-authored files only: the
-# license texts under LICENSES/ stay byte-for-byte and are exempt.
+# license texts under LICENSES/ stay byte-for-byte and the images are
+# binary, so both are exempt.
 set -o errexit -o nounset -o pipefail
 
-scope=(-- . ':!LICENSES')
+scope=(-- . ':!LICENSES' ':!*.png' ':!*.ico')
 status=0
 here="$(dirname "${BASH_SOURCE[0]}")"
 
@@ -126,7 +127,7 @@ while IFS= read -r f; do
 		echo "error: $f: missing 'SPDX-License-Identifier:' in the first two lines"
 		status=1
 	fi
-done < <(git ls-files "${scope[@]}" | grep --extended-regexp '\.(rs|nix|sh|py|qemu|conf)$|^scripts/[^.]*$|^tests/(verify|update-expected)$' || true)
+done < <(git ls-files "${scope[@]}" | grep --extended-regexp '\.(rs|nix|sh|py|qemu|conf|rst|css|yaml)$|^scripts/[^.]*$|^tests/(verify|update-expected)$' || true)
 
 [ "$status" -eq 0 ] && echo "style: OK"
 exit "$status"

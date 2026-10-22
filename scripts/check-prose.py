@@ -6,10 +6,10 @@
     check-prose.py --commit REV        # REV's message and the prose it adds
     check-prose.py --file PATH...      # all the prose in each file
 
-A commit's prose is its message, the lines it adds to .md and .scd files, and
-the comment and docstring lines it adds to .rs, .py, .sh, .nix, .qemu and
-.conf files. DENY fails, WARN only prints. The patterns and the rates that
-justify them are in docs/writing.md.
+A commit's prose is its message, the lines it adds to .md, .rst and .scd
+files, and the comment and docstring lines it adds to .rs, .py, .sh, .nix,
+.qemu and .conf files. DENY fails, WARN only prints. The patterns and the
+rates that justify them are in docs/writing.md.
 """
 
 import argparse
@@ -63,7 +63,7 @@ COMMENT_WARN = {
     "helper opener": r"^(?:A )?[Hh]elper (?:function )?(?:to|for|that)\b",
 }
 TRAILER = re.compile(r"^[A-Za-z][A-Za-z-]*: \S")
-PROSE = (".md", ".scd")
+PROSE = (".md", ".rst", ".scd")
 # The comment leader of each commented source kind. Rust's `///` and `//!`
 # doc comments start with the same leader as its line comments.
 COMMENTED = {

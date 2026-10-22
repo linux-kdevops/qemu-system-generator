@@ -102,8 +102,8 @@ them rather than repeating them.
 `scripts/check-prose.py` refuses the phrasing these maintainers almost
 never write. `scripts/check-style.sh` runs it on the message alone in
 the commit-msg hook, and otherwise on HEAD's message plus the lines the
-commit adds to `.md` and `.scd` files and to the comments of `.rs`,
-`.py`, `.sh`, `.nix`, `.qemu` and `.conf` files. To check whole files
+commit adds to `.md`, `.rst` and `.scd` files and to the comments of
+`.rs`, `.py`, `.sh`, `.nix`, `.qemu` and `.conf` files. To check whole files
 outside a commit, such as a new page before review, run
 `python3 scripts/check-prose.py --file <path>...`. The exact patterns
 live in the script; by kind they are:
