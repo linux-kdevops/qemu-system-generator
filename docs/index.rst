@@ -12,6 +12,11 @@ at boot and on ``systemctl daemon-reload``, writes the units that run the
 machine and the `virtiofsd`_ daemons it shares directories through, then
 exits.
 
+:doc:`background/qemu-problem` explains why: QEMU leaves its lifecycle to
+whoever starts it, every wrapper that takes the job on brings its own
+configuration language, and this one maps the file to QEMU's command line
+one to one.
+
 The format is specified in :doc:`man/qemu-systemd.unit.5` and the program
 in :doc:`man/qemu-system-generator.8`. :doc:`bootstrap/index` boots a
 first guest without root, in five ways, one feature per step.
@@ -27,6 +32,13 @@ Community
   `kdevops@lists.linux.dev <mailto:kdevops@lists.linux.dev>`__.
 
 These are linked from the icons in the top navigation bar too.
+
+.. toctree::
+   :maxdepth: 1
+   :caption: Background
+
+   background/qemu-problem
+   background/wrappers
 
 .. toctree::
    :maxdepth: 1
