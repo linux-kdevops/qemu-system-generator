@@ -45,12 +45,66 @@
         default = qemu-system-generator;
       });
 
-      apps = forAllSystems (pkgs: {
-        default = {
-          type = "app";
-          program = "${self.packages.${pkgs.stdenv.hostPlatform.system}.default}/bin/qemu-system-generator";
-        };
-      });
+      apps = forAllSystems (
+        pkgs:
+        let
+          # Sphinx writes into the checkout, so the docs apps run from its
+          # root wherever they are started.
+          mkDocsApp =
+            {
+              name,
+              description,
+              text,
+            }:
+            {
+              type = "app";
+              program = pkgs.lib.getExe (
+                pkgs.writeShellApplication {
+                  inherit name;
+                  runtimeInputs = [
+                    pkgs.git
+                    (docsPython pkgs)
+                    pkgs.scdoc
+                    pkgs.mandoc
+                  ];
+                  text = ''
+                    root="$(git rev-parse --show-toplevel 2>/dev/null)" || {
+                      echo "${name}: run this inside the qemu-system-generator checkout" >&2
+                      exit 1
+                    }
+                    cd "$root"
+                    ${text}
+                  '';
+                }
+              );
+              meta = { inherit description; };
+            };
+        in
+        {
+          default = {
+            type = "app";
+            program = "${self.packages.${pkgs.stdenv.hostPlatform.system}.default}/bin/qemu-system-generator";
+          };
+
+          docs = mkDocsApp {
+            name = "qemu-system-generator-docs";
+            description = "Render the documentation to docs/_build/html with Sphinx";
+            text = ''
+              sphinx-build --write-all docs docs/_build/html
+              echo "docs ready: docs/_build/html/index.html"
+            '';
+          };
+
+          serve = mkDocsApp {
+            name = "qemu-system-generator-serve";
+            description = "Live-render the docs on 127.0.0.1, rebuilding on save (arg: port)";
+            text = ''
+              port="''${1:-8001}"
+              sphinx-autobuild --write-all docs docs/_build/html --host 127.0.0.1 --port "$port"
+            '';
+          };
+        }
+      );
 
       nixosModules.default =
         { ... }:

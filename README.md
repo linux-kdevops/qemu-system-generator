@@ -144,11 +144,15 @@ format change.
 
 `nix flake check` also builds the documentation as Read the Docs does
 and holds the Markdown and reStructuredText prose to 80 columns.
-To preview it while editing:
+To render it, or to preview it while editing:
 
 ```shell
-nix develop --command sphinx-autobuild docs docs/_build/html
+nix run .#docs           # render to docs/_build/html
+nix run .#serve -- 8001  # live-render on 127.0.0.1:8001, rebuilding on save
 ```
+
+On a remote host, forward the port first with
+`ssh -L 8001:127.0.0.1:8001 <host>`.
 
 [systemd]: https://systemd.io
 [QEMU]: https://www.qemu.org/docs/master/system/invocation.html
