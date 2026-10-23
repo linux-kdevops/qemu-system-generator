@@ -145,9 +145,12 @@ pub struct Source {
     pub dropins: Vec<PathBuf>,
 }
 
-/// A name systemd skips when it lists a directory: of the rules of
-/// `hidden_or_backup_file()` (`src/basic/path-util.c`), the leading dot
-/// is the only one a `.qemu`, `.qemu.d` or `.conf` name can meet.
+/// A name systemd skips in a drop-in directory (`FOREACH_DIRENT()` in
+/// `src/basic/conf-files.c`): of the rules of `hidden_or_backup_file()`
+/// (`src/basic/path-util.c`), the leading dot is the only one a `.qemu`,
+/// `.qemu.d` or `.conf` name can meet. systemd loads a unit whose name
+/// starts with a dot; a `.qemu` is skipped too so that an editor's lock
+/// file, `.#name.qemu`, is not a machine.
 fn hidden(file_name: &str) -> bool {
     file_name.starts_with('.')
 }
