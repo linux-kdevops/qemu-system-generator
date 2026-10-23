@@ -279,14 +279,14 @@ path unit does not watch the drop-in directory.
 ============
 
 ``QemuBinary=`` replaces the QEMU the generator was built with. It becomes
-the first word of ``ExecStart=``, which must be a literal absolute path,
-so write your home directory out:
+the first word of ``ExecStart=``, where systemd expands ``%h`` to your
+home directory:
 
 .. code-block:: diff
    :caption: ~/.config/qemu/systemd/bootstrap.qemu
 
     [VM]
-   +QemuBinary=/home/user/bootstrap/knix/qemu-install/bin/qemu-system-x86_64
+   +QemuBinary=%h/bootstrap/knix/qemu-install/bin/qemu-system-x86_64
     SshPrivateKey=%h/bootstrap/ssh/id_ed25519
 
 Regenerate and restart, then check which binary runs:
