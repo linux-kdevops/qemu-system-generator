@@ -8,6 +8,10 @@ on [`systemctl daemon-reload`][systemctl], writes
 service of every directory the machine shares, then exits. Nothing stays
 between systemd and QEMU.
 
+It is modelled on [Podman]'s [Quadlet]: the search path, drop-ins,
+`[Install]` and `--dryrun` work as in [`podman-systemd.unit(5)`][quadlet-man],
+while `[QEMU]` keeps QEMU's own option names.
+
 Status: research draft. The format is documented in
 [man/qemu-systemd.unit.5.scd](man/qemu-systemd.unit.5.scd) and the
 program in [man/qemu-system-generator.8.scd](man/qemu-system-generator.8.scd);
@@ -149,6 +153,9 @@ nix develop --command sphinx-autobuild docs docs/_build/html
 [systemd]: https://systemd.io
 [QEMU]: https://www.qemu.org/docs/master/system/invocation.html
 [systemctl]: https://www.freedesktop.org/software/systemd/man/latest/systemctl.html
+[Podman]: https://podman.io
+[Quadlet]: https://github.com/podman-container-tools/podman/tree/main/pkg/systemd/quadlet
+[quadlet-man]: https://docs.podman.io/en/latest/markdown/podman-systemd.unit.5.html
 [Sphinx]: https://www.sphinx-doc.org
 [Read the Docs]: https://about.readthedocs.com
 [virtiofsd]: https://gitlab.com/virtio-fs/virtiofsd

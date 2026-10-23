@@ -14,7 +14,8 @@ only, and leaves the second to whoever starts it.
 Dozens of tools fill the gap, each filling both halves in its own
 way; :doc:`wrappers` lists them. This project fills it without another
 vocabulary: the command line stays QEMU's own, one option per line, and
-`systemd`_ runs the lifecycle.
+`systemd`_ runs the lifecycle, through a generator modelled on `Podman`_'s
+`Quadlet`_ (:ref:`below <from-quadlet>`).
 
 What QEMU leaves out
 ====================
@@ -132,6 +133,35 @@ The lifecycle is systemd's. The generator writes the units that start,
 stop, order and confine the machine. The next section lists everything
 it adds, so every exception to the one-to-one mapping is stated.
 
+.. _from-quadlet:
+
+What it takes from Quadlet
+--------------------------
+
+Quadlet does for Podman's containers what this project does for QEMU: its
+generator, ``podman-system-generator``, turns ``.container`` files and the
+other types it reads into services at every ``daemon-reload``
+(:cmd:`podman-systemd.unit(5)`). This project delivers its units the same
+way. The search path is Quadlet's with ``qemu/systemd/`` in place of
+``containers/systemd/``. Drop-ins work as Quadlet's do, including the
+type directory and the dash-prefix directories that let a family of
+machines share lines. ``[Install]`` becomes symlinks at
+generation time, since a generated unit cannot be enabled afterwards.
+``--dryrun`` prints each file after a ``---path---`` line, and an
+environment variable replaces the search path: ``QUADLET_UNIT_DIRS``
+there, ``QEMU_SYSTEMD_UNIT_DIRS`` here. The manual is named after
+Quadlet's too: ``qemu-systemd.unit(5)`` for ``podman-systemd.unit(5)``.
+
+The vocabulary is not copied. A ``[Container]`` key is Quadlet's own and
+a table translates it: ``PublishPort=`` becomes ``--publish`` and
+``Timezone=`` becomes ``--tz`` (:gh:`pkg/systemd/quadlet/quadlet.go
+<podman-container-tools/podman/blob/main/pkg/systemd/quadlet/quadlet.go>`).
+``PodmanArgs=`` passes what the table lacks, and its manual recommends
+against it. Here that escape hatch is the whole ``[QEMU]`` section.
+Templates such as ``foo@.container`` have no counterpart either: a
+``.qemu`` file's unit is already an instance of ``qemu-system@.service``,
+so a family shares its lines through drop-ins.
+
 What the generator decides
 --------------------------
 
@@ -187,6 +217,8 @@ in systemd.
 
 .. _QEMU: https://www.qemu.org/docs/master/system/invocation.html
 .. _systemd: https://systemd.io
+.. _Podman: https://podman.io
+.. _Quadlet: https://github.com/podman-container-tools/podman/tree/main/pkg/systemd/quadlet
 .. _ACPI: https://uefi.org/specifications
 .. _SMBIOS: https://www.dmtf.org/standards/smbios
 .. _#148: https://gitlab.com/qemu-project/qemu/-/issues/148

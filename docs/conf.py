@@ -93,6 +93,7 @@ cmd_links = {
     "systemd.service(5)": f"{_SYSTEMD}/systemd.service.html",
     "systemd.unit(5)": f"{_SYSTEMD}/systemd.unit.html",
     "sd_notify(3)": f"{_SYSTEMD}/sd_notify.html",
+    "podman-systemd.unit(5)": "https://docs.podman.io/en/latest/markdown/podman-systemd.unit.5.html",
     "vsock(7)": "https://man7.org/linux/man-pages/man7/vsock.7.html",
     "Type=": f"{_SYSTEMD}/systemd.service.html#Type=",
     "ExecStart=": f"{_SYSTEMD}/systemd.service.html#ExecStart=",

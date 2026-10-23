@@ -10,7 +10,10 @@ machine, in systemd unit-file syntax, whose :key:`[QEMU]` section is
 `QEMU`_'s own command line passed through line by line. The generator runs
 at boot and on :cmd:`systemctl daemon-reload <systemctl>`, writes the units
 that run the machine and the `virtiofsd`_ daemons it shares directories
-through, then exits.
+through, then exits. It is modelled on `Podman`_'s `Quadlet`_: the search
+path, drop-ins, ``[Install]`` and ``--dryrun`` work as they do in
+:cmd:`podman-systemd.unit(5)`, while ``[QEMU]`` keeps QEMU's own option
+names (:ref:`from-quadlet`).
 
 :doc:`background/qemu-problem` explains why: QEMU leaves its lifecycle to
 whoever starts it, every wrapper that takes the job on brings its own
@@ -62,3 +65,5 @@ These are linked from the icons in the top navigation bar too.
 .. _systemd: https://systemd.io
 .. _QEMU: https://www.qemu.org/docs/master/system/invocation.html
 .. _virtiofsd: https://gitlab.com/virtio-fs/virtiofsd
+.. _Podman: https://podman.io
+.. _Quadlet: https://github.com/podman-container-tools/podman/tree/main/pkg/systemd/quadlet
