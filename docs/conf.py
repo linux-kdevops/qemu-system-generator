@@ -119,6 +119,7 @@ cmd_links = {
     "ssh_config(5)": "https://man7.org/linux/man-pages/man5/ssh_config.5.html",
     "systemd.exec(5)": f"{_SYSTEMD}/systemd.exec.html",
     "readlink": f"{_MAN1}/readlink.1.html",
+    "man": f"{_MAN1}/man.1.html",
     "sha256sum": f"{_MAN1}/sha256sum.1.html",
     "virsh": "https://www.libvirt.org/manpages/virsh.html",
     "virt-install": "https://github.com/virt-manager/virt-manager/blob/main/man/virt-install.rst",

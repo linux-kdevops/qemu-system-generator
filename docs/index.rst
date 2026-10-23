@@ -53,8 +53,7 @@ These are linked from the icons in the top navigation bar too.
    :maxdepth: 1
    :caption: Manual pages
 
-   man/qemu-systemd.unit.5
-   man/qemu-system-generator.8
+   man/index
 
 .. _systemd: https://systemd.io
 .. _QEMU: https://www.qemu.org/docs/master/system/invocation.html
