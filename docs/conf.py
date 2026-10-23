@@ -93,6 +93,7 @@ cmd_links = {
     "nix build": f"{_NIX}/nix3-build",
     "nix develop": f"{_NIX}/nix3-develop",
     "nix flake init": f"{_NIX}/nix3-flake-init",
+    "nix profile add": f"{_NIX}/nix3-profile-add",
 }
 
 

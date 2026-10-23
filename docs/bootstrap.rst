@@ -173,27 +173,31 @@ boots, and its ``init`` is what the kernel runs once the store is mounted:
 The generator
 -------------
 
-From the checkout of this repository:
+Add it to your Nix profile with :cmd:`nix profile add`, from the checkout
+of this repository:
 
 .. code-block:: console
    :class: cmd-host
 
-   $ nix build --out-link ~/nixos-bootstrap/generator
+   $ nix profile add .
 
-systemd runs user generators only from root-owned directories
+The profile puts ``qemu-system-generator`` on ``PATH``. systemd runs user
+generators only from root-owned directories
 (:cmd:`systemd.generator(7)`), so a user manager never runs this one on its
-own. Two user units do it instead:
+own. Two user units do it instead. Enable them through the profile's
+link, ``~/.nix-profile`` (``~/.local/state/nix/profile`` with
+`use-xdg-base-directories`_):
 
 .. code-block:: console
    :class: cmd-host
 
    $ systemctl --user enable --now \
-       ~/nixos-bootstrap/generator/lib/systemd/user/qemu-system-generator.service \
-       ~/nixos-bootstrap/generator/lib/systemd/user/qemu-system-generator.path
-   Created symlink '/home/user/.config/systemd/user/qemu-system-generator.service' → '/home/user/nixos-bootstrap/generator/lib/systemd/user/qemu-system-generator.service'.
-   Created symlink '/home/user/.config/systemd/user/default.target.wants/qemu-system-generator.service' → '/home/user/nixos-bootstrap/generator/lib/systemd/user/qemu-system-generator.service'.
-   Created symlink '/home/user/.config/systemd/user/qemu-system-generator.path' → '/home/user/nixos-bootstrap/generator/lib/systemd/user/qemu-system-generator.path'.
-   Created symlink '/home/user/.config/systemd/user/default.target.wants/qemu-system-generator.path' → '/home/user/nixos-bootstrap/generator/lib/systemd/user/qemu-system-generator.path'.
+       ~/.nix-profile/lib/systemd/user/qemu-system-generator.service \
+       ~/.nix-profile/lib/systemd/user/qemu-system-generator.path
+
+``systemctl`` links the units by the path it is given, not by the store
+path behind it. After ``nix profile upgrade qemu-system-generator``, a
+``systemctl --user daemon-reload`` loads the new generation's units.
 
 The service turns every ``.qemu`` file in ``~/.config/qemu/systemd/`` into
 units and reloads the manager; it runs at login, and the
@@ -641,7 +645,7 @@ two files without writing anything:
 .. code-block:: console
    :class: cmd-host
 
-   $ ~/nixos-bootstrap/generator/bin/qemu-system-generator --user --dryrun
+   $ qemu-system-generator --user --dryrun
    ---qemu-system@bootstrap.service---
    ...
        -append "console=ttyS0 console=hvc0 init=/nix/store/i7s2903dhm9g5z73vkcbpggmv1iqnvwy-nixos-system-bootstrap-26.11.20261020.02c087f/init" \
@@ -788,4 +792,5 @@ Notes
 .. _systemd-boot: https://www.freedesktop.org/software/systemd/man/latest/systemd-boot.html
 .. _user-mode network: https://www.qemu.org/docs/master/system/devices/net.html#using-the-user-mode-network-stack
 .. _vsock: https://man7.org/linux/man-pages/man7/vsock.7.html
+.. _use-xdg-base-directories: https://nix.dev/manual/nix/latest/command-ref/conf-file.html#conf-use-xdg-base-directories
 .. _resource limits: https://www.freedesktop.org/software/systemd/man/latest/systemd.resource-control.html
