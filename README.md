@@ -71,10 +71,9 @@ sudo install --mode=0644 data/qmp-powerdown /usr/share/qemu/systemd/
 ```
 
 Without root, a user runs it through two user units instead; see
-`qemu-system-generator(8)`. [docs/bootstrap.rst](docs/bootstrap.rst) walks
-through booting a NixOS guest that way, and
-[docs/bootstrap-knix.rst](docs/bootstrap-knix.rst) moves it onto a kernel
-and a QEMU of your own.
+`qemu-system-generator(8)`. The guides in [docs/bootstrap/](docs/bootstrap/)
+boot a guest that way from a NixOS disk image, a kernel and an initrd, or
+a kernel and a QEMU of your own.
 
 The generated units call `socat`, `varlinkctl` and `ssh` by name; the
 build environment can pin them, and the QEMU and virtiofsd binaries, to

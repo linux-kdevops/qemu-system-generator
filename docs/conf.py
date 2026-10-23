@@ -20,9 +20,11 @@ copybutton_prompt_text = r"[$#] "
 copybutton_prompt_is_regexp = True
 copybutton_line_continuation_character = "\\"
 
+# A guide includes the bootstrap/_*.rst fragments; they are no page of their own.
 exclude_patterns = [
     "_build",
     "_generated",
+    "bootstrap/_*.rst",
 ]
 
 html_theme = "pydata_sphinx_theme"

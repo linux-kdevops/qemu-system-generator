@@ -13,8 +13,8 @@ machine and the `virtiofsd`_ daemons it shares directories through, then
 exits.
 
 The format is specified in :doc:`man/qemu-systemd.unit.5` and the program
-in :doc:`man/qemu-system-generator.8`. :doc:`bootstrap` boots a first
-guest without root, one feature per step.
+in :doc:`man/qemu-system-generator.8`. :doc:`bootstrap/index` boots a
+first guest without root, in three ways, one feature per step.
 
 Community
 =========
@@ -32,8 +32,7 @@ These are linked from the icons in the top navigation bar too.
    :maxdepth: 1
    :caption: Walk-throughs
 
-   bootstrap
-   bootstrap-knix
+   bootstrap/index
 
 .. toctree::
    :maxdepth: 1
