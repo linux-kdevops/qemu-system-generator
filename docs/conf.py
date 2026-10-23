@@ -90,6 +90,8 @@ cmd_links = {
     "readlink": f"{_MAN1}/readlink.1.html",
     "socat": "http://www.dest-unreach.org/socat/doc/socat.html",
     "jq": "https://jqlang.org/manual/",
+    "curl": "https://curl.se/docs/manpage.html",
+    "cloud-localds": "https://manpages.debian.org/unstable/cloud-image-utils/cloud-localds.1.en.html",
     "qemu-system-x86_64(1)": "https://www.qemu.org/docs/master/system/invocation.html",
     "qemu-guest.nix": "https://github.com/NixOS/nixpkgs/blob/master/nixos/modules/profiles/qemu-guest.nix",
     "nix build": f"{_NIX}/nix3-build",

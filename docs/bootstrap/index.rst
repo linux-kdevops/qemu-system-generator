@@ -33,14 +33,20 @@ how the guest boots, which decides what a change to the guest costs.
      - None: QEMU loads the kernel
      - Your own kernel, a knix closure and your own QEMU
      - ``make`` the kernel and restart
+   * - :doc:`cloud`
+     - SeaBIOS and the image's GRUB
+     - Debian, Fedora and Ubuntu cloud images, set up by cloud-init
+     - Change it inside the guest, with its package manager
 
 :doc:`disk` is the closest to a physical machine. :doc:`kernel` covers
 the most of the format: vsock, SSH poweroff, consoles, drop-ins, systemd
 settings and shares, which work the same way in the others.
 
-All four share ``~/nixos-bootstrap`` and its SSH key, and write the
-machine ``bootstrap``, in ``~/.config/qemu/systemd/bootstrap.qemu``; before
-following a second one, remove that file and ``bootstrap.qemu.d/``.
+All five share ``~/nixos-bootstrap`` and its SSH key. The NixOS guides
+and the knix guide write the machine ``bootstrap``, in
+``~/.config/qemu/systemd/bootstrap.qemu``; before following a second one,
+remove that file and ``bootstrap.qemu.d/``. The cloud guide writes
+``cloud-debian``, ``cloud-fedora`` and ``cloud-ubuntu`` beside it.
 
 .. toctree::
    :maxdepth: 1
@@ -49,3 +55,4 @@ following a second one, remove that file and ``bootstrap.qemu.d/``.
    uki
    kernel
    knix
+   cloud
