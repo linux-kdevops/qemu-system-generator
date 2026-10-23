@@ -5,9 +5,9 @@ Bootstrap from a kernel and an initrd
 =====================================
 
 This guide boots a `NixOS`_ guest under your user's `systemd`_ manager
-with no firmware and no disk. QEMU loads the guest's kernel and `initrd`_
+with no firmware and no disk. `QEMU`_ loads the guest's kernel and `initrd`_
 itself, the root file system is a `tmpfs`_, and ``/nix/store`` is the
-host's own, shared over `virtiofs`_. Its ``.qemu`` file grows by one
+host's own, shared over `virtiofs`_. Its :key:`.qemu` file grows by one
 feature per step, and no step needs root.
 
 The file format is specified in
@@ -133,7 +133,7 @@ closure's kernel and initrd. ``%h`` is your home directory, one of the
 .. include:: _start.rst
 
 No boot loader reads the closure's command line, so ``append=`` is all
-the kernel gets. Linux boots, and the initrd stops where it looks for the
+the kernel gets. `Linux`_ boots, and the initrd stops where it looks for the
 store:
 
 .. code-block:: console
@@ -183,7 +183,7 @@ Add both, with your own path in ``init=``:
    +uid-map=:0:%U:1:
    +gid-map=:0:%G:1:
 
-Each ``[virtiofsd]`` section runs one `virtiofsd`_ daemon for one shared
+Each :key:`[virtiofsd]` section runs one `virtiofsd`_ daemon for one shared
 directory. Its keys are the long options of ``virtiofsd --help``
 without the dashes. The generator runs the daemon from its own socket
 unit and adds the QEMU lines that connect to it. ``sandbox=``,
@@ -257,7 +257,7 @@ Regenerate, restart with ``systemctl --user restart``, and log in with
 4. vsock
 ========
 
-A `vsock`_ device gives the guest a context id, a socket address the host
+A vsock device gives the guest a context id, a socket address the host
 can reach without any network:
 
 .. code-block:: diff
@@ -310,9 +310,9 @@ With the ``Include`` in your ``~/.ssh/config``, the machine's name is an
 5. Poweroff over SSH
 ====================
 
-``[VM]`` holds what is not a QEMU option. With ``SshPrivateKey=``, stopping
-the machine first runs ``systemctl poweroff`` in the guest over vsock, and
-presses the power button only if that fails:
+:key:`[VM]` holds what is not a QEMU option. With :key:`SshPrivateKey=`,
+stopping the machine first runs ``systemctl poweroff`` in the guest over
+vsock, and presses the power button only if that fails:
 
 .. code-block:: diff
    :caption: ~/.config/qemu/systemd/bootstrap.qemu
@@ -417,9 +417,10 @@ hand after rewriting it.
 8. systemd settings
 ===================
 
-``[Unit]``, ``[Service]`` and ``[Install]`` are copied into the generated
-service, so the machine takes a description, `resource limits`_ and an
-install target the way a hand-written unit does:
+:cmd:`[Unit] <systemd.unit(5)>`, :cmd:`[Service] <systemd.service(5)>` and
+``[Install]`` are copied into the generated service, so
+the machine takes a description, `resource limits`_ and an install target
+the way a hand-written unit does:
 
 .. code-block:: diff
    :caption: ~/.config/qemu/systemd/bootstrap.qemu
@@ -445,7 +446,7 @@ install target the way a hand-written unit does:
         Active: active (running) since Thu 2026-10-22 16:46:55 CEST; 13s ago
         Memory: 340.4M (max: 3G, available: 2.6G, peak: 341.5M)
 
-With ``WantedBy=machines.target``, ``systemctl --user start
+With :cmd:`WantedBy=machines.target <WantedBy=>`, ``systemctl --user start
 machines.target`` starts the machine too. Every generated machine is
 also part of :cmd:`machines.target`, so ``systemctl --user stop
 machines.target`` stops all of them, not only this one.
@@ -518,11 +519,11 @@ Notes
   configuration.
 - A machine stopped in the first seconds of its boot can neither take
   the SSH poweroff nor answer the power button yet. The stop then waits
-  for ``TimeoutStopSec=``, two minutes, before killing it;
+  for :cmd:`TimeoutStopSec=`, two minutes, before killing it;
   ``systemctl --user kill`` is quicker.
 - In a ``[virtiofsd]`` section, ``%i`` is ``name-tag``, the daemon's
   instance, not the machine name.
-- A ``qemu-system@.service`` template of your own in
+- A :key:`qemu-system@.service` template of your own in
   ``~/.config/systemd/user/`` serves any machine the generator has not
   written, and drop-ins under ``qemu-system@name.service.d/`` apply to
   generated units too.
@@ -535,5 +536,6 @@ Notes
 .. _specifiers: https://www.freedesktop.org/software/systemd/man/latest/systemd.unit.html#Specifiers
 .. _virtiofsd: https://gitlab.com/virtio-fs/virtiofsd
 .. _user-mode network: https://www.qemu.org/docs/master/system/devices/net.html#using-the-user-mode-network-stack
-.. _vsock: https://man7.org/linux/man-pages/man7/vsock.7.html
+.. _QEMU: https://www.qemu.org/docs/master/system/invocation.html
+.. _Linux: https://www.kernel.org
 .. _resource limits: https://www.freedesktop.org/software/systemd/man/latest/systemd.resource-control.html

@@ -4,13 +4,13 @@
 Bootstrap from a UKI in the store
 ==================================
 
-This guide boots a `NixOS`_ guest under your user's systemd manager with
-no disk image and no ``kernel=`` line. The `OVMF`_ firmware loads a
-`unified kernel image`_ (UKI), one EFI binary that holds the kernel, the
-`initrd`_ and the kernel command line, from a directory the host shares
-over `virtiofs`_. The system it boots stays in the host's
-``/nix/store``, shared the same way. Its ``.qemu`` file grows by one
-feature per step, and no step needs root.
+This guide boots a `NixOS`_ guest in `QEMU`_ under your user's `systemd`_
+manager with no disk image and no ``kernel=`` line. The `OVMF`_ firmware
+loads a `unified kernel image`_ (UKI), one EFI binary that holds the kernel,
+the `initrd`_ and the kernel command line, from a directory the host shares
+over `virtiofs`_. The system it boots stays in the host's ``/nix/store``,
+shared the same way. Its :key:`.qemu` file grows by one feature per step,
+and no step needs root.
 
 The file format is specified in
 :doc:`qemu-systemd.unit(5) </man/qemu-systemd.unit.5>` and the generator in
@@ -161,7 +161,7 @@ default `SeaBIOS`_. The first flash device holds OVMF's code, read-only.
 The second holds its variable store, which the firmware writes; with
 ``snapshot=on``, QEMU writes to a temporary file instead.
 
-Each ``[virtiofsd]`` section runs one `virtiofsd`_ daemon for one shared
+Each :key:`[virtiofsd]` section runs one `virtiofsd`_ daemon for one shared
 directory. Its keys are the long options of ``virtiofsd --help`` without
 the dashes. The generator runs the daemon from its own socket unit and
 adds the QEMU lines that connect to it. ``sandbox=``, ``uid-map=`` and
@@ -242,7 +242,7 @@ takes 1.8 seconds:
 3. SSH
 ======
 
-QEMU's `user-mode network`_ needs no privileges, and a `vsock`_ device
+QEMU's `user-mode network`_ needs no privileges, and a vsock device
 gives the guest a context id, a socket address the host can reach without
 any network. Forward a local port to the guest's SSH, and add the device:
 
@@ -353,6 +353,7 @@ to you. :doc:`kernel` boots the same kind of system without firmware and
 goes on to SSH poweroff, consoles and systemd settings, which work the
 same way here.
 
+.. _systemd: https://systemd.io
 .. _NixOS: https://nixos.org/manual/nixos/stable/
 .. _OVMF: https://github.com/tianocore/tianocore.github.io/wiki/OVMF
 .. _unified kernel image: https://uapi-group.org/specifications/specs/unified_kernel_image/
@@ -364,5 +365,5 @@ same way here.
 .. _virtiofsd: https://gitlab.com/virtio-fs/virtiofsd
 .. _specifiers: https://www.freedesktop.org/software/systemd/man/latest/systemd.unit.html#Specifiers
 .. _EDK II: https://github.com/tianocore/edk2
-.. _vsock: https://man7.org/linux/man-pages/man7/vsock.7.html
+.. _QEMU: https://www.qemu.org/docs/master/system/invocation.html
 .. _user-mode network: https://www.qemu.org/docs/master/system/devices/net.html#using-the-user-mode-network-stack

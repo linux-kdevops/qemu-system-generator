@@ -4,7 +4,7 @@
 Bootstrap with your own kernel and QEMU
 =======================================
 
-This guide boots a `NixOS`_ guest under your user's systemd manager on a
+This guide boots a `NixOS`_ guest under your user's `systemd`_ manager on a
 `Linux`_ kernel and a `QEMU`_ you build yourself. The system stays in the
 host's ``/nix/store``, shared over `virtiofs`_, and so do the kernel's
 modules. No step needs root.
@@ -18,16 +18,16 @@ shown as ``/home/user``.
 Why knix
 ========
 
-A `NixOS`_ system from `nixpkgs`_ carries its kernel: the initrd holds that
+A NixOS system from `nixpkgs`_ carries its kernel: the `initrd`_ holds that
 kernel's modules, and ``/lib/modules`` in the running system is that
-kernel's too. nixpkgs can build a kernel from your tree, but as a `Nix`_
+kernel's too. nixpkgs can build a kernel from your tree, but as a Nix
 derivation, which rebuilds from scratch after every change.
 
 `knix`_ keeps the kernel out of the closure. Its ``imageless`` backend
-builds a NixOS system with no kernel of its own and an `initrd`_ with no
+builds a NixOS system with no kernel of its own and an initrd with no
 modules, which expects the boot-critical drivers built in and mounts
 ``/lib/modules`` over virtiofs under the tag ``modules``. You build the
-kernel in your tree with ``make`` as usual, and the same closure boots
+kernel in your tree with :cmd:`make` as usual, and the same closure boots
 every build. knix also provides the ``build-kernel`` and ``build-qemu``
 shells, which bring the toolchains.
 
@@ -208,13 +208,13 @@ directory above:
 ``%h`` is your home directory, and ``%U`` and ``%G`` your user and group
 ids, among the `specifiers`_ systemd expands in a unit. ``nic=`` forwards
 a local port to the guest's SSH over QEMU's `user-mode network`_. The
-`vsock`_ device gives the guest a context id, which the generated unit
+vsock device gives the guest a context id, which the generated unit
 registers with your user's :cmd:`systemd-machined.service(8)`; with
-``SshPrivateKey=`` in ``[VM]``, stopping the machine first runs
+:key:`SshPrivateKey=` in :key:`[VM]`, stopping the machine first runs
 ``systemctl poweroff`` in the guest over vsock, and presses the power
 button only if that fails.
 
-Each ``[virtiofsd]`` section runs one `virtiofsd`_ daemon for one shared
+Each :key:`[virtiofsd]` section runs one `virtiofsd`_ daemon for one shared
 directory. Its keys are the long options of ``virtiofsd --help`` without
 the dashes. The generator runs the daemon from its own socket unit and
 adds the QEMU lines that connect to it. ``sandbox=``, ``uid-map=`` and
@@ -278,8 +278,8 @@ path unit does not watch the drop-in directory.
 2. Your QEMU
 ============
 
-``QemuBinary=`` replaces the QEMU the generator was built with. It becomes
-the first word of ``ExecStart=``, where systemd expands ``%h`` to your
+:key:`QemuBinary=` replaces the QEMU the generator was built with. It becomes
+the first word of :cmd:`ExecStart=`, where systemd expands ``%h`` to your
 home directory:
 
 .. code-block:: diff
@@ -303,6 +303,7 @@ The guest boots in about 9 seconds and stops in 2.
 
 .. _Linux: https://www.kernel.org
 .. _QEMU: https://www.qemu.org/docs/master/system/invocation.html
+.. _systemd: https://systemd.io
 .. _NixOS: https://nixos.org/manual/nixos/stable/
 .. _nixpkgs: https://github.com/NixOS/nixpkgs
 .. _initrd: https://docs.kernel.org/filesystems/ramfs-rootfs-initramfs.html
@@ -314,4 +315,3 @@ The guest boots in about 9 seconds and stops in 2.
 .. _virtiofsd: https://gitlab.com/virtio-fs/virtiofsd
 .. _specifiers: https://www.freedesktop.org/software/systemd/man/latest/systemd.unit.html#Specifiers
 .. _user-mode network: https://www.qemu.org/docs/master/system/devices/net.html#using-the-user-mode-network-stack
-.. _vsock: https://man7.org/linux/man-pages/man7/vsock.7.html

@@ -4,7 +4,7 @@
 QEMU wrappers
 =============
 
-On this page, a QEMU wrapper is a tool that writes the QEMU command line
+On this page, a QEMU wrapper is a tool that writes the `QEMU`_ command line
 itself, from a configuration language or defaults of its own, so that you
 can start a virtual machine without writing that command line. A test
 runner that boots the kernel under test this way is one. A tool that
@@ -23,16 +23,16 @@ Kernel development
 
 - `virtme-ng`_ (``vng``): "Quickly build and run kernels inside a
   virtualized snapshot of your live system." Boots ``microvm`` when it
-  can and shares the host's file system over virtiofs.
+  can and shares the host's file system over `virtiofs`_.
 - `virtme`_: "An easy way to virtualize the running system." The
   original, by Andy Lutomirski, which virtme-ng continues.
 - `vmctl`_: "QEMU NVMe Testing Galore!" Shell configuration files for
   QEMU machines, aimed at NVMe testing.
-- `run-kernel`_: boots a Linux kernel into a NixOS userland in QEMU,
-  with the Nix store shared over virtiofs and no disk image.
+- `run-kernel`_: boots a `Linux`_ kernel into a `NixOS`_ userland in QEMU,
+  with the `Nix`_ store shared over virtiofs and no disk image.
 - `eudyptula-boot`_: "Boot a Linux kernel in a VM without a dedicated
-  root filesystem." One shell script, 9p and overlayfs.
-- `Rapido`_: "Quickly test Linux kernel changes." Dracut-built
+  root filesystem." One shell script, `9p`_ and `overlayfs`_.
+- `Rapido`_: "Quickly test Linux kernel changes." `Dracut`_-built
   initramfs images for storage and file-system testing.
 - `vido`_: "wrap commands in throwaway virtual machines."
 - `run_qemu`_: "A script to create bootable OS images, and run qemu with
@@ -43,9 +43,9 @@ Kernel development
   ``kw vm`` starts a QEMU image with ``-smp 2 -m 1024`` unless its
   ``qemu_hw_options`` says otherwise.
 - `little-vm-helper`_: "tool for building and running VMs for
-  development and testing", from Cilium.
+  development and testing", from `Cilium`_.
 - `kernel-development-flake`_: "Nix flake for linux kernel development",
-  with commands that boot QEMU and attach GDB.
+  with commands that boot QEMU and attach `GDB`_.
 
 Tests in a virtual machine
 ==========================
@@ -53,7 +53,7 @@ Tests in a virtual machine
 - `KUnit`_: ``kunit.py run --arch`` boots the kernel's unit tests under
   QEMU with ``-nodefaults -m 1024 -nographic``.
 - `ktest`_: Kent Overstreet's "infrastructure for running Linux kernel
-  tests inside a virtual machine, primarily for bcachefs."
+  tests inside a virtual machine, primarily for `bcachefs`_."
 - `xfstests-bld`_: Ted Ts'o's ``kvm-xfstests`` boots a file system test
   appliance in QEMU, with ``NR_CPU=2`` and ``MEM=2048`` by default.
 - `lkp-tests`_: the 0-Day test robot's suite, whose ``lkp qemu`` "uses
@@ -95,7 +95,7 @@ Configuration file to command line
 Virtual machine managers and platforms
 ======================================
 
-- `libvirt`_: the daemon and API behind ``virsh`` and ``virt-install``,
+- `libvirt`_: the daemon and API behind :cmd:`virsh` and :cmd:`virt-install`,
   which translates its domain XML into QEMU command lines.
 - `vagrant-qemu`_: a Vagrant provider that runs QEMU directly.
 - `Lima`_: YAML-defined Linux machines with file sharing and port
@@ -109,13 +109,13 @@ Virtual machine managers and platforms
 - `qemu-vm.nix`_: NixOS's typed options that compile to a QEMU start
   script, used by the NixOS tests.
 - `microvm.nix`_: "NixOS MicroVMs", with QEMU among its hypervisors.
-- `systemd-vmspawn`_: systemd's own, which starts a QEMU machine from an
+- `systemd-vmspawn`_: `systemd`_'s own, which starts a QEMU machine from an
   OS image or directory.
 
 systemd units for QEMU
 ======================
 
-- `qemu-system-units`_: Jinja2 templates rendered into systemd units, the
+- `qemu-system-units`_: `Jinja2`_ templates rendered into systemd units, the
   predecessor of this project.
 - `kvm-systemd`_: a ``kvm@.service`` with one configuration file per
   machine.
@@ -124,6 +124,19 @@ systemd units for QEMU
 - `virtctl`_: machine services wanted by a ``hypervisor.target`` of its
   own.
 
+.. _QEMU: https://www.qemu.org/docs/master/system/invocation.html
+.. _virtiofs: https://virtio-fs.gitlab.io
+.. _Linux: https://www.kernel.org
+.. _NixOS: https://nixos.org/manual/nixos/stable/
+.. _Nix: https://nix.dev/manual/nix/latest/
+.. _9p: https://docs.kernel.org/filesystems/9p.html
+.. _overlayfs: https://docs.kernel.org/filesystems/overlayfs.html
+.. _Dracut: https://github.com/dracut-ng/dracut-ng
+.. _Cilium: https://cilium.io
+.. _GDB: https://sourceware.org/gdb/
+.. _bcachefs: https://bcachefs.org
+.. _systemd: https://systemd.io
+.. _Jinja2: https://jinja.palletsprojects.com/
 .. _qemu-system-units: https://github.com/linux-kdevops/qemu-system-units
 .. _virtme-ng: https://github.com/arighi/virtme-ng
 .. _virtme: https://github.com/amluto/virtme

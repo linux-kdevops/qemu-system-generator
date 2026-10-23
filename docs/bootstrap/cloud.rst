@@ -6,13 +6,13 @@ Bootstrap from a cloud image
 
 This guide boots the cloud images of `Debian`_ testing, `Fedora`_ 44 and
 `Ubuntu`_ 26.10, unmodified, each a machine of its own under your user's
-systemd manager. On first boot,
+`systemd`_ manager. On first boot,
 `cloud-init`_ reads a seed image that names the machine and lets your key
 in for root. Each disk is the guest's own: what it writes stays across
 restarts. No step needs root.
 
 The three machines share most of their lines through a drop-in
-directory, so each ``.qemu`` file holds only what differs. The file format
+directory, so each :key:`.qemu` file holds only what differs. The file format
 is specified in :doc:`qemu-systemd.unit(5) </man/qemu-systemd.unit.5>` and
 the generator in :doc:`qemu-system-generator(8) </man/qemu-system-generator.8>`.
 The outputs below are real, trimmed to the lines that matter, with the
@@ -38,7 +38,7 @@ Debian 14, has daily builds:
    $ curl --silent --location https://cloud.debian.org/images/cloud/forky/daily/latest/SHA512SUMS | sha512sum --check --ignore-missing
    debian-14-genericcloud-amd64-daily.qcow2: OK
 
-Fedora's checksum file is signed, so ``sha256sum`` skips and counts the
+Fedora's checksum file is signed, so :cmd:`sha256sum` skips and counts the
 signature lines it cannot parse:
 
 .. code-block:: console
@@ -82,7 +82,7 @@ pasted in:
 The images let only their default user in by default, and
 ``disable_root: false`` gives root the key too. The meta-data names each
 machine; cloud-init configures a machine once per ``instance-id``.
-:cmd:`cloud-localds`, from nixpkgs' ``cloud-utils``, writes one seed into
+:cmd:`cloud-localds`, from `nixpkgs`_' ``cloud-utils``, writes one seed into
 each state directory:
 
 .. code-block:: shell
@@ -125,9 +125,9 @@ the part of the name up to a dash, ``cloud-.qemu.d/``, applies to every
    nic=user,model=virtio-net-pci-non-transitional
 
 ``%h`` is your home directory, one of the `specifiers`_ systemd expands
-in a unit. ``nic=`` gives the guest QEMU's `user-mode network`_, which
+in a unit. ``nic=`` gives the guest `QEMU`_'s `user-mode network`_, which
 needs no privileges. Then create
-``~/.config/qemu/systemd/cloud-debian.qemu``, with the disk and a `vsock`_
+``~/.config/qemu/systemd/cloud-debian.qemu``, with the disk and a vsock
 device whose context id is the machine's own:
 
 .. code-block:: ini
@@ -138,7 +138,7 @@ device whose context id is the machine's own:
    device=vhost-vsock-pci-non-transitional,guest-cid=43
 
 The file's lines come first, so the disk is the first drive and the seed
-the second. Each line of ``[QEMU]`` is one QEMU option with its dash
+the second. Each line of :key:`[QEMU]` is one QEMU option with its dash
 removed, passed on as written: ``m=2G`` is ``-m 2G``, and ``nographic=``
 with an empty value is the bare flag ``-nographic``.
 :cmd:`qemu-system-x86_64(1)` documents them all. The file is named after
@@ -152,7 +152,7 @@ the machine, and the unit after the file:
    $ journalctl --user-unit=qemu-system@cloud-debian.service --follow
 
 :cmd:`journalctl` shows the serial console. `SeaBIOS`_, QEMU's default
-firmware, starts the image's GRUB, and cloud-init reads the seed:
+firmware, starts the image's `GRUB`_, and cloud-init reads the seed:
 
 .. code-block:: console
    :caption: guest
@@ -201,9 +201,10 @@ With the ``Include`` in your ``~/.ssh/config``, the machine's name is an
    cloud-debian
    7.2.11+deb14-cloud-amd64
 
-``[VM]`` holds what is not a QEMU option. With ``SshPrivateKey=``, stopping
-the machine first runs ``systemctl poweroff`` in the guest over vsock, and
-presses the power button only if that fails. The stop takes 3.6 seconds:
+:key:`[VM]` holds what is not a QEMU option. With :key:`SshPrivateKey=`,
+stopping the machine first runs ``systemctl poweroff`` in the guest over
+vsock, and presses the power button only if that fails. The stop takes 3.6
+seconds:
 
 .. code-block:: console
    :class: cmd-host
@@ -316,5 +317,8 @@ reads the seed on the fresh image's first boot.
 .. _NoCloud: https://cloudinit.readthedocs.io/en/latest/reference/datasources/nocloud.html
 .. _specifiers: https://www.freedesktop.org/software/systemd/man/latest/systemd.unit.html#Specifiers
 .. _user-mode network: https://www.qemu.org/docs/master/system/devices/net.html#using-the-user-mode-network-stack
-.. _vsock: https://man7.org/linux/man-pages/man7/vsock.7.html
+.. _systemd: https://systemd.io
+.. _nixpkgs: https://github.com/NixOS/nixpkgs
+.. _QEMU: https://www.qemu.org/docs/master/system/invocation.html
+.. _GRUB: https://www.gnu.org/software/grub/manual/grub/grub.html
 .. _SeaBIOS: https://www.seabios.org/

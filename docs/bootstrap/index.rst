@@ -4,8 +4,8 @@
 Bootstrap
 =========
 
-Each guide below boots a guest under your user's systemd manager from
-``.qemu`` files, without root, and stands on its own: it starts from an
+Each guide below boots a guest under your user's `systemd`_ manager from
+:key:`.qemu` files, without root, and stands on its own: it starts from an
 empty host and builds its file up one feature per step. They differ in
 how the guest boots, which decides what a change to the guest costs.
 
@@ -39,20 +39,20 @@ how the guest boots, which decides what a change to the guest costs.
      - Change it inside the guest, with its package manager
 
 :doc:`disk` is the closest to a physical machine. :doc:`kernel` covers
-the most of the format: vsock, SSH poweroff, consoles, drop-ins, systemd
+the most of the format: `vsock`_, SSH poweroff, consoles, drop-ins, systemd
 settings and shares, which work the same way in the others.
 
 Everything you write or build lives in ``~/bootstrap``: a directory per
 guide, the SSH key and configuration in ``ssh/``, and the directory the
 guests share in ``share/``. What a machine writes lives where its
-generated unit's ``StateDirectory=`` puts it, which is also where a
+generated unit's :cmd:`StateDirectory=` puts it, which is also where a
 relative path in its ``.qemu`` file resolves:
 ``~/.local/state/qemu-system/<name>/`` under a user manager,
 ``/var/lib/qemu-system/<name>/`` under the system manager
-(:cmd:`systemd.exec(5)`). The NixOS guests boot read-only store paths and
+(:cmd:`systemd.exec(5)`). The `NixOS`_ guests boot read-only store paths and
 keep nothing there; the cloud guests keep their disks there.
 
-The NixOS guides and the knix guide all write the machine ``bootstrap``,
+The NixOS guides and the `knix`_ guide all write the machine ``bootstrap``,
 in ``~/.config/qemu/systemd/bootstrap.qemu``; before following a second
 one, remove that file and ``bootstrap.qemu.d/``. The cloud guide writes
 ``cloud-debian``, ``cloud-fedora`` and ``cloud-ubuntu`` beside it.
@@ -65,3 +65,8 @@ one, remove that file and ``bootstrap.qemu.d/``. The cloud guide writes
    kernel
    knix
    cloud
+
+.. _systemd: https://systemd.io
+.. _NixOS: https://nixos.org/manual/nixos/stable/
+.. _knix: https://github.com/linux-kdevops/knix
+.. _vsock: https://man7.org/linux/man-pages/man7/vsock.7.html

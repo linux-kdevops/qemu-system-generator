@@ -26,7 +26,8 @@ link, ``~/.nix-profile`` (``~/.local/state/nix/profile`` with
        ~/.nix-profile/lib/systemd/user/qemu-system-generator.path
 
 ``systemctl`` links the units by the path it is given, not by the store
-path behind it. After ``nix profile upgrade qemu-system-generator``, a
+path behind it. After
+:cmd:`nix profile upgrade qemu-system-generator <nix profile upgrade>`, a
 ``systemctl --user daemon-reload`` loads the new generation's units.
 
 The service turns every ``.qemu`` file in ``~/.config/qemu/systemd/`` into

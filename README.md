@@ -1,17 +1,18 @@
 # qemu-system-generator
 
-A systemd generator for `.qemu` files: one file per virtual machine, in
-systemd unit-file syntax, whose `[QEMU]` section is QEMU's own command
-line passed through line by line. The generator runs at boot and on
-`systemctl daemon-reload`, writes `qemu-system@<name>.service` and the
-`virtiofsd@<name>-<tag>` socket and service of every directory the
-machine shares, then exits. Nothing stays between systemd and QEMU.
+A [systemd] generator for `.qemu` files: one file per virtual machine,
+in systemd unit-file syntax, whose `[QEMU]` section is [QEMU]'s own
+command line passed through line by line. The generator runs at boot and
+on [`systemctl daemon-reload`][systemctl], writes
+`qemu-system@<name>.service` and the `virtiofsd@<name>-<tag>` socket and
+service of every directory the machine shares, then exits. Nothing stays
+between systemd and QEMU.
 
 Status: research draft. The format is documented in
 [man/qemu-systemd.unit.5.scd](man/qemu-systemd.unit.5.scd) and the
 program in [man/qemu-system-generator.8.scd](man/qemu-system-generator.8.scd);
 `docs/` holds the walk-throughs and builds them, with the man pages, into
-a Sphinx site for Read the Docs.
+a [Sphinx] site for [Read the Docs].
 Nothing is released yet.
 
 **License**: copyleft-next-0.3.1
@@ -41,13 +42,14 @@ gid-map=:0:%G:1:
 WantedBy=machines.target
 ```
 
-Each `[QEMU]` key is a QEMU option without its dash and the value is
-the option's argument, verbatim: `man qemu-system` is the reference.
-Each `[virtiofsd]` section is one virtiofsd with its options spelled the
-same way: `virtiofsd --help` is the reference. `[Unit]`, `[Service]` and
-`[Install]` go to systemd untouched. The generator adds the lifecycle
-only: directories, device access, the QMP socket it powers the guest
-down through, the machined registration, and the virtiofs wiring.
+Each `[QEMU]` key is a QEMU option without its dash and the value is the
+option's argument, verbatim: [`man qemu-system`][QEMU] is the reference.
+Each `[virtiofsd]` section is one [virtiofsd] with its options spelled
+the same way: `virtiofsd --help` is the reference. `[Unit]`, `[Service]`
+and `[Install]` go to systemd untouched. The generator adds the
+lifecycle only: directories, device access, the [QMP] socket it powers
+the guest down through, the [machined] registration, and the [virtiofs]
+wiring.
 
 Saved as `~/.config/qemu/systemd/fedora.qemu`:
 
@@ -72,10 +74,11 @@ sudo install --mode=0644 data/qmp-powerdown /usr/share/qemu/systemd/
 
 Without root, a user runs it through two user units instead; see
 `qemu-system-generator(8)`. The guides in [docs/bootstrap/](docs/bootstrap/)
-boot a guest that way from a NixOS disk image, a UKI, a kernel and an
+boot a guest that way from a [NixOS] disk image, a [UKI], a kernel and an
 initrd, a kernel and a QEMU of your own, or a distribution's cloud image.
 
-The generated units call `socat`, `varlinkctl` and `ssh` by name; the
+The generated units call [`socat`][socat], [`varlinkctl`][varlinkctl] and
+[`ssh`][ssh] by name; the
 build environment can pin them, and the QEMU and virtiofsd binaries, to
 absolute paths (see `build.rs`).
 
@@ -85,7 +88,7 @@ Check a file before deploying it:
 QEMU_SYSTEMD_UNIT_DIRS=examples ./target/release/qemu-system-generator --user --dryrun
 ```
 
-With Nix:
+With [Nix]:
 
 ```shell
 nix build
@@ -131,8 +134,9 @@ nix flake check
 ```
 
 `tests/verify` generates the examples and loads them with
-`systemd-analyze verify` in both scopes. `tests/update-expected` rewrites
-the expected output after a deliberate format change.
+[`systemd-analyze verify`][systemd-analyze] in both scopes.
+`tests/update-expected` rewrites the expected output after a deliberate
+format change.
 
 `nix flake check` also builds the documentation as Read the Docs does
 and holds the Markdown and reStructuredText prose to 80 columns.
@@ -141,3 +145,20 @@ To preview it while editing:
 ```shell
 nix develop --command sphinx-autobuild docs docs/_build/html
 ```
+
+[systemd]: https://systemd.io
+[QEMU]: https://www.qemu.org/docs/master/system/invocation.html
+[systemctl]: https://www.freedesktop.org/software/systemd/man/latest/systemctl.html
+[Sphinx]: https://www.sphinx-doc.org
+[Read the Docs]: https://about.readthedocs.com
+[virtiofsd]: https://gitlab.com/virtio-fs/virtiofsd
+[QMP]: https://www.qemu.org/docs/master/interop/qmp-spec.html
+[machined]: https://www.freedesktop.org/software/systemd/man/latest/systemd-machined.service.html
+[virtiofs]: https://virtio-fs.gitlab.io
+[NixOS]: https://nixos.org/manual/nixos/stable/
+[UKI]: https://uapi-group.org/specifications/specs/unified_kernel_image/
+[socat]: http://www.dest-unreach.org/socat/doc/socat.html
+[varlinkctl]: https://www.freedesktop.org/software/systemd/man/latest/varlinkctl.html
+[ssh]: https://man7.org/linux/man-pages/man1/ssh.1.html
+[Nix]: https://nix.dev/manual/nix/latest/
+[systemd-analyze]: https://www.freedesktop.org/software/systemd/man/latest/systemd-analyze.html

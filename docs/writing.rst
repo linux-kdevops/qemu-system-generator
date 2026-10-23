@@ -7,7 +7,7 @@ Writing commit messages, docs and comments
 This project is reviewed the way the kernel is, so its prose follows how
 the kernel's own maintainers write. The rules below are the ones the
 kernel's process documents state, and the numbers come from a sample of
-the 200 latest non-merge commits by each of 15 maintainers at Linux
+the 200 latest non-merge commits by each of 15 maintainers at `Linux`_
 v7.3-rc7: Linus Torvalds, Greg Kroah-Hartman, Thomas Gleixner, Andrew
 Morton, Ingo Molnar, Christoph Hellwig, Jens Axboe, Darrick J. Wong,
 Dave Chinner, Theodore Ts'o, Kees Cook, Jonathan Corbet, Paolo Bonzini,
@@ -49,7 +49,8 @@ Name functions with parentheses, ``foo()``, in the subject and the body.
 Examples
 --------
 
-Read two before writing, with ``git -C <linux> show --no-patch <hash>`` in
+Read two before writing, with
+:cmd:`git -C <linux> show --no-patch <hash> <git show>` in
 any Linux clone; a list of banned words on its own mostly teaches a
 writer to reach for a synonym.
 
@@ -133,7 +134,7 @@ operation, no doc comment that repeats the signature, and no history
 
 Write in the imperative, without pronouns, with sentences that start
 with a capital letter. The reason for a shape goes in the commit body,
-not the comment (:repo:`CLAUDE.md`, Conventions).
+not the comment (``CLAUDE.md``, Conventions).
 
 Documentation
 =============
@@ -167,7 +168,7 @@ describe "this function" or a "helper". A warning prints and passes; a
 maintainer writes these now and then.
 
 Each refused message pattern but the list rule, which comes from
-:repo:`CLAUDE.md`, was measured before it went in. Over three years, a second
+``CLAUDE.md``, was measured before it went in. Over three years, a second
 sample of 7,742 commit messages by these maintainers matches 14 times,
 0.18%, and 13 of those are the patch-as-subject opener; the vocabulary
 list matches none. The rest of the kernel matches 2.4%. The dash alone
@@ -197,6 +198,7 @@ the draft, the diff, and this brief:
    keeps every fact a reviewer needs. Keep technical terms, numbers and
    commit references exactly. Do not add anything.
 
+.. _Linux: https://www.kernel.org
 .. _submitting-patches.rst: https://docs.kernel.org/process/submitting-patches.html
 .. _tip tree: https://docs.kernel.org/process/maintainer-tip.html
 .. _coding-style.rst: https://docs.kernel.org/process/coding-style.html

@@ -3,7 +3,7 @@
 What you need
 =============
 
-- A Linux host with `KVM`_, where your user can open ``/dev/kvm``.
+- A host whose kernel has `KVM`_, where your user can open ``/dev/kvm``.
 - systemd with a user manager, which is what
   :cmd:`systemctl` ``--user`` talks to.
 - `Nix`_ with flakes enabled.
@@ -32,7 +32,7 @@ Create it with :cmd:`ssh-keygen`:
 
    $ ssh-keygen -t ed25519 -N "" -C bootstrap -f ~/bootstrap/ssh/id_ed25519
 
-Once a machine has a vsock device, its guide adds a ``Host`` block for it
+Once a machine has a `vsock`_ device, its guide adds a ``Host`` block for it
 to ``~/bootstrap/ssh/config.d/``, and ``~/bootstrap/ssh/config`` collects
 them:
 
@@ -55,4 +55,5 @@ Then ``ssh <machine>`` reaches a guest by its name.
 
 .. _KVM: https://docs.kernel.org/virt/kvm/index.html
 .. _Nix: https://nix.dev/manual/nix/latest/
+.. _vsock: https://man7.org/linux/man-pages/man7/vsock.7.html
 .. _this repository: https://github.com/linux-kdevops/qemu-system-generator

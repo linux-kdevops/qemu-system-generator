@@ -4,11 +4,11 @@
 Bootstrap from a disk image
 ===========================
 
-This guide boots a `NixOS`_ guest under your user's systemd manager from
-a disk image that `nixpkgs`_ builds, through firmware and a boot loader,
-the way a physical machine boots: first `SeaBIOS`_ and `GRUB`_, then
-`OVMF`_ and `systemd-boot`_. Its ``.qemu`` file grows by one feature per
-step, and no step needs root.
+This guide boots a `NixOS`_ guest in `QEMU`_ under your user's `systemd`_
+manager from a disk image that `nixpkgs`_ builds, through firmware and a
+boot loader, the way a physical machine boots: first `SeaBIOS`_ and `GRUB`_,
+then `OVMF`_ and `systemd-boot`_. Its :key:`.qemu` file grows by one feature
+per step, and no step needs root.
 
 The file format is specified in
 :doc:`qemu-systemd.unit(5) </man/qemu-systemd.unit.5>` and the generator in
@@ -236,7 +236,7 @@ menu counts down on the serial console:
 4. SSH
 ======
 
-QEMU's `user-mode network`_ needs no privileges, and a `vsock`_ device
+QEMU's `user-mode network`_ needs no privileges, and a vsock device
 gives the guest a context id, a socket address the host can reach without
 any network. Forward a local port to the guest's SSH, and add the device:
 
@@ -282,6 +282,7 @@ Every change to the guest means a new image with the whole system in
 it. :doc:`uki` and :doc:`kernel` keep the system in the host's store
 instead.
 
+.. _systemd: https://systemd.io
 .. _NixOS: https://nixos.org/manual/nixos/stable/
 .. _nixpkgs: https://github.com/NixOS/nixpkgs
 .. _SeaBIOS: https://www.seabios.org/
@@ -292,5 +293,5 @@ instead.
 .. _image modules: https://github.com/NixOS/nixpkgs/blob/master/nixos/modules/image/images.nix
 .. _specifiers: https://www.freedesktop.org/software/systemd/man/latest/systemd.unit.html#Specifiers
 .. _EDK II: https://github.com/tianocore/edk2
-.. _vsock: https://man7.org/linux/man-pages/man7/vsock.7.html
+.. _QEMU: https://www.qemu.org/docs/master/system/invocation.html
 .. _user-mode network: https://www.qemu.org/docs/master/system/devices/net.html#using-the-user-mode-network-stack

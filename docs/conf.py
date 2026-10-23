@@ -69,9 +69,11 @@ html_context = {
 }
 
 # Monospaced external links. ":cmd:`name`" renders ``name`` (a literal, so it
-# reads as a command) hyperlinked to its manual or source. The table is the one
-# source for every command, tool and manual page URL the docs cite, so a name
-# is linked the same way everywhere and updated in one place.
+# reads as a command) hyperlinked to its manual or source, and ":cmd:`title
+# <name>`" renders ``title`` linked as ``name``, so ``KillMode=mixed`` links
+# to ``KillMode=``. The table is the one source for every command, tool,
+# manual page, systemd unit and directive URL the docs cite, so a name is
+# linked the same way everywhere and updated in one place.
 _SYSTEMD = "https://www.freedesktop.org/software/systemd/man/latest"
 _MAN1 = "https://man7.org/linux/man-pages/man1"
 _NIX = "https://nix.dev/manual/nix/latest/command-ref/new-cli"
@@ -84,12 +86,43 @@ cmd_links = {
     "systemd-machined.service(8)": f"{_SYSTEMD}/systemd-machined.service.html",
     "systemd-ssh-generator(8)": f"{_SYSTEMD}/systemd-ssh-generator.html",
     "systemd-ssh-proxy(1)": f"{_SYSTEMD}/systemd-ssh-proxy.html",
-    "machines.target": f"{_SYSTEMD}/systemd.special.html",
+    "machines.target": f"{_SYSTEMD}/systemd.special.html#machines.target",
+    "machine.slice": f"{_SYSTEMD}/systemd.special.html#machine.slice",
+    "systemd-machined": f"{_SYSTEMD}/systemd-machined.service.html",
+    "systemd-path": f"{_SYSTEMD}/systemd-path.html",
+    "systemd.service(5)": f"{_SYSTEMD}/systemd.service.html",
+    "systemd.unit(5)": f"{_SYSTEMD}/systemd.unit.html",
+    "sd_notify(3)": f"{_SYSTEMD}/sd_notify.html",
+    "vsock(7)": "https://man7.org/linux/man-pages/man7/vsock.7.html",
+    "Type=": f"{_SYSTEMD}/systemd.service.html#Type=",
+    "ExecStart=": f"{_SYSTEMD}/systemd.service.html#ExecStart=",
+    "ExecStartPost=": f"{_SYSTEMD}/systemd.service.html#ExecStartPre=",
+    "ExecStop=": f"{_SYSTEMD}/systemd.service.html#ExecStop=",
+    "TimeoutStopSec=": f"{_SYSTEMD}/systemd.service.html#TimeoutStopSec=",
+    "KillSignal=": f"{_SYSTEMD}/systemd.kill.html#KillSignal=",
+    "KillMode=": f"{_SYSTEMD}/systemd.kill.html#KillMode=",
+    "PartOf=": f"{_SYSTEMD}/systemd.unit.html#PartOf=",
+    "Before=": f"{_SYSTEMD}/systemd.unit.html#Before=",
+    "WantedBy=": f"{_SYSTEMD}/systemd.unit.html#WantedBy=",
+    "Slice=": f"{_SYSTEMD}/systemd.resource-control.html#Slice=",
+    "DevicePolicy=": f"{_SYSTEMD}/systemd.resource-control.html#DevicePolicy=auto%7Cclosed%7Cstrict",
+    "DeviceAllow=": f"{_SYSTEMD}/systemd.resource-control.html#DeviceAllow=",
+    "MemoryMax=": f"{_SYSTEMD}/systemd.resource-control.html#MemoryMax=bytes",
+    "CPUWeight=": f"{_SYSTEMD}/systemd.resource-control.html#CPUWeight=weight",
+    "LimitMEMLOCK=": f"{_SYSTEMD}/systemd.exec.html#LimitCPU=",
+    "StateDirectory=": f"{_SYSTEMD}/systemd.exec.html#RuntimeDirectory=",
+    "RuntimeDirectory=": f"{_SYSTEMD}/systemd.exec.html#RuntimeDirectory=",
+    "WorkingDirectory=": f"{_SYSTEMD}/systemd.exec.html#WorkingDirectory=",
     "ssh": f"{_MAN1}/ssh.1.html",
     "ssh-keygen": f"{_MAN1}/ssh-keygen.1.html",
     "ssh_config(5)": "https://man7.org/linux/man-pages/man5/ssh_config.5.html",
     "systemd.exec(5)": f"{_SYSTEMD}/systemd.exec.html",
     "readlink": f"{_MAN1}/readlink.1.html",
+    "sha256sum": f"{_MAN1}/sha256sum.1.html",
+    "git show": "https://git-scm.com/docs/git-show",
+    "virsh": "https://www.libvirt.org/manpages/virsh.html",
+    "virt-install": "https://github.com/virt-manager/virt-manager/blob/main/man/virt-install.rst",
+    "make": "https://www.gnu.org/software/make/manual/make.html",
     "socat": "http://www.dest-unreach.org/socat/doc/socat.html",
     "jq": "https://jqlang.org/manual/",
     "curl": "https://curl.se/docs/manpage.html",
@@ -100,15 +133,22 @@ cmd_links = {
     "nix develop": f"{_NIX}/nix3-develop",
     "nix flake init": f"{_NIX}/nix3-flake-init",
     "nix profile add": f"{_NIX}/nix3-profile-add",
+    "nix profile upgrade": f"{_NIX}/nix3-profile-upgrade",
 }
 
 
+def _title_target(text):
+    m = re.fullmatch(r"(.+?)\s*<([^<>]+)>", text, re.DOTALL)
+    return (m.group(1), m.group(2)) if m else (text, text)
+
+
 def _cmd_role(name, rawtext, text, lineno, inliner, options=None, content=None):
-    uri = inliner.document.settings.env.config.cmd_links.get(text)
-    code = nodes.literal(rawtext, text)
+    title, target = _title_target(text)
+    uri = inliner.document.settings.env.config.cmd_links.get(target)
+    code = nodes.literal(rawtext, title)
     if uri is None:
         msg = inliner.reporter.error(
-            f"cmd: no link registered for {text!r} (add it to cmd_links in "
+            f"cmd: no link registered for {target!r} (add it to cmd_links in "
             f"docs/conf.py)",
             line=lineno,
         )
@@ -116,17 +156,54 @@ def _cmd_role(name, rawtext, text, lineno, inliner, options=None, content=None):
     return [nodes.reference(rawtext, "", code, refuri=uri)], []
 
 
-# ":commit:`<hash>`" links a Linux commit and ":repo:`<path>`" a file of this
-# repository, each rendered as a literal like ":cmd:".
+# ":commit:`<hash>`" links a Linux commit, ":repo:`<path>`" a file of this
+# repository, ":gh:`<owner/repo/path>`" a page on GitHub and
+# ":qemu:`<path>`" one of QEMU's GitLab project, such as "blob/master/<file>"
+# or "commit/<hash>"; each renders as a literal like ":cmd:" and takes the
+# same "title <target>" form.
 _LINKS = {
     "commit": "https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id={}",
     "repo": "https://github.com/linux-kdevops/qemu-system-generator/blob/main/{}",
+    "gh": "https://github.com/{}",
+    "qemu": "https://gitlab.com/qemu-project/qemu/-/{}",
 }
 
 
 def _link_role(name, rawtext, text, lineno, inliner, options=None, content=None):
-    code = nodes.literal(rawtext, text)
-    return [nodes.reference(rawtext, "", code, refuri=_LINKS[name].format(text))], []
+    title, target = _title_target(text)
+    code = nodes.literal(rawtext, title)
+    return [nodes.reference(rawtext, "", code, refuri=_LINKS[name].format(target))], []
+
+
+# ":key:`SshPrivateKey=`" links a key or section of the .qemu format to where
+# qemu-systemd.unit(5) defines it, rendered as a literal like ":cmd:". The
+# anchors are the ids mandoc gives the man page's section headings.
+_KEYS = {
+    ".qemu": "FILE_FORMAT",
+    "[VM]": "The__VM__section",
+    "QemuBinary=": "The__VM__section",
+    "VirtiofsdBinary=": "The__VM__section",
+    "SshPrivateKey=": "The__VM__section",
+    "[QEMU]": "The__QEMU__section",
+    "[virtiofsd]": "The__virtiofsd__section",
+    "qemu-system@.service": "GENERATED_UNITS",
+}
+
+
+def _key_role(name, rawtext, text, lineno, inliner, options=None, content=None):
+    title, target = _title_target(text)
+    code = nodes.literal(rawtext, title)
+    anchor = _KEYS.get(target)
+    if anchor is None:
+        msg = inliner.reporter.error(
+            f"key: no section registered for {target!r} (add it to _KEYS in "
+            f"docs/conf.py)",
+            line=lineno,
+        )
+        return [code], [msg]
+    docname = inliner.document.settings.env.docname
+    page = os.path.relpath("man/qemu-systemd.unit.5", os.path.dirname(docname) or ".")
+    return [nodes.reference(rawtext, "", code, refuri=f"{page}.html#{anchor}")], []
 
 
 # The man pages stay in scdoc under man/, where the package builds them. Each
@@ -161,6 +238,7 @@ def _render_man_pages(app):
 def setup(app):
     app.add_config_value("cmd_links", {}, "env")
     app.add_role("cmd", _cmd_role)
+    app.add_role("key", _key_role)
     for name in _LINKS:
         app.add_role(name, _link_role)
     app.connect("builder-inited", _render_man_pages)
