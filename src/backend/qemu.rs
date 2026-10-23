@@ -244,14 +244,14 @@ struct Vm<'a> {
     ssh_private_key: Option<&'a str>,
 }
 
-fn decode_vm<'a>(file: &'a UnitFile, warnings: &mut Vec<String>) -> Vm<'a> {
+fn decode_vm<'a>(file: &'a UnitFile, warn: &mut impl FnMut(String)) -> Vm<'a> {
     for section in file.sections_named(VM_SECTION) {
         for entry in section
             .entries
             .iter()
             .filter(|e| !VM_KEYS.contains(&e.key.as_str()))
         {
-            warnings.push(format!(
+            warn(format!(
                 "{}: unknown [{VM_SECTION}] key {}=, ignoring",
                 section.at(entry.line),
                 entry.key
@@ -428,18 +428,15 @@ fn memlock_mib(seen: &Observed<'_>) -> Result<Option<u64>, DecodeError> {
         .ok_or_else(|| size_error(SizeError::Overflow))
 }
 
-pub struct Decoded {
-    pub plan: Plan,
-    pub warnings: Vec<String>,
-}
-
+/// The plan of `file`; a line the backend ignores is reported through
+/// `warn`.
 pub fn decode(
     machine: &UnitName,
     file: &UnitFile,
     paths: &impl Paths,
-) -> Result<Decoded, DecodeError> {
-    let mut warnings = Vec::new();
-    let vm = decode_vm(file, &mut warnings);
+    mut warn: impl FnMut(String),
+) -> Result<Plan, DecodeError> {
+    let vm = decode_vm(file, &mut warn);
 
     let qemu: Vec<&Entry> = file.entries(SECTION).collect();
     let seen = observe(&qemu)?;
@@ -479,20 +476,17 @@ pub fn decode(
         })
         .transpose()?;
 
-    Ok(Decoded {
-        plan: Plan {
-            program: SERVICE,
-            binary: vm.qemu_binary,
-            args,
-            helpers,
-            device_allow,
-            memlock_mib: memlock_mib(&seen)?,
-            vsock_cid: seen.vsock_cid,
-            uuid: seen.uuid.map(str::to_owned),
-            ssh_poweroff,
-            control_socket,
-        },
-        warnings,
+    Ok(Plan {
+        program: SERVICE,
+        binary: vm.qemu_binary,
+        args,
+        helpers,
+        device_allow,
+        memlock_mib: memlock_mib(&seen)?,
+        vsock_cid: seen.vsock_cid,
+        uuid: seen.uuid.map(str::to_owned),
+        ssh_poweroff,
+        control_socket,
     })
 }
 
@@ -512,9 +506,9 @@ mod tests {
         }
     }
 
-    fn decode_text(text: &str) -> Result<Decoded, DecodeError> {
+    fn decode_text(text: &str) -> Result<Plan, DecodeError> {
         let name: UnitName = "vm".parse().unwrap();
-        decode(&name, &text.parse().unwrap(), &TestPaths)
+        decode(&name, &text.parse().unwrap(), &TestPaths, |w| panic!("{w}"))
     }
 
     fn command_line(plan: &Plan) -> Vec<String> {
@@ -563,12 +557,10 @@ mod tests {
 
     #[test]
     fn qemu_lines_pass_through_in_order() {
-        let decoded = decode_text(
+        let plan = decode_text(
             "[QEMU]\nmachine=q35\nm=1024\nnographic=\ndevice=a\nmachine=usb=on\ndevice=b\n",
         )
         .unwrap();
-        assert_eq!(decoded.warnings, [] as [String; 0]);
-        let plan = decoded.plan;
         assert_eq!(plan.binary, QEMU);
         assert_eq!(
             command_line(&plan),
@@ -591,11 +583,10 @@ mod tests {
 
     #[test]
     fn virtiofsd_sections_become_helpers() {
-        let decoded = decode_text(
+        let plan = decode_text(
             "[QEMU]\nm=2G\n[virtiofsd]\nshared-dir=/srv/a\ntag=a\nxattr=\n[virtiofsd]\nshared-dir=%h\ntag=b\n",
         )
         .unwrap();
-        let plan = decoded.plan;
         let tags: Vec<_> = plan.helpers.iter().map(|h| h.tag.to_string()).collect();
         assert_eq!(tags, ["a", "b"]);
         assert_eq!(plan.helpers[0].requires_mounts, ["/srv/a"]);
@@ -622,11 +613,11 @@ mod tests {
 
     #[test]
     fn microvm_and_own_memory_backend() {
-        let decoded = decode_text(
+        let plan = decode_text(
             "[QEMU]\nmachine=microvm,memory-backend=ram\nobject=memory-backend-memfd,id=ram,size=1G,share=on\n[virtiofsd]\ntag=a\n",
         )
         .unwrap();
-        let line = command_line(&decoded.plan);
+        let line = command_line(&plan);
         assert!(
             line.iter()
                 .all(|a| !a.starts_with("-machine memory-backend"))
@@ -639,11 +630,10 @@ mod tests {
 
     #[test]
     fn observed_lines() {
-        let decoded = decode_text(
+        let plan = decode_text(
             "[QEMU]\nm=4G\nuuid=u\ndevice=vhost-vsock-pci-non-transitional,guest-cid=42\ndevice=vfio-pci,host=0000:01:00.0\n",
         )
         .unwrap();
-        let plan = decoded.plan;
         assert_eq!(plan.vsock_cid, Some(42));
         assert_eq!(plan.uuid.as_deref(), Some("u"));
         assert_eq!(plan.memlock_mib, Some(4096 + 256));
@@ -656,13 +646,14 @@ mod tests {
 
     #[test]
     fn vm_section() {
-        let decoded = decode_text(
-            "[VM]\nQemuBinary=/opt/qemu\nVirtiofsdBinary=/opt/virtiofsd\nSshPrivateKey=%h/.ssh/key\nColour=blue\n[QEMU]\nm=1\ndevice=vhost-vsock-pci,guest-cid=3\n[virtiofsd]\ntag=t\n",
-        )
-        .unwrap();
-        assert_eq!(decoded.warnings.len(), 1);
-        assert!(decoded.warnings[0].contains("Colour="));
-        let plan = decoded.plan;
+        let file: UnitFile = "[VM]\nQemuBinary=/opt/qemu\nVirtiofsdBinary=/opt/virtiofsd\nSshPrivateKey=%h/.ssh/key\nColour=blue\n[QEMU]\nm=1\ndevice=vhost-vsock-pci,guest-cid=3\n[virtiofsd]\ntag=t\n"
+            .parse()
+            .unwrap();
+        let name: UnitName = "vm".parse().unwrap();
+        let mut warnings = Vec::new();
+        let plan = decode(&name, &file, &TestPaths, |w| warnings.push(w)).unwrap();
+        assert_eq!(warnings.len(), 1);
+        assert!(warnings[0].contains("Colour="));
         assert_eq!(plan.binary, "/opt/qemu");
         assert_eq!(plan.helpers[0].binary, "/opt/virtiofsd");
         assert_eq!(

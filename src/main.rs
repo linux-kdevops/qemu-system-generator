@@ -227,22 +227,14 @@ fn unknown_sections(file: &UnitFile) -> impl Iterator<Item = String> + '_ {
 fn generate(source: &Source, scope: Scope) -> Result<Output, GenerateError> {
     let file = read_source(source)?;
     unknown_sections(&file).for_each(log);
-    let decoded = backend::qemu::decode(&source.name, &file, &SystemdPaths).map_err(|source_| {
-        GenerateError::Decode {
-            path: source_.path().unwrap_or(&source.path).to_owned(),
-            source: source_,
-        }
-    })?;
-    for warning in &decoded.warnings {
-        log(warning);
-    }
-    Ok(launcher::systemd::emit(
-        source,
-        &file,
-        &decoded.plan,
-        scope,
-        log,
-    ))
+    let plan =
+        backend::qemu::decode(&source.name, &file, &SystemdPaths, log).map_err(|source_| {
+            GenerateError::Decode {
+                path: source_.path().unwrap_or(&source.path).to_owned(),
+                source: source_,
+            }
+        })?;
+    Ok(launcher::systemd::emit(source, &file, &plan, scope, log))
 }
 
 /// Record the units and links of `output` as generated from `source`,
