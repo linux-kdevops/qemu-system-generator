@@ -15,9 +15,9 @@ use crate::plan::{Arg, Helper, InvalidTag, Paths, Plan, SshPoweroff, Tag};
 use crate::search::UnitName;
 use crate::unitfile::{Entry, Section, UnitFile};
 
-pub const SECTION: &str = "QEMU";
-pub const VM_SECTION: &str = "VM";
-pub const VIRTIOFSD_SECTION: &str = "virtiofsd";
+const SECTION: &str = "QEMU";
+const VM_SECTION: &str = "VM";
+const VIRTIOFSD_SECTION: &str = "virtiofsd";
 /// The sections the backend reads.
 pub const SECTIONS: [&str; 3] = [VM_SECTION, SECTION, VIRTIOFSD_SECTION];
 
@@ -30,8 +30,8 @@ const VM_KEYS: [&str; 3] = [QEMU_BINARY_KEY, VIRTIOFSD_BINARY_KEY, SSH_PRIVATE_K
 const SERVICE: &str = "qemu-system";
 
 /// The binaries compiled in as defaults; see `build.rs`.
-pub const QEMU: &str = env!("QEMU");
-pub const VIRTIOFSD: &str = env!("VIRTIOFSD");
+const QEMU: &str = env!("QEMU");
+const VIRTIOFSD: &str = env!("VIRTIOFSD");
 
 /// Device nodes a machine opens through its command line, allowed like
 /// `systemd-vmspawn@.service` does. A node that does not exist on the
@@ -59,7 +59,7 @@ const VHOST_USER_FS_QUEUE_SIZE: u32 = 1024;
 /// Id of the generated shared memory backend.
 const MEMORY_BACKEND_ID: &str = "mem";
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum DecodeError {
     MissingTag {
         path: PathBuf,
@@ -133,7 +133,7 @@ impl Error for DecodeError {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum SizeError {
     NotANumber(String),
     Overflow,
@@ -156,7 +156,7 @@ impl Error for SizeError {}
 /// The first comma-separated field of a QEMU option value, which names
 /// the driver or type (`-device nvme,...`, `-machine q35,...`).
 fn first_field(value: &str) -> &str {
-    value.split(',').next().unwrap_or_default()
+    value.split_once(',').map_or(value, |(first, _)| first)
 }
 
 /// A `key=` property inside a comma-separated option value.
@@ -272,7 +272,7 @@ fn decode_vm<'a>(file: &'a UnitFile, warn: &mut impl FnMut(String)) -> Vm<'a> {
 }
 
 /// What the decoder reads from the `[QEMU]` lines without changing them.
-#[derive(Debug, Default, PartialEq, Eq)]
+#[derive(Default)]
 struct Observed<'a> {
     microvm: bool,
     own_memory_backend: bool,

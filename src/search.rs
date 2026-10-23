@@ -15,8 +15,8 @@ use std::os::unix::fs::MetadataExt;
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
 
-pub const SUFFIX: &str = "qemu";
-pub const UNIT_DIRS_ENV: &str = "QEMU_SYSTEMD_UNIT_DIRS";
+const SUFFIX: &str = "qemu";
+const UNIT_DIRS_ENV: &str = "QEMU_SYSTEMD_UNIT_DIRS";
 
 /// The service manager generated for (`systemd.generator(7)`).
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -27,7 +27,7 @@ pub enum Scope {
 
 /// What the search path depends on, read from the process once so that
 /// the rest of the module is a pure function of it.
-#[derive(Debug, Clone, Default, PartialEq, Eq)]
+#[derive(Debug, Default, PartialEq, Eq)]
 pub struct Environment {
     /// `$SYSTEMD_SCOPE` (`systemd.generator(7)`).
     pub scope: Option<Scope>,
@@ -50,15 +50,11 @@ impl Environment {
             xdg_runtime_dir: env::var_os("XDG_RUNTIME_DIR").map(PathBuf::from),
             xdg_config_home: env::var_os("XDG_CONFIG_HOME").map(PathBuf::from),
             home: env::var_os("HOME").map(PathBuf::from),
-            uid: effective_uid().unwrap_or(0),
+            // The owner of /proc/self is the effective user id, which
+            // the kernel sets from the process's credentials (proc(5)).
+            uid: fs::metadata("/proc/self").map_or(0, |m| m.uid()),
         }
     }
-}
-
-/// The effective user id, read as the owner of `/proc/self`, which the
-/// kernel sets to the process's effective credentials (`proc(5)`).
-fn effective_uid() -> io::Result<u32> {
-    fs::metadata("/proc/self").map(|m| m.uid())
 }
 
 /// The directories searched for `.qemu` files, highest precedence first.
@@ -94,10 +90,10 @@ pub fn unit_dirs(scope: Scope, env: &Environment) -> Vec<PathBuf> {
 /// The stem of a `.qemu` file, which becomes the instance of the
 /// generated units: the characters systemd allows in a unit name
 /// (`unit-name.c`), without `@` so that it cannot read as a template.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct UnitName(String);
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct InvalidUnitName(pub String);
 
 impl fmt::Display for InvalidUnitName {
@@ -112,18 +108,19 @@ impl fmt::Display for InvalidUnitName {
 
 impl Error for InvalidUnitName {}
 
-const fn is_name_char(c: char) -> bool {
-    c.is_ascii_alphanumeric() || matches!(c, ':' | '_' | '.' | '-')
-}
-
 impl FromStr for UnitName {
     type Err = InvalidUnitName;
 
     fn from_str(stem: &str) -> Result<Self, Self::Err> {
-        if stem.is_empty() || !stem.chars().all(is_name_char) {
-            return Err(InvalidUnitName(stem.to_owned()));
+        let valid = !stem.is_empty()
+            && stem
+                .chars()
+                .all(|c| c.is_ascii_alphanumeric() || matches!(c, ':' | '_' | '.' | '-'));
+        if valid {
+            Ok(Self(stem.to_owned()))
+        } else {
+            Err(InvalidUnitName(stem.to_owned()))
         }
-        Ok(Self(stem.to_owned()))
     }
 }
 
@@ -141,7 +138,7 @@ impl fmt::Display for UnitName {
 
 /// One `.qemu` file to generate from, with its drop-ins in the order
 /// they apply.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct Source {
     pub name: UnitName,
     pub path: PathBuf,

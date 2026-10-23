@@ -12,10 +12,11 @@
 use std::error::Error;
 use std::fmt;
 use std::path::{Path, PathBuf};
+#[cfg(test)]
 use std::str::FromStr;
 
 /// One `Key=Value` line.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct Entry {
     pub key: String,
     pub value: String,
@@ -24,7 +25,7 @@ pub struct Entry {
 }
 
 /// One `[Name]` header and the lines under it.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct Section {
     pub name: String,
     pub entries: Vec<Entry>,
@@ -42,18 +43,18 @@ impl Section {
 }
 
 /// A parsed file: its sections in file order, repeated names kept apart.
-#[derive(Debug, Clone, Default, PartialEq, Eq)]
+#[derive(Debug, Default, PartialEq, Eq)]
 pub struct UnitFile {
     pub sections: Vec<Section>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct ParseError {
     pub line: usize,
     pub kind: ParseErrorKind,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum ParseErrorKind {
     MalformedHeader(String),
     MissingEquals(String),
@@ -106,6 +107,7 @@ fn logical_lines(text: &str) -> Vec<(usize, String)> {
 }
 
 /// A file read from no path, as the tests write one.
+#[cfg(test)]
 impl FromStr for UnitFile {
     type Err = ParseError;
 

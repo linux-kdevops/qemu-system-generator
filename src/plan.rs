@@ -23,10 +23,10 @@ pub type Arg = Vec<String>;
 /// It must fit in a unit name, in a QEMU id after `virtiofs_`
 /// (`id_wellformed()` in QEMU's `util/id.c`), and in a `-device` value,
 /// where a comma would start a new property.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct Tag(String);
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct InvalidTag(pub String);
 
 impl fmt::Display for InvalidTag {
@@ -65,7 +65,7 @@ impl fmt::Display for Tag {
 
 /// A daemon the machine talks to over a socket the launcher listens on
 /// and passes in at start (systemd: socket activation, fd 3).
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct Helper {
     /// The daemon's name, which names its units.
     pub program: &'static str,
@@ -79,13 +79,13 @@ pub struct Helper {
 
 /// A guest shutdown asked for over SSH, before the backend's own
 /// channel is used.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct SshPoweroff {
     pub private_key: String,
     pub vsock_cid: u64,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct Plan {
     /// The main process's name, which names its units and its machine
     /// registration.

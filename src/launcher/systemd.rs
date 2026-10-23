@@ -53,21 +53,21 @@ fn helper_socket_path(program: &str, instance: &str) -> String {
     )
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct GeneratedFile {
     /// Relative to the output directory.
     pub path: PathBuf,
     pub text: String,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct Symlink {
     /// Relative to the output directory.
     pub path: PathBuf,
     pub target: PathBuf,
 }
 
-#[derive(Debug, Clone, Default, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct Output {
     pub files: Vec<GeneratedFile>,
     pub links: Vec<Symlink>,
@@ -147,10 +147,7 @@ impl UnitText {
     }
 
     fn section(&mut self, name: &str) {
-        if !self.text.ends_with("\n\n") {
-            self.text.push('\n');
-        }
-        let _ = writeln!(self.text, "[{name}]");
+        let _ = writeln!(self.text, "\n[{name}]");
     }
 
     fn line(&mut self, line: impl fmt::Display) {

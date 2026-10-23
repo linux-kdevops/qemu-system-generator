@@ -79,7 +79,7 @@ struct Options {
     dir: Option<PathBuf>,
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug)]
 enum UsageError {
     UnknownOption(String),
     DirectoryCount(usize),
