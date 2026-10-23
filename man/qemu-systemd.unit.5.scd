@@ -80,10 +80,12 @@ A directory _name.qemu.d/_ next to the file holds _\*.conf_ files that are
 appended to it in file-name order. The type directory _qemu.d/_ applies to
 every file; for a name with dashes, _foo-.qemu.d/_ and _foo-bar-.qemu.d/_
 apply to _foo-bar-baz.qemu_, which is how a family of machines shares its
-lines. A file name further down that hierarchy replaces the same name
-further up. All directories on the search path are consulted. A file or
-directory whose name starts with a dot is skipped, the rule systemd
-applies to a drop-in.
+lines. All directories on the search path are consulted, and of several
+files with one name only one is read, chosen as systemd chooses a unit's
+drop-in: a directory earlier on the search path wins, within it the name
+further down the hierarchy wins, and _qemu.d/_ in any directory comes
+after them all. A file or directory whose name starts with a dot is
+skipped, the rule systemd applies to a drop-in.
 
 # SECTIONS
 

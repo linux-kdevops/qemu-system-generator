@@ -176,7 +176,9 @@ fn dropin_stem(dir_name: &str) -> Option<&str> {
 /// reported through `warn` and skipped.
 pub fn discover(dirs: &[PathBuf], mut warn: impl FnMut(String)) -> Vec<Source> {
     let mut files: BTreeMap<String, PathBuf> = BTreeMap::new();
-    let mut dropin_dirs: BTreeMap<String, Vec<PathBuf>> = BTreeMap::new();
+    // One map per search directory: the stem a drop-in directory applies
+    // to, and its path.
+    let mut dropin_dirs: Vec<BTreeMap<String, PathBuf>> = Vec::new();
     for dir in dirs {
         let entries = match fs::read_dir(dir) {
             Ok(entries) => entries,
@@ -186,6 +188,7 @@ pub fn discover(dirs: &[PathBuf], mut warn: impl FnMut(String)) -> Vec<Source> {
                 continue;
             }
         };
+        let mut found = BTreeMap::new();
         for entry in entries.flatten() {
             let file_name = entry.file_name();
             let Some(file_name) = file_name.to_str().filter(|n| !hidden(n)) else {
@@ -201,9 +204,10 @@ pub fn discover(dirs: &[PathBuf], mut warn: impl FnMut(String)) -> Vec<Source> {
             } else if path.is_dir()
                 && let Some(stem) = dropin_stem(file_name)
             {
-                dropin_dirs.entry(stem.to_owned()).or_default().push(path);
+                found.insert(stem.to_owned(), path);
             }
         }
+        dropin_dirs.push(found);
     }
 
     files
@@ -225,51 +229,50 @@ pub fn discover(dirs: &[PathBuf], mut warn: impl FnMut(String)) -> Vec<Source> {
         .collect()
 }
 
-/// The drop-in hierarchy of a unit, least specific first: the type
-/// directory, each dash-truncated prefix, then the unit's own directory.
+/// The name-specific drop-in stems of a unit, most specific first: its
+/// own name, then each dash-truncated prefix. The type directory is the
+/// empty stem.
 fn dropin_levels(name: &UnitName) -> impl Iterator<Item = String> + '_ {
     let stem = name.as_str();
     let prefixes = stem
         .char_indices()
+        .rev()
         .filter(|&(_, c)| c == '-')
         .map(|(i, _)| stem[..=i].to_owned());
-    std::iter::once(String::new())
-        .chain(prefixes)
-        .chain(std::iter::once(stem.to_owned()))
+    std::iter::once(stem.to_owned()).chain(prefixes)
 }
 
-/// The drop-ins that apply to a unit, in the order they are appended:
-/// by file name, where a name further down the hierarchy replaces the
-/// same name further up, and at one level the directory found first
-/// (highest-precedence search path) wins.
-fn collect_dropins(name: &UnitName, dropin_dirs: &BTreeMap<String, Vec<PathBuf>>) -> Vec<PathBuf> {
+/// The drop-ins that apply to a unit, in the order they are appended: by
+/// file name, where the first directory to hold a name wins. The
+/// directories come in systemd's order (`unit_file_find_dropin_paths()`
+/// in `src/shared/dropin.c`): for each search directory its
+/// name-specific levels, most specific first, then the type directory of
+/// every search directory.
+fn collect_dropins(name: &UnitName, dropin_dirs: &[BTreeMap<String, PathBuf>]) -> Vec<PathBuf> {
+    let levels: Vec<String> = dropin_levels(name).collect();
+    let ordered = dropin_dirs
+        .iter()
+        .flat_map(|found| levels.iter().filter_map(|level| found.get(level)))
+        .chain(dropin_dirs.iter().filter_map(|found| found.get("")));
     let mut chosen: BTreeMap<String, PathBuf> = BTreeMap::new();
-    for level in dropin_levels(name) {
-        let Some(dirs) = dropin_dirs.get(&level) else {
+    for entry in ordered
+        .filter_map(|d| fs::read_dir(d).ok())
+        .flatten()
+        .flatten()
+    {
+        let path = entry.path();
+        let Some(file_name) = path
+            .file_name()
+            .and_then(|n| n.to_str())
+            .filter(|n| !hidden(n))
+        else {
             continue;
         };
-        let mut at_level: BTreeMap<String, PathBuf> = BTreeMap::new();
-        for entry in dirs
-            .iter()
-            .filter_map(|d| fs::read_dir(d).ok())
-            .flatten()
-            .flatten()
-        {
-            let path = entry.path();
-            let Some(file_name) = path
-                .file_name()
-                .and_then(|n| n.to_str())
-                .filter(|n| !hidden(n))
-            else {
-                continue;
-            };
-            // The suffix is matched byte for byte, as systemd matches it
-            // (endswith() in src/basic/conf-files.c).
-            if path.extension().is_some_and(|ext| ext == "conf") && path.is_file() {
-                at_level.entry(file_name.to_owned()).or_insert(path);
-            }
+        // The suffix is matched byte for byte, as systemd matches it
+        // (endswith() in src/basic/conf-files.c).
+        if path.extension().is_some_and(|ext| ext == "conf") && path.is_file() {
+            chosen.entry(file_name.to_owned()).or_insert(path);
         }
-        chosen.extend(at_level);
     }
     chosen.into_values().collect()
 }
@@ -302,7 +305,7 @@ mod tests {
     fn levels() {
         let name: UnitName = "fstests-xfs-1".parse().unwrap();
         let levels: Vec<_> = dropin_levels(&name).collect();
-        assert_eq!(levels, ["", "fstests-", "fstests-xfs-", "fstests-xfs-1"]);
+        assert_eq!(levels, ["fstests-xfs-1", "fstests-xfs-", "fstests-"]);
     }
 
     #[test]
@@ -380,6 +383,10 @@ mod tests {
         fs::write(low.join(".hidden.qemu"), "[QEMU]\n").unwrap();
         fs::create_dir_all(high.join("nixos.qemu.d")).unwrap();
         fs::write(high.join("nixos.qemu.d/20-b.conf"), "").unwrap();
+        fs::create_dir_all(high.join("fstests-.qemu.d")).unwrap();
+        fs::write(high.join("fstests-.qemu.d/10-a.conf"), "").unwrap();
+        fs::create_dir_all(low.join("fstests-xfs.qemu.d")).unwrap();
+        fs::write(low.join("fstests-xfs.qemu.d/10-a.conf"), "").unwrap();
 
         let mut warnings = Vec::new();
         let sources = discover(&[high.clone(), low.clone()], |w| warnings.push(w));
@@ -401,11 +408,13 @@ mod tests {
 
         let xfs = &sources[0];
         assert_eq!(xfs.path, low.join("fstests-xfs.qemu"));
+        // 10-a.conf is at three places: the higher search directory wins
+        // over the more specific level, and both over qemu.d/.
         assert_eq!(
             xfs.dropins,
             [
                 low.join("qemu.d/00-z.conf"),
-                low.join("fstests-.qemu.d/10-a.conf"),
+                high.join("fstests-.qemu.d/10-a.conf"),
             ]
         );
 
