@@ -117,4 +117,22 @@ table.foot {
 
 .manual-text .Bd-indent {
     margin-left: 2rem;
+    margin-bottom: 1.15rem;
+}
+
+/* An option name sits on the description it heads, and the empty paragraph
+   mandoc puts before a list takes no space. */
+.manual-text p.Pp:has(+ .Bd-indent) {
+    margin-bottom: 0.25rem;
+}
+
+.manual-text p.Pp:empty {
+    display: none;
+}
+
+/* mandoc makes every heading a link to itself; Sphinx's own headings are
+   not, so they read as text here too. */
+.manual-text a.permalink {
+    color: inherit;
+    text-decoration: none;
 }

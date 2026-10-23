@@ -206,7 +206,10 @@ def _key_role(name, rawtext, text, lineno, inliner, options=None, content=None):
 # The man pages stay in scdoc under man/, where the package builds them. Each
 # docs/man/ page includes its man page as HTML that scdoc and mandoc render
 # here, so the web page and the installed page come from one source. mandoc
-# heads every section with <h1>, which would compete with the page title.
+# heads a section with <h1> and a subsection with <h2>; both move down a
+# level so that neither competes with the page title. In a literal block,
+# mandoc breaks before a line that starts with a space, which a <pre>
+# already does, so its <br/> would show as an empty line.
 _DOCS = os.path.dirname(os.path.abspath(__file__))
 _MAN = os.path.join(os.path.dirname(_DOCS), "man")
 _GENERATED = os.path.join(_DOCS, "_generated")
@@ -227,7 +230,14 @@ def _render_man_pages(app):
             capture_output=True,
             check=True,
         ).stdout.decode()
+        html = re.sub(r"<(/?)h2\b", r"<\1h3", html)
         html = re.sub(r"<(/?)h1\b", r"<\1h2", html)
+        html = re.sub(
+            r"<pre>.*?</pre>",
+            lambda m: m.group(0).replace("<br/>\n", ""),
+            html,
+            flags=re.DOTALL,
+        )
         with open(os.path.join(_GENERATED, page[: -len(".scd")] + ".html"), "w") as out:
             out.write(html)
 
