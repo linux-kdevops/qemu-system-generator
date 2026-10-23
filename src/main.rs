@@ -136,7 +136,8 @@ fn parse_args(args: impl IntoIterator<Item = OsString>) -> Result<Command, Usage
 
 #[derive(Debug)]
 enum GenerateError {
-    Read {
+    /// A file could not be read or written.
+    Io {
         path: PathBuf,
         source: io::Error,
     },
@@ -147,10 +148,6 @@ enum GenerateError {
     Decode {
         path: PathBuf,
         source: DecodeError,
-    },
-    Write {
-        path: PathBuf,
-        source: io::Error,
     },
     Conflict {
         path: PathBuf,
@@ -163,10 +160,9 @@ enum GenerateError {
 impl fmt::Display for GenerateError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::Read { path, .. }
-            | Self::Write { path, .. }
-            | Self::Parse { path, .. }
-            | Self::Decode { path, .. } => write!(f, "{}", path.display()),
+            Self::Io { path, .. } | Self::Parse { path, .. } | Self::Decode { path, .. } => {
+                write!(f, "{}", path.display())
+            }
             Self::Stdout(_) => f.write_str("standard output"),
             Self::Conflict { path, unit, first } => write!(
                 f,
@@ -182,9 +178,7 @@ impl fmt::Display for GenerateError {
 impl Error for GenerateError {
     fn source(&self) -> Option<&(dyn Error + 'static)> {
         match self {
-            Self::Read { source, .. } | Self::Write { source, .. } | Self::Stdout(source) => {
-                Some(source)
-            }
+            Self::Io { source, .. } | Self::Stdout(source) => Some(source),
             Self::Parse { source, .. } => Some(source),
             Self::Decode { source, .. } => Some(source),
             Self::Conflict { .. } => None,
@@ -193,7 +187,7 @@ impl Error for GenerateError {
 }
 
 fn read_unit_file(path: &Path) -> Result<UnitFile, GenerateError> {
-    let text = fs::read_to_string(path).map_err(|source| GenerateError::Read {
+    let text = fs::read_to_string(path).map_err(|source| GenerateError::Io {
         path: path.to_owned(),
         source,
     })?;
@@ -263,7 +257,7 @@ fn claim(
 }
 
 fn write_output(dest: &Path, output: &Output) -> Result<(), GenerateError> {
-    let failed = |path: &Path, source| GenerateError::Write {
+    let failed = |path: &Path, source| GenerateError::Io {
         path: path.to_owned(),
         source,
     };
