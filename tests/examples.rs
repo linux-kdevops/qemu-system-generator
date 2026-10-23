@@ -92,7 +92,11 @@ fn a_broken_file_fails_without_stopping_the_others() {
     ));
     fs::create_dir_all(&tmp).unwrap();
     fs::write(tmp.join("good.qemu"), "[QEMU]\nm=1\n").unwrap();
-    fs::write(tmp.join("bad.qemu"), "[VM]\nQemuBinary=relative\n").unwrap();
+    fs::write(
+        tmp.join("bad.qemu"),
+        "[QEMU]\ndevice=vhost-vsock-pci,guest-cid=x\n",
+    )
+    .unwrap();
     fs::write(tmp.join("share.qemu"), "[virtiofsd]\ntag=t\n").unwrap();
     let out = dryrun("--system", &tmp);
     fs::remove_dir_all(&tmp).unwrap();
@@ -100,7 +104,7 @@ fn a_broken_file_fails_without_stopping_the_others() {
     let stdout = String::from_utf8_lossy(&out.stdout);
     assert_eq!(out.status.code(), Some(1));
     assert!(
-        stderr.contains("bad.qemu: [VM] QemuBinary=relative is not an absolute path"),
+        stderr.contains("bad.qemu: [QEMU] guest-cid=x is not a decimal number"),
         "{stderr}"
     );
     assert!(

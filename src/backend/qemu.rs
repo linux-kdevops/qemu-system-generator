@@ -9,7 +9,6 @@
 
 use std::error::Error;
 use std::fmt;
-use std::path::Path;
 
 use crate::plan::{Arg, Helper, InvalidTag, Paths, Plan, Register, SshPoweroff, Tag};
 use crate::search::UnitName;
@@ -78,7 +77,6 @@ pub fn default_binary() -> String {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum DecodeError {
-    NotAbsolute { key: &'static str, value: String },
     MissingTag { line: usize },
     InvalidTag(InvalidTag),
     DuplicateTag(Tag),
@@ -91,9 +89,6 @@ pub enum DecodeError {
 impl fmt::Display for DecodeError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::NotAbsolute { key, value } => {
-                write!(f, "[{VM_SECTION}] {key}={value} is not an absolute path")
-            }
             Self::MissingTag { line } => {
                 write!(f, "[{VIRTIOFSD_SECTION}] at line {line} has no tag=")
             }
@@ -247,15 +242,7 @@ struct Vm<'a> {
     ssh_private_key: Option<&'a str>,
 }
 
-fn absolute(key: &'static str, value: String) -> Result<String, DecodeError> {
-    if Path::new(&value).is_absolute() {
-        Ok(value)
-    } else {
-        Err(DecodeError::NotAbsolute { key, value })
-    }
-}
-
-fn decode_vm<'a>(file: &'a UnitFile, warnings: &mut Vec<String>) -> Result<Vm<'a>, DecodeError> {
+fn decode_vm<'a>(file: &'a UnitFile, warnings: &mut Vec<String>) -> Vm<'a> {
     for entry in file
         .entries(VM_SECTION)
         .filter(|e| !VM_KEYS.contains(&e.key.as_str()))
@@ -265,20 +252,16 @@ fn decode_vm<'a>(file: &'a UnitFile, warnings: &mut Vec<String>) -> Result<Vm<'a
             entry.line, entry.key
         ));
     }
-    Ok(Vm {
-        qemu_binary: absolute(
-            QEMU_BINARY_KEY,
-            file.last(VM_SECTION, QEMU_BINARY_KEY)
-                .map_or_else(default_binary, str::to_owned),
-        )?,
-        virtiofsd_binary: absolute(
-            VIRTIOFSD_BINARY_KEY,
-            file.last(VM_SECTION, VIRTIOFSD_BINARY_KEY)
-                .unwrap_or(VIRTIOFSD)
-                .to_owned(),
-        )?,
+    Vm {
+        qemu_binary: file
+            .last(VM_SECTION, QEMU_BINARY_KEY)
+            .map_or_else(default_binary, str::to_owned),
+        virtiofsd_binary: file
+            .last(VM_SECTION, VIRTIOFSD_BINARY_KEY)
+            .unwrap_or(VIRTIOFSD)
+            .to_owned(),
         ssh_private_key: file.last(VM_SECTION, SSH_PRIVATE_KEY_KEY),
-    })
+    }
 }
 
 /// What the decoder reads from the `[QEMU]` lines without changing them.
@@ -433,7 +416,7 @@ pub fn decode(
         .filter(|s| !KNOWN_SECTIONS.contains(&s.name.as_str()))
         .map(|s| format!("line {}: unknown section [{}], ignoring", s.line, s.name))
         .collect();
-    let vm = decode_vm(file, &mut warnings)?;
+    let vm = decode_vm(file, &mut warnings);
 
     let qemu: Vec<&Entry> = file.entries(SECTION).collect();
     let seen = observe(&qemu)?;
@@ -679,13 +662,6 @@ mod tests {
 
     #[test]
     fn errors() {
-        assert_eq!(
-            decode_text("[VM]\nQemuBinary=relative\n").err(),
-            Some(DecodeError::NotAbsolute {
-                key: "QemuBinary",
-                value: "relative".to_owned()
-            })
-        );
         assert_eq!(
             decode_text("[QEMU]\nm=1\n[virtiofsd]\nshared-dir=/a\n").err(),
             Some(DecodeError::MissingTag { line: 3 })

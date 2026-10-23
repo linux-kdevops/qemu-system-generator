@@ -91,13 +91,15 @@ directory whose name starts with a dot is skipped, as systemd skips it.
 Values that are not options of a backend binary.
 
 *QemuBinary=*
-	Path of the QEMU binary, the first word of *ExecStart=*, which systemd
-	requires to be absolute. Default: _qemu-system-_ for the host
+	The QEMU binary, the first word of *ExecStart=*: an absolute path,
+	which may begin with a specifier such as *%h*, or a file name that
+	systemd looks up in its search path (*systemd.service*(5), "Command
+	lines"). Default: _qemu-system-_ for the host
 	architecture in the directory compiled into the generator.
 
 *VirtiofsdBinary=*
-	Path of the virtiofsd binary used by every *[virtiofsd]* section.
-	Default: compiled into the generator.
+	The virtiofsd binary used by every *[virtiofsd]* section, read as
+	*QemuBinary=* is. Default: compiled into the generator.
 
 *SshPrivateKey=*
 	Path of a private key with which root logs in to the guest. When set,
