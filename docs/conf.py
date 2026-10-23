@@ -5,6 +5,9 @@ import re
 import subprocess
 
 from docutils import nodes
+from sphinx.util import logging
+
+logger = logging.getLogger(__name__)
 
 project = "qemu-system-generator"
 copyright = "2026, qemu-system-generator authors"
@@ -118,6 +121,9 @@ cmd_links = {
     "ssh-keygen": f"{_MAN1}/ssh-keygen.1.html",
     "ssh_config(5)": "https://man7.org/linux/man-pages/man5/ssh_config.5.html",
     "systemd.exec(5)": f"{_SYSTEMD}/systemd.exec.html",
+    "systemd.kill(5)": f"{_SYSTEMD}/systemd.kill.html",
+    "systemd.resource-control(5)": f"{_SYSTEMD}/systemd.resource-control.html",
+    "systemd.syntax(7)": f"{_SYSTEMD}/systemd.syntax.html",
     "readlink": f"{_MAN1}/readlink.1.html",
     "man": f"{_MAN1}/man.1.html",
     "sha256sum": f"{_MAN1}/sha256sum.1.html",
@@ -129,6 +135,7 @@ cmd_links = {
     "curl": "https://curl.se/docs/manpage.html",
     "cloud-localds": "https://manpages.debian.org/unstable/cloud-image-utils/cloud-localds.1.en.html",
     "qemu-system-x86_64(1)": "https://www.qemu.org/docs/master/system/invocation.html",
+    "qemu-system(1)": "https://www.qemu.org/docs/master/system/invocation.html",
     "qemu-guest.nix": "https://github.com/NixOS/nixpkgs/blob/master/nixos/modules/profiles/qemu-guest.nix",
     "nix build": f"{_NIX}/nix3-build",
     "nix develop": f"{_NIX}/nix3-develop",
@@ -210,17 +217,35 @@ def _key_role(name, rawtext, text, lineno, inliner, options=None, content=None):
 # heads a section with <h1> and a subsection with <h2>; both move down a
 # level so that neither competes with the page title. In a literal block,
 # mandoc breaks before a line that starts with a space, which a <pre>
-# already does, so its <br/> would show as an empty line.
+# already does, so its <br/> would show as an empty line. A reference such
+# as "systemctl(1)" links to the rendered page when it is one of these, and
+# otherwise to the URL cmd_links gives "name(N)" or "name".
 _DOCS = os.path.dirname(os.path.abspath(__file__))
 _MAN = os.path.join(os.path.dirname(_DOCS), "man")
 _GENERATED = os.path.join(_DOCS, "_generated")
 
 
+def _man_reference(links, own, m):
+    name, section = m.group(1), m.group(2)
+    ref = f"{name}({section})"
+    if f"{name}.{section}" in own:
+        uri = f"{name}.{section}.html"
+    else:
+        uri = links.get(ref) or links.get(name)
+    if uri is None:
+        logger.warning(
+            "man: no link registered for %r (add it to cmd_links in docs/conf.py)",
+            ref,
+        )
+        return m.group(0)
+    return f'<a class="reference external" href="{uri}"><b>{ref}</b></a>'
+
+
 def _render_man_pages(app):
     os.makedirs(_GENERATED, exist_ok=True)
-    for page in sorted(os.listdir(_MAN)):
-        if not page.endswith(".scd"):
-            continue
+    pages = sorted(p for p in os.listdir(_MAN) if p.endswith(".scd"))
+    own = {p[: -len(".scd")] for p in pages}
+    for page in pages:
         with open(os.path.join(_MAN, page), "rb") as scd:
             roff = subprocess.run(
                 ["scdoc"], stdin=scd, capture_output=True, check=True
@@ -238,6 +263,11 @@ def _render_man_pages(app):
             lambda m: m.group(0).replace("<br/>\n", ""),
             html,
             flags=re.DOTALL,
+        )
+        html = re.sub(
+            r"<b>([^<]+)</b>\(([0-9])\)",
+            lambda m: _man_reference(app.config.cmd_links, own, m),
+            html,
         )
         with open(os.path.join(_GENERATED, page[: -len(".scd")] + ".html"), "w") as out:
             out.write(html)

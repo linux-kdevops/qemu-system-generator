@@ -130,6 +130,26 @@ table.foot {
     display: none;
 }
 
+/* Bold is text to type and italic a file, path or value; both read as the
+   inline literals of the other pages. A placeholder inside a literal, such
+   as the cid in root@vsock/cid, keeps its italics. */
+.manual-text b,
+.manual-text i {
+    font-family: var(--pst-font-family-monospace);
+    font-size: 0.875em;
+    font-style: normal;
+    font-weight: normal;
+    color: var(--pst-color-inline-code);
+}
+
+.manual-text b i {
+    font-style: italic;
+}
+
+.manual-text a.reference b {
+    color: var(--pst-color-link);
+}
+
 /* mandoc makes every heading a link to itself; Sphinx's own headings are
    not, so they read as text here too. */
 .manual-text a.permalink {
