@@ -72,24 +72,24 @@ impl fmt::Display for ParseError {
 impl Error for ParseError {}
 
 /// Logical lines after continuation handling, each with the number of
-/// its first physical line.
+/// its first physical line. As in systemd, the continuing backslash
+/// becomes a space and the lines are joined with their whitespace.
 fn logical_lines(text: &str) -> Vec<(usize, String)> {
     let mut lines = Vec::new();
     let mut pending: Option<(usize, String)> = None;
     for (number, raw) in (1..).zip(text.lines()) {
-        let trimmed = raw.trim();
-        if trimmed.starts_with('#') || trimmed.starts_with(';') {
+        if raw.trim_start_matches([' ', '\t']).starts_with(['#', ';']) {
             continue;
         }
         let (start, mut text) = pending.take().unwrap_or((number, String::new()));
+        text.push_str(raw);
         // An even run of backslashes is escaped ones, not a continuation.
-        let backslashes = trimmed.len() - trimmed.trim_end_matches('\\').len();
+        let backslashes = text.len() - text.trim_end_matches('\\').len();
         if backslashes % 2 == 1 {
-            text.push_str(trimmed[..trimmed.len() - 1].trim_end());
+            text.pop();
             text.push(' ');
             pending = Some((start, text));
         } else {
-            text.push_str(trimmed);
             lines.push((start, text));
         }
     }
@@ -236,7 +236,7 @@ mod tests {
         let f = parse("[S]\nappend=console=ttyS0 \\\n# a comment\n  root=/dev/vda \\\n  rw\n");
         assert_eq!(
             f.last("S", "append"),
-            Some("console=ttyS0 root=/dev/vda rw")
+            Some("console=ttyS0    root=/dev/vda    rw")
         );
         assert_eq!(f.entries("S").next().map(|e| e.line), Some(2));
     }
