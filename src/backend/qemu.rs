@@ -9,6 +9,7 @@
 
 use std::error::Error;
 use std::fmt;
+use std::path::{Path, PathBuf};
 
 use crate::plan::{Arg, Helper, InvalidTag, Paths, Plan, Register, SshPoweroff, Tag};
 use crate::search::UnitName;
@@ -77,7 +78,7 @@ pub fn default_binary() -> String {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum DecodeError {
-    MissingTag { line: usize },
+    MissingTag { path: PathBuf, line: usize },
     InvalidTag(InvalidTag),
     DuplicateTag(Tag),
     MissingMemory,
@@ -89,8 +90,8 @@ pub enum DecodeError {
 impl fmt::Display for DecodeError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::MissingTag { line } => {
-                write!(f, "[{VIRTIOFSD_SECTION}] at line {line} has no tag=")
+            Self::MissingTag { line, .. } => {
+                write!(f, "line {line}: [{VIRTIOFSD_SECTION}] has no tag=")
             }
             Self::InvalidTag(err) => write!(f, "[{VIRTIOFSD_SECTION}] {err}"),
             Self::DuplicateTag(tag) => write!(f, "[{VIRTIOFSD_SECTION}] tag={tag} repeated"),
@@ -109,6 +110,16 @@ impl fmt::Display for DecodeError {
                 f,
                 "[{VM_SECTION}] {SSH_PRIVATE_KEY_KEY}= needs a device=vhost-vsock...,guest-cid= line in [{SECTION}] to reach the guest"
             ),
+        }
+    }
+}
+
+impl DecodeError {
+    /// The file the error is in, when it is about one line of it.
+    pub fn path(&self) -> Option<&Path> {
+        match self {
+            Self::MissingTag { path, .. } => Some(path),
+            _ => None,
         }
     }
 }
@@ -243,14 +254,18 @@ struct Vm<'a> {
 }
 
 fn decode_vm<'a>(file: &'a UnitFile, warnings: &mut Vec<String>) -> Vm<'a> {
-    for entry in file
-        .entries(VM_SECTION)
-        .filter(|e| !VM_KEYS.contains(&e.key.as_str()))
-    {
-        warnings.push(format!(
-            "line {}: unknown [{VM_SECTION}] key {}=, ignoring",
-            entry.line, entry.key
-        ));
+    for section in file.sections_named(VM_SECTION) {
+        for entry in section
+            .entries
+            .iter()
+            .filter(|e| !VM_KEYS.contains(&e.key.as_str()))
+        {
+            warnings.push(format!(
+                "{}: unknown [{VM_SECTION}] key {}=, ignoring",
+                section.at(entry.line),
+                entry.key
+            ));
+        }
     }
     Vm {
         qemu_binary: file
@@ -308,7 +323,10 @@ fn decode_helper(section: &Section, binary: &str) -> Result<Helper, DecodeError>
         .entries
         .iter()
         .rfind(|e| e.key == "tag")
-        .ok_or(DecodeError::MissingTag { line: section.line })?
+        .ok_or_else(|| DecodeError::MissingTag {
+            path: section.path.clone(),
+            line: section.line,
+        })?
         .value
         .parse()?;
     let requires_mounts = section
@@ -414,7 +432,7 @@ pub fn decode(
         .sections
         .iter()
         .filter(|s| !KNOWN_SECTIONS.contains(&s.name.as_str()))
-        .map(|s| format!("line {}: unknown section [{}], ignoring", s.line, s.name))
+        .map(|s| format!("{}: unknown section [{}], ignoring", s.at(s.line), s.name))
         .collect();
     let vm = decode_vm(file, &mut warnings);
 
@@ -664,7 +682,10 @@ mod tests {
     fn errors() {
         assert_eq!(
             decode_text("[QEMU]\nm=1\n[virtiofsd]\nshared-dir=/a\n").err(),
-            Some(DecodeError::MissingTag { line: 3 })
+            Some(DecodeError::MissingTag {
+                path: PathBuf::new(),
+                line: 3
+            })
         );
         assert!(matches!(
             decode_text("[QEMU]\nm=1\n[virtiofsd]\ntag=a b\n").err(),

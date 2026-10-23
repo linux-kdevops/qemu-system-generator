@@ -170,7 +170,7 @@ fn read_unit_file(path: &Path) -> Result<UnitFile, GenerateError> {
         path: path.to_owned(),
         source,
     })?;
-    text.parse().map_err(|source| GenerateError::Parse {
+    UnitFile::parse(&text, path).map_err(|source| GenerateError::Parse {
         path: path.to_owned(),
         source,
     })
@@ -189,19 +189,19 @@ fn generate(source: &Source, scope: Scope) -> Result<Output, GenerateError> {
     let file = read_source(source)?;
     let decoded = backend::qemu::decode(&source.name, &file, &SystemdPaths).map_err(|source_| {
         GenerateError::Decode {
-            path: source.path.clone(),
+            path: source_.path().unwrap_or(&source.path).to_owned(),
             source: source_,
         }
     })?;
     for warning in &decoded.warnings {
-        log(format_args!("{}: {warning}", source.path.display()));
+        log(warning);
     }
     Ok(launcher::systemd::emit(
         source,
         &file,
         &decoded.plan,
         scope,
-        |warning| log(format_args!("{}: {warning}", source.path.display())),
+        log,
     ))
 }
 

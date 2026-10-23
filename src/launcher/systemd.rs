@@ -332,7 +332,10 @@ fn split_unit_name(name: &str) -> Option<(&str, Option<&str>, &str)> {
 fn install_links(file: &UnitFile, name: &UnitName, mut warn: impl FnMut(String)) -> Vec<Symlink> {
     let service = machine_unit(name);
     let mut links = Vec::new();
-    for entry in file.entries("Install") {
+    for (section, entry) in file
+        .sections_named("Install")
+        .flat_map(|s| s.entries.iter().map(move |e| (s, e)))
+    {
         let dir = match entry.key.as_str() {
             "WantedBy" => Some("wants"),
             "RequiredBy" => Some("requires"),
@@ -358,12 +361,13 @@ fn install_links(file: &UnitFile, name: &UnitName, mut warn: impl FnMut(String))
                     });
                 }
                 (Some(_), None) => warn(format!(
-                    "line {}: [Install] {}={value} is not a unit name, ignoring",
-                    entry.line, entry.key
+                    "{}: [Install] {}={value} is not a unit name, ignoring",
+                    section.at(entry.line),
+                    entry.key
                 )),
                 (None, _) => warn(format!(
-                    "line {}: [Install] Alias={value} is neither a service template nor an instance named {name}, ignoring",
-                    entry.line
+                    "{}: [Install] Alias={value} is neither a service template nor an instance named {name}, ignoring",
+                    section.at(entry.line)
                 )),
             }
         }

@@ -11,6 +11,7 @@
 
 use std::error::Error;
 use std::fmt;
+use std::path::{Path, PathBuf};
 use std::str::FromStr;
 
 /// One `Key=Value` line.
@@ -29,6 +30,15 @@ pub struct Section {
     pub entries: Vec<Entry>,
     /// Number of the physical line the header is on, from 1.
     pub line: usize,
+    /// The file the section is in, the `.qemu` file or a drop-in.
+    pub path: PathBuf,
+}
+
+impl Section {
+    /// A line of this section, as a diagnostic names it.
+    pub fn at(&self, line: usize) -> String {
+        format!("{}: line {line}", self.path.display())
+    }
 }
 
 /// A parsed file: its sections in file order, repeated names kept apart.
@@ -97,10 +107,17 @@ fn logical_lines(text: &str) -> Vec<(usize, String)> {
     lines
 }
 
+/// A file read from no path, as the tests write one.
 impl FromStr for UnitFile {
     type Err = ParseError;
 
     fn from_str(text: &str) -> Result<Self, Self::Err> {
+        Self::parse(text, Path::new(""))
+    }
+}
+
+impl UnitFile {
+    pub fn parse(text: &str, path: &Path) -> Result<Self, ParseError> {
         let mut file = Self::default();
         for (line, logical) in logical_lines(text) {
             let logical = logical.trim();
@@ -119,6 +136,7 @@ impl FromStr for UnitFile {
                     name: name.to_owned(),
                     entries: Vec::new(),
                     line,
+                    path: path.to_owned(),
                 });
                 continue;
             }
@@ -141,9 +159,7 @@ impl FromStr for UnitFile {
         }
         Ok(file)
     }
-}
 
-impl UnitFile {
     /// Append another file's sections after this one's. This is how
     /// drop-ins apply: a later file extends an earlier one.
     pub fn extend(&mut self, other: Self) {
@@ -225,6 +241,13 @@ mod tests {
         let f = parse("[S]\nm=1\n# note \\\nnographic=\n");
         let keys: Vec<_> = f.entries("S").map(|e| e.key.as_str()).collect();
         assert_eq!(keys, ["m", "nographic"]);
+    }
+
+    #[test]
+    fn sections_name_their_file() {
+        let f = UnitFile::parse("\n[S]\nx=1\n", Path::new("/d/10-a.conf")).unwrap();
+        let section = &f.sections[0];
+        assert_eq!(section.at(section.entries[0].line), "/d/10-a.conf: line 3");
     }
 
     #[test]
