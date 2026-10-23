@@ -94,6 +94,9 @@ pub struct SshPoweroff {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Plan {
+    /// The main process's name, which names its units and its machine
+    /// registration.
+    pub program: &'static str,
     pub binary: String,
     pub args: Vec<Arg>,
     pub helpers: Vec<Helper>,
@@ -114,8 +117,9 @@ pub struct Plan {
 
 /// Paths the launcher owns that a backend must embed in command lines.
 pub trait Paths {
-    /// The per-machine runtime directory of the main process.
-    fn runtime_dir(&self, machine: &UnitName) -> String;
+    /// The per-machine runtime directory of the main process, named
+    /// after it.
+    fn runtime_dir(&self, machine: &UnitName, program: &str) -> String;
     /// The socket the launcher listens on for a helper of the machine.
     fn helper_socket(&self, machine: &UnitName, program: &str, tag: &Tag) -> String;
 }

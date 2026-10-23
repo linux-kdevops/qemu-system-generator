@@ -8,7 +8,6 @@
 use std::fmt::{self, Write as _};
 use std::path::{Path, PathBuf};
 
-use crate::backend::qemu::SERVICE;
 use crate::plan::{Helper, Paths, Plan, Tag};
 use crate::search::{Scope, Source, UnitName};
 use crate::unitfile::UnitFile;
@@ -17,9 +16,6 @@ pub const GENERATOR: &str = "qemu-system-generator";
 
 /// The sections copied into the machine's service.
 pub const SECTIONS: [&str; 3] = ["Unit", "Service", "Install"];
-
-/// The prefix of the machine's units, `qemu-system@<name>.service`.
-const MACHINE_PREFIX: &str = SERVICE;
 
 /// The tools the generated units call; see `build.rs`.
 const QMP_POWERDOWN: &str = env!("QMP_POWERDOWN");
@@ -34,8 +30,8 @@ const SSH: &str = env!("SSH");
 pub struct SystemdPaths;
 
 impl Paths for SystemdPaths {
-    fn runtime_dir(&self, _machine: &UnitName) -> String {
-        format!("%t/{MACHINE_PREFIX}/%i")
+    fn runtime_dir(&self, _machine: &UnitName, program: &str) -> String {
+        format!("%t/{program}/%i")
     }
 
     fn helper_socket(&self, _machine: &UnitName, program: &str, tag: &Tag) -> String {
@@ -87,8 +83,9 @@ impl Output {
     }
 }
 
-fn machine_unit(name: &UnitName) -> String {
-    format!("{MACHINE_PREFIX}@{name}.service")
+/// `qemu-system@<name>.service`, the machine's unit.
+fn machine_unit(program: &str, name: &UnitName) -> String {
+    format!("{program}@{name}.service")
 }
 
 /// `virtiofsd@<name>-<tag>`, the instance string of both helper units.
@@ -188,7 +185,8 @@ impl UnitText {
 /// quoted word at execution time (`systemd.service(5)`, "Command lines").
 fn register_json(plan: &Plan) -> String {
     let mut json = format!(
-        "{{\"name\":\"%i\",\"class\":\"vm\",\"service\":\"{SERVICE}\",\"leader\":${{MAINPID}}"
+        "{{\"name\":\"%i\",\"class\":\"vm\",\"service\":\"{}\",\"leader\":${{MAINPID}}",
+        plan.program
     );
     if let Some(cid) = plan.vsock_cid {
         let _ = write!(json, ",\"vSockCid\":{cid}");
@@ -222,10 +220,11 @@ fn machine_service(source: &Source, file: &UnitFile, plan: &Plan, scope: Scope) 
 
     unit.section("Service");
     unit.line("Type=simple");
-    unit.line(format_args!("SyslogIdentifier={MACHINE_PREFIX}@%i"));
-    unit.line(format_args!("RuntimeDirectory={MACHINE_PREFIX}/%i"));
-    unit.line(format_args!("StateDirectory={MACHINE_PREFIX}/%i"));
-    unit.line(format_args!("WorkingDirectory=%S/{MACHINE_PREFIX}/%i"));
+    let program = plan.program;
+    unit.line(format_args!("SyslogIdentifier={program}@%i"));
+    unit.line(format_args!("RuntimeDirectory={program}/%i"));
+    unit.line(format_args!("StateDirectory={program}/%i"));
+    unit.line(format_args!("WorkingDirectory=%S/{program}/%i"));
     unit.exec(
         "ExecStart",
         "",
@@ -300,11 +299,11 @@ fn helper_socket(source: &Source, program: &str) -> String {
     unit.text
 }
 
-fn helper_service(source: &Source, helper: &Helper) -> String {
+fn helper_service(source: &Source, machine: &str, helper: &Helper) -> String {
     let mut unit = UnitText::new(&source.path);
     unit.line(format_args!("Description={} for %i", helper.program));
     unit.line("StopWhenUnneeded=yes");
-    unit.line(format_args!("Before={}", machine_unit(&source.name)));
+    unit.line(format_args!("Before={machine}"));
     for mount in &helper.requires_mounts {
         unit.line(format_args!("RequiresMountsFor={mount}"));
     }
@@ -355,12 +354,17 @@ fn split_unit_name(name: &str) -> Option<(&str, Option<&str>, &str)> {
     })
 }
 
-/// The symlinks `systemctl enable` would create, with relative targets
-/// so that the output directory is self-contained. A value that is not
-/// a unit name is reported through `warn` and skipped, so that no link
-/// lands outside the directory.
-fn install_links(file: &UnitFile, name: &UnitName, mut warn: impl FnMut(String)) -> Vec<Symlink> {
-    let service = machine_unit(name);
+/// The symlinks `systemctl enable` would create for `service`, the
+/// machine's unit, with relative targets so that the output directory
+/// is self-contained. A value that is not a unit name is reported
+/// through `warn` and skipped, so that no link lands outside the
+/// directory.
+fn install_links(
+    file: &UnitFile,
+    service: &str,
+    name: &UnitName,
+    mut warn: impl FnMut(String),
+) -> Vec<Symlink> {
     let mut links = Vec::new();
     for (section, entry) in file
         .sections_named("Install")
@@ -377,8 +381,8 @@ fn install_links(file: &UnitFile, name: &UnitName, mut warn: impl FnMut(String))
             let parsed = split_unit_name(value);
             match (dir, parsed) {
                 (Some(dir), Some(_)) => links.push(Symlink {
-                    path: PathBuf::from(format!("{value}.{dir}")).join(&service),
-                    target: Path::new("..").join(&service),
+                    path: PathBuf::from(format!("{value}.{dir}")).join(service),
+                    target: Path::new("..").join(service),
                 }),
                 // An alias of an instance is an instance of the same
                 // name, a template gets it (`systemctl enable`), and a
@@ -395,7 +399,7 @@ fn install_links(file: &UnitFile, name: &UnitName, mut warn: impl FnMut(String))
                     } else {
                         links.push(Symlink {
                             path: PathBuf::from(alias),
-                            target: PathBuf::from(&service),
+                            target: PathBuf::from(service),
                         });
                     }
                 }
@@ -421,7 +425,7 @@ pub fn emit(
     scope: Scope,
     warn: impl FnMut(String),
 ) -> Output {
-    let service = machine_unit(&source.name);
+    let service = machine_unit(plan.program, &source.name);
     let mut files = vec![GeneratedFile {
         path: PathBuf::from(&service),
         text: machine_service(source, file, plan, scope),
@@ -434,12 +438,12 @@ pub fn emit(
         });
         files.push(GeneratedFile {
             path: PathBuf::from(format!("{stem}.service")),
-            text: helper_service(source, helper),
+            text: helper_service(source, &service, helper),
         });
     }
     Output {
         files,
-        links: install_links(file, &source.name, warn),
+        links: install_links(file, &service, &source.name, warn),
     }
 }
 
@@ -449,6 +453,7 @@ mod tests {
 
     fn plan() -> Plan {
         Plan {
+            program: "qemu-system",
             binary: "/usr/bin/qemu-system-x86_64".to_owned(),
             args: vec![
                 ["-m".to_owned(), "1".to_owned()].into(),
@@ -487,9 +492,12 @@ mod tests {
     fn names() {
         let name: UnitName = "vm".parse().unwrap();
         let tag: Tag = "home".parse().unwrap();
-        assert_eq!(machine_unit(&name), "qemu-system@vm.service");
+        assert_eq!(machine_unit("qemu-system", &name), "qemu-system@vm.service");
         assert_eq!(helper_stem(&name, "virtiofsd", &tag), "virtiofsd@vm-home");
-        assert_eq!(SystemdPaths.runtime_dir(&name), "%t/qemu-system/%i");
+        assert_eq!(
+            SystemdPaths.runtime_dir(&name, "qemu-system"),
+            "%t/qemu-system/%i"
+        );
         assert_eq!(
             SystemdPaths.helper_socket(&name, "virtiofsd", &tag),
             "%t/virtiofsd/%i-home/virtiofsd.sock"
@@ -583,7 +591,9 @@ mod tests {
         .unwrap();
         let mut warnings = Vec::new();
         let name: UnitName = "vm".parse().unwrap();
-        let links = install_links(&file, &name, |w| warnings.push(w));
+        let links = install_links(&file, "qemu-system@vm.service", &name, |w| {
+            warnings.push(w);
+        });
         let paths: Vec<_> = links.iter().map(|l| l.path.to_str().unwrap()).collect();
         assert_eq!(
             paths,

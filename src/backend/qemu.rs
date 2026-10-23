@@ -26,8 +26,8 @@ const VIRTIOFSD_BINARY_KEY: &str = "VirtiofsdBinary";
 const SSH_PRIVATE_KEY_KEY: &str = "SshPrivateKey";
 const VM_KEYS: [&str; 3] = [QEMU_BINARY_KEY, VIRTIOFSD_BINARY_KEY, SSH_PRIVATE_KEY_KEY];
 
-/// What the machined registration calls the registering service.
-pub const SERVICE: &str = "qemu-system";
+/// The machine's process, as its units and its registration name it.
+const SERVICE: &str = "qemu-system";
 
 /// The binaries compiled in as defaults; see `build.rs`.
 pub const QEMU: &str = env!("QEMU");
@@ -424,7 +424,7 @@ pub fn decode(
     }
 
     // The command line: the file's lines, then what the lifecycle adds.
-    let control_socket = format!("{}/qmp.sock", paths.runtime_dir(machine));
+    let control_socket = format!("{}/qmp.sock", paths.runtime_dir(machine, SERVICE));
     let args: Vec<Arg> = qemu
         .iter()
         .copied()
@@ -455,6 +455,7 @@ pub fn decode(
 
     Ok(Decoded {
         plan: Plan {
+            program: SERVICE,
             binary: vm.qemu_binary,
             args,
             helpers,
@@ -476,8 +477,8 @@ mod tests {
     struct TestPaths;
 
     impl Paths for TestPaths {
-        fn runtime_dir(&self, machine: &UnitName) -> String {
-            format!("/run/{machine}")
+        fn runtime_dir(&self, machine: &UnitName, program: &str) -> String {
+            format!("/run/{program}/{machine}")
         }
 
         fn helper_socket(&self, machine: &UnitName, program: &str, tag: &Tag) -> String {
@@ -552,7 +553,7 @@ mod tests {
                 "-device a",
                 "-machine usb=on",
                 "-device b",
-                "-qmp unix:/run/vm/qmp.sock,server=on,wait=off",
+                "-qmp unix:/run/qemu-system/vm/qmp.sock,server=on,wait=off",
             ]
         );
         assert_eq!(plan.device_allow, DEVICE_ALLOW);
@@ -588,7 +589,7 @@ mod tests {
                 "-device vhost-user-fs-pci,queue-size=1024,chardev=virtiofs_a,tag=a",
                 "-chardev socket,id=virtiofs_b,path=/run/virtiofsd/vm-b.sock",
                 "-device vhost-user-fs-pci,queue-size=1024,chardev=virtiofs_b,tag=b",
-                "-qmp unix:/run/vm/qmp.sock,server=on,wait=off",
+                "-qmp unix:/run/qemu-system/vm/qmp.sock,server=on,wait=off",
             ]
         );
     }
