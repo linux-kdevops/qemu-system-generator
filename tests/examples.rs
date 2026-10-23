@@ -112,6 +112,27 @@ fn a_broken_file_fails_without_stopping_the_others() {
 }
 
 #[test]
+fn a_unit_name_is_generated_once() {
+    let tmp = env::temp_dir().join(format!(
+        "qemu-system-generator-conflict-{}",
+        std::process::id()
+    ));
+    fs::create_dir_all(&tmp).unwrap();
+    fs::write(tmp.join("a-b.qemu"), "[QEMU]\nm=1\n[virtiofsd]\ntag=c\n").unwrap();
+    fs::write(tmp.join("a.qemu"), "[QEMU]\nm=1\n[virtiofsd]\ntag=b-c\n").unwrap();
+    let out = dryrun("--system", &tmp);
+    fs::remove_dir_all(&tmp).unwrap();
+    let stderr = String::from_utf8_lossy(&out.stderr);
+    let stdout = String::from_utf8_lossy(&out.stdout);
+    assert_eq!(out.status.code(), Some(1));
+    assert!(
+        stderr.contains("a-b.qemu: virtiofsd@a-b-c.socket is already generated from "),
+        "{stderr}"
+    );
+    assert_eq!(stdout.matches("---virtiofsd@a-b-c.socket---").count(), 1);
+}
+
+#[test]
 fn usage_errors_exit_with_two() {
     let out = Command::new(BIN).arg("--bogus").output().unwrap();
     assert_eq!(out.status.code(), Some(2));

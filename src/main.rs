@@ -19,6 +19,7 @@ mod plan;
 mod search;
 mod unitfile;
 
+use std::collections::BTreeMap;
 use std::env;
 use std::error::Error;
 use std::ffi::OsString;
@@ -111,10 +112,27 @@ fn parse_args(args: impl IntoIterator<Item = OsString>) -> Result<Command, Usage
 
 #[derive(Debug)]
 enum GenerateError {
-    Read { path: PathBuf, source: io::Error },
-    Parse { path: PathBuf, source: ParseError },
-    Decode { path: PathBuf, source: DecodeError },
-    Write { path: PathBuf, source: io::Error },
+    Read {
+        path: PathBuf,
+        source: io::Error,
+    },
+    Parse {
+        path: PathBuf,
+        source: ParseError,
+    },
+    Decode {
+        path: PathBuf,
+        source: DecodeError,
+    },
+    Write {
+        path: PathBuf,
+        source: io::Error,
+    },
+    Conflict {
+        path: PathBuf,
+        unit: PathBuf,
+        first: PathBuf,
+    },
 }
 
 impl fmt::Display for GenerateError {
@@ -125,6 +143,13 @@ impl fmt::Display for GenerateError {
             }
             Self::Parse { path, source } => write!(f, "{}: {source}", path.display()),
             Self::Decode { path, source } => write!(f, "{}: {source}", path.display()),
+            Self::Conflict { path, unit, first } => write!(
+                f,
+                "{}: {} is already generated from {}",
+                path.display(),
+                unit.display(),
+                first.display()
+            ),
         }
     }
 }
@@ -135,6 +160,7 @@ impl Error for GenerateError {
             Self::Read { source, .. } | Self::Write { source, .. } => Some(source),
             Self::Parse { source, .. } => Some(source),
             Self::Decode { source, .. } => Some(source),
+            Self::Conflict { .. } => None,
         }
     }
 }
@@ -177,6 +203,31 @@ fn generate(source: &Source, scope: Scope) -> Result<Output, GenerateError> {
         scope,
         |warning| log(format_args!("{}: {warning}", source.path.display())),
     ))
+}
+
+/// Record the units of `output` as generated from `source`, unless an
+/// earlier file generated one of them: `a-b.qemu` with tag `c` and
+/// `a.qemu` with tag `b-c` both name `virtiofsd@a-b-c`.
+fn claim(
+    claimed: &mut BTreeMap<PathBuf, PathBuf>,
+    source: &Source,
+    output: &Output,
+) -> Result<(), GenerateError> {
+    if let Some((unit, first)) = output
+        .files
+        .iter()
+        .find_map(|f| Some((&f.path, claimed.get(&f.path)?)))
+    {
+        return Err(GenerateError::Conflict {
+            path: source.path.clone(),
+            unit: unit.clone(),
+            first: first.clone(),
+        });
+    }
+    for file in &output.files {
+        claimed.insert(file.path.clone(), source.path.clone());
+    }
+    Ok(())
 }
 
 fn write_output(dest: &Path, output: &Output) -> Result<(), GenerateError> {
@@ -238,14 +289,17 @@ fn run(options: &Options) -> ExitCode {
     let stdout = io::stdout();
     let mut stdout = io::BufWriter::new(stdout.lock());
     let mut failed = false;
+    let mut claimed = BTreeMap::new();
     for source in &sources {
-        let result = generate(source, scope).and_then(|output| match &options.output_dir {
-            Some(dir) if !options.dryrun => write_output(dir, &output),
-            _ => print_output(&output, &mut stdout).map_err(|source_| GenerateError::Write {
-                path: PathBuf::from("<stdout>"),
-                source: source_,
-            }),
-        });
+        let result = generate(source, scope)
+            .and_then(|output| claim(&mut claimed, source, &output).map(|()| output))
+            .and_then(|output| match &options.output_dir {
+                Some(dir) if !options.dryrun => write_output(dir, &output),
+                _ => print_output(&output, &mut stdout).map_err(|source_| GenerateError::Write {
+                    path: PathBuf::from("<stdout>"),
+                    source: source_,
+                }),
+            });
         if let Err(err) = result {
             log(err);
             failed = true;
