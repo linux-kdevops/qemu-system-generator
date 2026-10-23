@@ -11,7 +11,7 @@ use std::error::Error;
 use std::fmt;
 use std::path::{Path, PathBuf};
 
-use crate::plan::{Arg, Helper, InvalidTag, Paths, Plan, Register, SshPoweroff, Tag};
+use crate::plan::{Arg, Helper, InvalidTag, Paths, Plan, SshPoweroff, Tag};
 use crate::search::UnitName;
 use crate::unitfile::{Entry, Section, UnitFile};
 
@@ -483,10 +483,8 @@ pub fn decode(
             helpers,
             device_allow,
             memlock_mib: memlock_mib(&seen)?,
-            register: Register {
-                vsock_cid: seen.vsock_cid,
-                id: seen.uuid.map(str::to_owned),
-            },
+            vsock_cid: seen.vsock_cid,
+            uuid: seen.uuid.map(str::to_owned),
             ssh_poweroff,
             control_socket,
         },
@@ -581,7 +579,7 @@ mod tests {
         );
         assert_eq!(plan.device_allow, DEVICE_ALLOW);
         assert_eq!(plan.memlock_mib, None);
-        assert_eq!(plan.register, Register::default());
+        assert_eq!((plan.vsock_cid, plan.uuid), (None, None));
         assert_eq!(plan.helpers, [] as [Helper; 0]);
         assert!(plan.ssh_poweroff.is_none());
     }
@@ -641,13 +639,8 @@ mod tests {
         )
         .unwrap();
         let plan = decoded.plan;
-        assert_eq!(
-            plan.register,
-            Register {
-                vsock_cid: Some(42),
-                id: Some("u".to_owned())
-            }
-        );
+        assert_eq!(plan.vsock_cid, Some(42));
+        assert_eq!(plan.uuid.as_deref(), Some("u"));
         assert_eq!(plan.memlock_mib, Some(4096 + 256));
         assert_eq!(
             plan.device_allow.len(),

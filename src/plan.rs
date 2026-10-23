@@ -82,13 +82,6 @@ pub struct Helper {
     pub requires_mounts: Vec<String>,
 }
 
-/// Fields of the machined registration (`io.systemd.Machine.Register`).
-#[derive(Debug, Clone, Default, PartialEq, Eq)]
-pub struct Register {
-    pub vsock_cid: Option<u64>,
-    pub id: Option<String>,
-}
-
 /// A guest shutdown asked for over SSH, before the backend's own
 /// channel is used.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -108,7 +101,9 @@ pub struct Plan {
     /// Locked memory the process needs, in MiB, when it pins guest
     /// memory for an assigned device.
     pub memlock_mib: Option<u64>,
-    pub register: Register,
+    /// The guest's vsock CID and its UUID, for the machine registration.
+    pub vsock_cid: Option<u64>,
+    pub uuid: Option<String>,
     pub ssh_poweroff: Option<SshPoweroff>,
     /// The control socket the launcher's stop command talks to.
     pub control_socket: String,

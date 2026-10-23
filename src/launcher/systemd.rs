@@ -166,10 +166,10 @@ fn register_json(plan: &Plan) -> String {
     let mut json = format!(
         "{{\"name\":\"%i\",\"class\":\"vm\",\"service\":\"{SERVICE}\",\"leader\":${{MAINPID}}"
     );
-    if let Some(cid) = plan.register.vsock_cid {
+    if let Some(cid) = plan.vsock_cid {
         let _ = write!(json, ",\"vSockCid\":{cid}");
     }
-    if let Some(id) = &plan.register.id {
+    if let Some(id) = &plan.uuid {
         let _ = write!(json, ",\"id\":\"{id}\"");
     }
     json.push('}');
@@ -407,7 +407,6 @@ pub fn emit(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::plan::Register;
 
     fn plan() -> Plan {
         Plan {
@@ -419,7 +418,8 @@ mod tests {
             helpers: Vec::new(),
             device_allow: vec!["/dev/kvm rw"],
             memlock_mib: None,
-            register: Register::default(),
+            vsock_cid: None,
+            uuid: None,
             ssh_poweroff: None,
             control_socket: "%t/qemu-system/%i/qmp.sock".to_owned(),
         }
@@ -464,10 +464,8 @@ mod tests {
             register_json(&p),
             "{\"name\":\"%i\",\"class\":\"vm\",\"service\":\"qemu-system\",\"leader\":${MAINPID}}"
         );
-        p.register = Register {
-            vsock_cid: Some(7),
-            id: Some("u".to_owned()),
-        };
+        p.vsock_cid = Some(7);
+        p.uuid = Some("u".to_owned());
         assert!(register_json(&p).ends_with(",\"vSockCid\":7,\"id\":\"u\"}"));
     }
 
