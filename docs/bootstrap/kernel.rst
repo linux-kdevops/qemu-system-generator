@@ -66,6 +66,10 @@ The :cmd:`qemu-guest.nix` profile puts the virtio and virtiofs drivers in
 the initrd. The empty root password is for logging in on the console in
 :ref:`step 6 <kernel-console>`.
 
+.. _kernel-latest:
+
+.. include:: _kernel.rst
+
 ``~/bootstrap/kernel/virtiofs.nix`` has no boot loader and no disk.
 The root is a tmpfs, and the store arrives over virtiofs under the tag
 ``store``, which :ref:`step 2 <kernel-store>` sets up:
@@ -86,7 +90,7 @@ The root is a tmpfs, and the store arrives over virtiofs under the tag
      };
    }
 
-Build it with :cmd:`nix build`:
+Build it with ``nix build``:
 
 .. code-block:: console
    :class: cmd-host

@@ -84,6 +84,8 @@ public key from ``~/bootstrap/ssh/id_ed25519.pub`` pasted in:
 The :cmd:`qemu-guest.nix` profile puts the virtio and virtiofs drivers in
 the initrd. The empty root password lets you log in on a console.
 
+.. include:: _kernel.rst
+
 ``~/bootstrap/uki/uki.nix`` has no boot loader and no disk. The
 root is a `tmpfs`_, and the store arrives over virtiofs under the tag
 ``store``, which :ref:`step 2 <uki-store>` sets up:
@@ -111,7 +113,7 @@ The UKI's stub sets the ``StubFeatures`` EFI variable, which makes
 partition. The guest has none mounted, and the unit fails with
 "Failed to start Update Boot Loader Random Seed"; the last line masks it.
 
-Build the UKI and the firmware with :cmd:`nix build`:
+Build the UKI and the firmware with ``nix build``:
 
 .. code-block:: console
    :class: cmd-host

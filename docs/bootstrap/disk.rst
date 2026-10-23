@@ -73,6 +73,8 @@ public key from ``~/bootstrap/ssh/id_ed25519.pub`` pasted in:
 The :cmd:`qemu-guest.nix` profile puts the virtio drivers in the
 `initrd`_. The empty root password lets you log in on a console.
 
+.. include:: _kernel.rst
+
 ``~/bootstrap/disk/disk.nix`` names the images and sends the
 kernel's messages to the serial port:
 
@@ -138,7 +140,7 @@ network, and gives up:
 2. A disk
 =========
 
-Build the disk image with :cmd:`nix build`. The first build takes a
+Build the disk image with ``nix build``. The first build takes a
 couple of minutes:
 
 .. code-block:: console
