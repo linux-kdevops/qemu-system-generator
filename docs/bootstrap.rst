@@ -6,10 +6,10 @@ Bootstrap: a NixOS guest from a .qemu file
 
 This walk-through boots a `NixOS`_ guest under your user's `systemd`_
 manager, from one ``.qemu`` file that grows by one feature per step. The
-guest's kernel, initrd and system come from `nixpkgs`_. It first boots
+guest's kernel, `initrd`_ and system come from `nixpkgs`_. It first boots
 from a disk image, through firmware and a boot loader, the way a
 physical machine does. Then QEMU loads the kernel itself, the root file
-system becomes a tmpfs, and ``/nix/store`` is the host's own, shared
+system becomes a `tmpfs`_, and ``/nix/store`` is the host's own, shared
 over `virtiofs`_. No step needs root.
 
 The file format is specified in
@@ -28,7 +28,7 @@ What you need
 - systemd with a user manager, which is what
   :cmd:`systemctl` ``--user`` talks to.
 - `Nix`_ with flakes enabled.
-- A checkout of this repository.
+- A checkout of `this repository`_.
 
 Preparation
 ===========
@@ -56,8 +56,9 @@ The guest
 ---------
 
 The guest is an ordinary NixOS configuration, built two ways: as a disk
-image for steps 2 and 3, and as a system that boots from the host's
-store from step 4 on. Create ``~/nixos-bootstrap/vm/flake.nix``:
+image for :ref:`step 2 <bootstrap-disk>` and :ref:`step 3 <bootstrap-uefi>`,
+and as a system that boots from the host's store from
+:ref:`step 4 <bootstrap-kernel>` on. Create ``~/nixos-bootstrap/vm/flake.nix``:
 
 .. code-block:: nix
 
@@ -112,7 +113,7 @@ public key from ``~/nixos-bootstrap/id_ed25519.pub`` pasted in:
 
 The :cmd:`qemu-guest.nix` profile puts the virtio and virtiofs drivers in
 the initrd. The empty root password is for logging in on the console in
-step 9.
+:ref:`step 9 <bootstrap-console>`.
 
 ``~/nixos-bootstrap/vm/disk.nix`` names the images and sends the kernel's
 messages to the serial port:
@@ -130,7 +131,7 @@ the disk.
 
 ``~/nixos-bootstrap/vm/virtiofs.nix`` has neither. QEMU loads the kernel
 itself, the root is a tmpfs, and the store arrives over virtiofs under
-the tag ``store``, which step 5 sets up:
+the tag ``store``, which :ref:`step 5 <bootstrap-store>` sets up:
 
 .. code-block:: nix
 
@@ -201,6 +202,8 @@ before starting the machine, which waits until the reload is done:
 
    $ systemctl --user start qemu-system-generator.service
 
+.. _bootstrap-machine:
+
 1. A machine
 ============
 
@@ -258,6 +261,8 @@ minutes for a guest that is not there. Kill it instead; QEMU exits on
 
    $ systemctl --user kill qemu-system@bootstrap.service
 
+.. _bootstrap-disk:
+
 2. A disk
 =========
 
@@ -284,7 +289,8 @@ The image is in the store, which is read-only. With ``snapshot=on``, QEMU
 writes to a temporary file instead, and what the guest wrote is gone
 when it stops.
 
-Regenerate and start as in step 1. SeaBIOS finds the disk, `GRUB`_ loads
+Regenerate and start as in :ref:`step 1 <bootstrap-machine>`. `SeaBIOS`_
+finds the disk, `GRUB`_ loads
 the kernel and the initrd with the command line from ``disk.nix``, and
 NixOS boots in about 18 seconds:
 
@@ -309,12 +315,14 @@ takes 1.5 seconds:
 
    $ systemctl --user stop qemu-system@bootstrap.service
 
+.. _bootstrap-uefi:
+
 3. UEFI
 =======
 
 SeaBIOS is QEMU's default firmware. On the PC machines, a firmware in
 the first flash device replaces it. Build the `OVMF`_ firmware from
-`EDK II`_, and the image with an EFI system partition and systemd-boot:
+`EDK II`_, and the image with an EFI system partition and `systemd-boot`_:
 
 .. code-block:: console
    :class: cmd-host
@@ -349,7 +357,9 @@ menu counts down on the serial console:
    ...
    <<< Welcome to NixOS efi-qcow2-26.11.20261020.02c087f (x86_64) - ttyS0 >>>
 
-Stop it as in step 2.
+Stop it as in :ref:`step 2 <bootstrap-disk>`.
+
+.. _bootstrap-kernel:
 
 4. A kernel
 ===========
@@ -386,7 +396,9 @@ where it looks for the store:
    ...
    You are in emergency mode. After logging in, type "journalctl -xb" to view
 
-Kill it as in step 1.
+Kill it as in :ref:`step 1 <bootstrap-machine>`.
+
+.. _bootstrap-store:
 
 5. The store
 ============
@@ -463,10 +475,12 @@ Stop it the normal way:
 That took 1.7 seconds. The daemon stops with the machine, and its
 socket stays listening for the next start.
 
+.. _bootstrap-network:
+
 6. A network
 ============
 
-QEMU's user-mode network needs no privileges. Forward a local port to
+QEMU's `user-mode network`_ needs no privileges. Forward a local port to
 the guest's SSH:
 
 .. code-block:: diff
@@ -483,10 +497,12 @@ Regenerate, restart with ``systemctl --user restart``, and log in with
    $ ssh -i ~/nixos-bootstrap/id_ed25519 -p 10022 root@127.0.0.1 uname -r
    6.18.57
 
+.. _bootstrap-vsock:
+
 7. vsock
 ========
 
-A vsock device gives the guest a context id, a socket address the host
+A `vsock`_ device gives the guest a context id, a socket address the host
 can reach without any network:
 
 .. code-block:: diff
@@ -517,8 +533,10 @@ on the host reach a registered machine by name:
 
 ``machine/`` needs the ``ssh`` configuration that systemd ships as
 ``20-systemd-ssh-proxy.conf``, which most distributions link into
-``/etc/ssh/ssh_config.d/``. Without it, step 6's forwarded port still
-works.
+``/etc/ssh/ssh_config.d/``. Without it,
+:ref:`step 6 <bootstrap-network>`'s forwarded port still works.
+
+.. _bootstrap-poweroff:
 
 8. Poweroff over SSH
 ====================
@@ -544,6 +562,8 @@ presses the power button only if that fails:
    ...
    [  OK  ] Reached target System Power Off.
    [   16.084116] reboot: Power down
+
+.. _bootstrap-console:
 
 9. A console
 ============
@@ -574,6 +594,8 @@ as root with no password, and leave with Ctrl-O:
    bootstrap login: root
    [root@bootstrap:~]# uname -r
    6.18.57
+
+.. _bootstrap-drop-in:
 
 10. The closure in a drop-in
 ============================
@@ -618,6 +640,8 @@ two files without writing anything:
 The path unit does not watch the drop-in directory, so regenerate by
 hand after rewriting it.
 
+.. _bootstrap-settings:
+
 11. systemd settings
 ====================
 
@@ -652,6 +676,8 @@ With ``WantedBy=machines.target``, ``systemctl --user start
 machines.target`` starts the machine too. Every generated machine is
 also part of :cmd:`machines.target`, so ``systemctl --user stop
 machines.target`` stops all of them, not only this one.
+
+.. _bootstrap-share:
 
 12. A share of your own
 =======================
@@ -693,7 +719,8 @@ The guest mounts it by tag, so ``virtiofs.nix`` changes too:
    +    fsType = "virtiofs";
    +  };
 
-Rebuild, rewrite the drop-in as in step 10, regenerate and restart:
+Rebuild, rewrite the drop-in as in :ref:`step 10 <bootstrap-drop-in>`,
+regenerate and restart:
 
 .. code-block:: console
    :class: cmd-host
@@ -724,6 +751,7 @@ Notes
   written, and drop-ins under ``qemu-system@name.service.d/`` apply to
   generated units too.
 
+.. _this repository: https://github.com/linux-kdevops/qemu-system-generator
 .. _NixOS: https://nixos.org/manual/nixos/stable/
 .. _systemd: https://systemd.io
 .. _nixpkgs: https://github.com/NixOS/nixpkgs
@@ -737,4 +765,10 @@ Notes
 .. _OVMF: https://github.com/tianocore/tianocore.github.io/wiki/OVMF
 .. _EDK II: https://github.com/tianocore/edk2
 .. _virtiofsd: https://gitlab.com/virtio-fs/virtiofsd
+.. _initrd: https://docs.kernel.org/filesystems/ramfs-rootfs-initramfs.html
+.. _tmpfs: https://docs.kernel.org/filesystems/tmpfs.html
+.. _SeaBIOS: https://www.seabios.org/
+.. _systemd-boot: https://www.freedesktop.org/software/systemd/man/latest/systemd-boot.html
+.. _user-mode network: https://www.qemu.org/docs/master/system/devices/net.html#using-the-user-mode-network-stack
+.. _vsock: https://man7.org/linux/man-pages/man7/vsock.7.html
 .. _resource limits: https://www.freedesktop.org/software/systemd/man/latest/systemd.resource-control.html

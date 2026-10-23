@@ -4,10 +4,10 @@
 Bootstrap with your own kernel and QEMU
 =======================================
 
-This page continues :doc:`bootstrap` from its last step and
-boots the same guest on a `Linux`_ kernel and a `QEMU`_ you build
-yourself. Run that page first; everything here changes its
-``bootstrap.qemu`` and reuses ``~/nixos-bootstrap``.
+This page continues :doc:`bootstrap` from its
+:ref:`last step <bootstrap-share>` and boots the same guest on a `Linux`_
+kernel and a `QEMU`_ you build yourself. Run that page first; everything
+here changes its ``bootstrap.qemu`` and reuses ``~/nixos-bootstrap``.
 
 The outputs below are real, trimmed to the lines that matter, with the
 home directory shown as ``/home/user``.
@@ -21,7 +21,7 @@ kernel's too. nixpkgs can build a kernel from your tree, but as a `Nix`_
 derivation, which rebuilds from scratch after every change.
 
 `knix`_ keeps the kernel out of the closure. Its ``imageless`` backend
-builds a NixOS system with no kernel of its own and an initrd with no
+builds a NixOS system with no kernel of its own and an `initrd`_ with no
 modules, which expects the boot-critical drivers built in and mounts
 ``/lib/modules`` over virtiofs under the tag ``modules``. You build the
 kernel in your tree with ``make`` as usual, and the same closure boots
@@ -34,7 +34,7 @@ Preparation
 The kernel
 ----------
 
-Configure the release as a KVM guest with virtiofs built in, build it
+Configure the release as a `KVM`_ guest with virtiofs built in, build it
 and install its modules next to it, inside the ``build-kernel`` shell
 (:cmd:`nix develop`):
 
@@ -128,8 +128,8 @@ with your public key pasted in:
 
    $ nix build .#toplevel
 
-This closure has no ``kernel`` or ``initrd`` link. Its ``boot.json`` names the
-initrd and ``init``:
+This closure has no ``kernel`` or ``initrd`` link. Its ``boot.json``, a NixOS
+`bootspec`_ document, names the initrd and ``init``:
 
 .. code-block:: console
    :class: cmd-host
@@ -224,6 +224,9 @@ The guest boots in about 7 seconds and stops in 1.7.
 .. _NixOS: https://nixos.org/manual/nixos/stable/
 .. _nixpkgs: https://github.com/NixOS/nixpkgs
 .. _Nix: https://nix.dev/manual/nix/latest/
+.. _initrd: https://docs.kernel.org/filesystems/ramfs-rootfs-initramfs.html
+.. _KVM: https://docs.kernel.org/virt/kvm/index.html
+.. _bootspec: https://nixos.org/manual/nixos/stable/#sec-bootspec
 .. _knix: https://github.com/linux-kdevops/knix
 .. _kernel build documentation: https://docs.kernel.org/admin-guide/README.html
 .. _QEMU build system: https://www.qemu.org/docs/master/devel/build-system.html

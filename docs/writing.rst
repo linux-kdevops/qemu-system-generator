@@ -16,7 +16,7 @@ Jakub Kicinski and Al Viro.
 Commit messages
 ===============
 
-The project's own form is in the commit rules of ``CLAUDE.md``. What goes
+The project's own form is in the commit rules of :repo:`CLAUDE.md`. What goes
 into the body comes from
 `submitting-patches.rst`_
 and the `tip tree`_
@@ -53,62 +53,62 @@ Read two before writing, with ``git -C <linux> show --no-patch <hash>`` in
 any Linux clone; a list of banned words on its own mostly teaches a
 writer to reach for a synonym.
 
-+------------------+-------------------+-------------------------------+
-| Commit           | Author            | What it shows                 |
-+==================+===================+===============================+
-| ``43a1e3744548`` | Linus Torvalds    | A bug fix: the problem, why   |
-|                  |                   | the obvious code missed it,   |
-|                  |                   | the chosen fix and the        |
-|                  |                   | alternative it rejects.       |
-+------------------+-------------------+-------------------------------+
-| ``0e65cd9e5d41`` | Paolo Bonzini     | A preventive fix that says    |
-|                  |                   | plainly nothing was observed, |
-|                  |                   | and why it is still right.    |
-+------------------+-------------------+-------------------------------+
-| ``c793bbfc4a0a`` | Thomas Gleixner   | Context, problem and fix in   |
-|                  |                   | three short paragraphs, the   |
-|                  |                   | tip tree's order.             |
-+------------------+-------------------+-------------------------------+
-| ``a92193c91e88`` | Jens Axboe        | A regression fix whose        |
-|                  |                   | evidence is a trimmed KASAN   |
-|                  |                   | report.                       |
-+------------------+-------------------+-------------------------------+
-| ``ab1c416d2377`` | Darrick J. Wong   | Names the tool that found the |
-|                  |                   | bug, and why the simple fix   |
-|                  |                   | is enough.                    |
-+------------------+-------------------+-------------------------------+
-| ``c01e6df60e7b`` | Christoph Hellwig | A feature: why it is useful,  |
-|                  |                   | then its one design decision  |
-|                  |                   | and the alternative.          |
-+------------------+-------------------+-------------------------------+
-| ``12c84dd4d308`` | Theodore Ts'o     | A feature in four lines.      |
-+------------------+-------------------+-------------------------------+
-| ``3ed403bbc967`` | Thomas Gleixner   | A cleanup in two sentences of |
-|                  |                   | reason and one order.         |
-+------------------+-------------------+-------------------------------+
-| ``f2e65e4e5b4b`` | Jonathan Corbet   | A documentation fix: what the |
-|                  |                   | text claimed, why that is     |
-|                  |                   | wrong, the change.            |
-+------------------+-------------------+-------------------------------+
-| ``a5beeb64f226`` | Al Viro           | A comment-only commit whose   |
-|                  |                   | body explains the locking it  |
-|                  |                   | documents.                    |
-+------------------+-------------------+-------------------------------+
-| ``ac059ae422d7`` | Ingo Molnar       | A build fix with the compiler |
-|                  |                   | error and the bisect result,  |
-|                  |                   | ending "Build tested only".   |
-+------------------+-------------------+-------------------------------+
-| ``9db03d2116ab`` | Jens Axboe        | A revert that admits the      |
-|                  |                   | wrong assumption and names    |
-|                  |                   | the user it broke.            |
-+------------------+-------------------+-------------------------------+
-| ``761e015e5a54`` | Christoph Hellwig | A performance fix that says   |
-|                  |                   | what must stay and which      |
-|                  |                   | regression it ends.           |
-+------------------+-------------------+-------------------------------+
-| ``d681d7ef617e`` | Linus Torvalds    | A merge: why it is merged     |
-|                  |                   | now.                          |
-+------------------+-------------------+-------------------------------+
++------------------------+-------------------+-------------------------------+
+| Commit                 | Author            | What it shows                 |
++========================+===================+===============================+
+| :commit:`43a1e3744548` | Linus Torvalds    | A bug fix: the problem, why   |
+|                        |                   | the obvious code missed it,   |
+|                        |                   | the chosen fix and the        |
+|                        |                   | alternative it rejects.       |
++------------------------+-------------------+-------------------------------+
+| :commit:`0e65cd9e5d41` | Paolo Bonzini     | A preventive fix that says    |
+|                        |                   | plainly nothing was observed, |
+|                        |                   | and why it is still right.    |
++------------------------+-------------------+-------------------------------+
+| :commit:`c793bbfc4a0a` | Thomas Gleixner   | Context, problem and fix in   |
+|                        |                   | three short paragraphs, the   |
+|                        |                   | tip tree's order.             |
++------------------------+-------------------+-------------------------------+
+| :commit:`a92193c91e88` | Jens Axboe        | A regression fix whose        |
+|                        |                   | evidence is a trimmed KASAN   |
+|                        |                   | report.                       |
++------------------------+-------------------+-------------------------------+
+| :commit:`ab1c416d2377` | Darrick J. Wong   | Names the tool that found the |
+|                        |                   | bug, and why the simple fix   |
+|                        |                   | is enough.                    |
++------------------------+-------------------+-------------------------------+
+| :commit:`c01e6df60e7b` | Christoph Hellwig | A feature: why it is useful,  |
+|                        |                   | then its one design decision  |
+|                        |                   | and the alternative.          |
++------------------------+-------------------+-------------------------------+
+| :commit:`12c84dd4d308` | Theodore Ts'o     | A feature in four lines.      |
++------------------------+-------------------+-------------------------------+
+| :commit:`3ed403bbc967` | Thomas Gleixner   | A cleanup in two sentences of |
+|                        |                   | reason and one order.         |
++------------------------+-------------------+-------------------------------+
+| :commit:`f2e65e4e5b4b` | Jonathan Corbet   | A documentation fix: what the |
+|                        |                   | text claimed, why that is     |
+|                        |                   | wrong, the change.            |
++------------------------+-------------------+-------------------------------+
+| :commit:`a5beeb64f226` | Al Viro           | A comment-only commit whose   |
+|                        |                   | body explains the locking it  |
+|                        |                   | documents.                    |
++------------------------+-------------------+-------------------------------+
+| :commit:`ac059ae422d7` | Ingo Molnar       | A build fix with the compiler |
+|                        |                   | error and the bisect result,  |
+|                        |                   | ending "Build tested only".   |
++------------------------+-------------------+-------------------------------+
+| :commit:`9db03d2116ab` | Jens Axboe        | A revert that admits the      |
+|                        |                   | wrong assumption and names    |
+|                        |                   | the user it broke.            |
++------------------------+-------------------+-------------------------------+
+| :commit:`761e015e5a54` | Christoph Hellwig | A performance fix that says   |
+|                        |                   | what must stay and which      |
+|                        |                   | regression it ends.           |
++------------------------+-------------------+-------------------------------+
+| :commit:`d681d7ef617e` | Linus Torvalds    | A merge: why it is merged     |
+|                        |                   | now.                          |
++------------------------+-------------------+-------------------------------+
 
 Comments and doc comments
 =========================
@@ -133,7 +133,7 @@ operation, no doc comment that repeats the signature, and no history
 
 Write in the imperative, without pronouns, with sentences that start
 with a capital letter. The reason for a shape goes in the commit body,
-not the comment (``CLAUDE.md``, Conventions).
+not the comment (:repo:`CLAUDE.md`, Conventions).
 
 Documentation
 =============
@@ -141,14 +141,14 @@ Documentation
 From the kernel's `doc guide`_:
 keep markup simple, update the content and not only the formatting, and
 write for every reader, including one who arrives from a search with no
-context. The man pages are the specification; ``README.md`` points at
+context. The man pages are the specification; :repo:`README.md` points at
 them rather than repeating them.
 
 The gate
 ========
 
-``scripts/check-prose.py`` refuses the phrasing these maintainers almost
-never write. ``scripts/check-style.sh`` runs it on the message alone in
+:repo:`scripts/check-prose.py` refuses the phrasing these maintainers almost
+never write. :repo:`scripts/check-style.sh` runs it on the message alone in
 the commit-msg hook, and otherwise on HEAD's message plus the lines the
 commit adds to ``.md``, ``.rst`` and ``.scd`` files and to the comments
 of ``.rs``, ``.py``, ``.sh``, ``.nix``, ``.qemu`` and ``.conf`` files.
@@ -167,7 +167,7 @@ describe "this function" or a "helper". A warning prints and passes; a
 maintainer writes these now and then.
 
 Each refused message pattern but the list rule, which comes from
-``CLAUDE.md``, was measured before it went in. Over three years, a second
+:repo:`CLAUDE.md`, was measured before it went in. Over three years, a second
 sample of 7,742 commit messages by these maintainers matches 14 times,
 0.18%, and 13 of those are the patch-as-subject opener; the vocabulary
 list matches none. The rest of the kernel matches 2.4%. The dash alone

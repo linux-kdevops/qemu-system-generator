@@ -109,6 +109,19 @@ def _cmd_role(name, rawtext, text, lineno, inliner, options=None, content=None):
     return [nodes.reference(rawtext, "", code, refuri=uri)], []
 
 
+# ":commit:`<hash>`" links a Linux commit and ":repo:`<path>`" a file of this
+# repository, each rendered as a literal like ":cmd:".
+_LINKS = {
+    "commit": "https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id={}",
+    "repo": "https://github.com/linux-kdevops/qemu-system-generator/blob/main/{}",
+}
+
+
+def _link_role(name, rawtext, text, lineno, inliner, options=None, content=None):
+    code = nodes.literal(rawtext, text)
+    return [nodes.reference(rawtext, "", code, refuri=_LINKS[name].format(text))], []
+
+
 # The man pages stay in scdoc under man/, where the package builds them. Each
 # docs/man/ page includes its man page as HTML that scdoc and mandoc render
 # here, so the web page and the installed page come from one source. mandoc
@@ -141,5 +154,7 @@ def _render_man_pages(app):
 def setup(app):
     app.add_config_value("cmd_links", {}, "env")
     app.add_role("cmd", _cmd_role)
+    for name in _LINKS:
+        app.add_role(name, _link_role)
     app.connect("builder-inited", _render_man_pages)
     return {"parallel_read_safe": True, "parallel_write_safe": True}

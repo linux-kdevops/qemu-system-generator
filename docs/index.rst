@@ -4,11 +4,12 @@
 qemu-system-generator
 =====================
 
-qemu-system-generator is a systemd generator for ``.qemu`` files: one file
+qemu-system-generator is a systemd generator
+(:cmd:`systemd.generator(7)`) for ``.qemu`` files: one file
 per virtual machine, in systemd unit-file syntax, whose ``[QEMU]`` section
 is QEMU's own command line passed through line by line. The generator runs
 at boot and on ``systemctl daemon-reload``, writes the units that run the
-machine and the virtiofsd daemons it shares directories through, then
+machine and the `virtiofsd`_ daemons it shares directories through, then
 exits.
 
 The format is specified in :doc:`man/qemu-systemd.unit.5` and the program
@@ -22,7 +23,8 @@ Community
   `GitHub <https://github.com/linux-kdevops/qemu-system-generator>`__.
 - Chat: `Discord <https://bit.ly/linux-kdevops-chat>`__, or ``#kdevops`` on
   `OFTC IRC <https://webchat.oftc.net/?channels=kdevops>`__.
-- Mailing list: ``kdevops@lists.linux.dev``.
+- Mailing list:
+  `kdevops@lists.linux.dev <mailto:kdevops@lists.linux.dev>`__.
 
 These are linked from the icons in the top navigation bar too.
 
@@ -45,3 +47,5 @@ These are linked from the icons in the top navigation bar too.
    :caption: Contributing
 
    writing
+
+.. _virtiofsd: https://gitlab.com/virtio-fs/virtiofsd
