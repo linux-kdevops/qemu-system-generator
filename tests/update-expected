@@ -9,7 +9,7 @@
 set -eu
 cd "$(dirname "$0")/.."
 cargo build --quiet
-qemu="${QEMU_BINDIR:-/usr/bin}/qemu-system-$(uname --machine)"
+qemu="${QEMU_BINDIR:-/usr/bin}/qemu-system-[^ ]*"
 virtiofsd="${VIRTIOFSD:-/usr/libexec/virtiofsd}"
 qmp_powerdown="${QMP_POWERDOWN:-/usr/share/qemu/systemd/qmp-powerdown}"
 socat="${SOCAT:-socat}"

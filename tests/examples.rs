@@ -25,25 +25,13 @@ fn dryrun(scope: &str, dir: &Path) -> Output {
         .expect("run generator")
 }
 
-/// The qemu-system binary the generator defaults to on this host, from
-/// the directory compiled in by build.rs.
-fn default_qemu() -> String {
-    let target = match env::consts::ARCH {
-        "x86" => "i386",
-        "powerpc64" => "ppc64",
-        "powerpc" => "ppc",
-        other => other,
-    };
-    format!("{}/qemu-system-{target}", env!("QEMU_BINDIR"))
-}
-
 /// The expected output with its placeholders filled in: everything that
 /// depends on the checkout or on the build environment.
 fn expected() -> String {
     let text = fs::read_to_string(Path::new(ROOT).join("tests/expected/dryrun.txt")).unwrap();
     [
         ("@EXAMPLES@", examples().to_str().unwrap().to_owned()),
-        ("@QEMU@", default_qemu()),
+        ("@QEMU@", env!("QEMU").to_owned()),
         ("@VIRTIOFSD@", env!("VIRTIOFSD").to_owned()),
         ("@QMP_POWERDOWN@", env!("QMP_POWERDOWN").to_owned()),
         ("@SOCAT@", env!("SOCAT").to_owned()),

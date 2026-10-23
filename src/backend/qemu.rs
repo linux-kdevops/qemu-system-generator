@@ -36,7 +36,7 @@ const VM_KEYS: [&str; 3] = [QEMU_BINARY_KEY, VIRTIOFSD_BINARY_KEY, SSH_PRIVATE_K
 pub const SERVICE: &str = "qemu-system";
 
 /// The binaries compiled in as defaults; see `build.rs`.
-pub const QEMU_BINDIR: &str = env!("QEMU_BINDIR");
+pub const QEMU: &str = env!("QEMU");
 pub const VIRTIOFSD: &str = env!("VIRTIOFSD");
 
 /// Device nodes a machine opens through its command line, allowed like
@@ -64,17 +64,6 @@ const VHOST_USER_FS_QUEUE_SIZE: u32 = 1024;
 
 /// Id of the generated shared memory backend.
 const MEMORY_BACKEND_ID: &str = "mem";
-
-/// `qemu-system-<target>` for the host, in the compiled-in directory.
-pub fn default_binary() -> String {
-    let target = match std::env::consts::ARCH {
-        "x86" => "i386",
-        "powerpc64" => "ppc64",
-        "powerpc" => "ppc",
-        other => other,
-    };
-    format!("{QEMU_BINDIR}/qemu-system-{target}")
-}
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum DecodeError {
@@ -268,7 +257,8 @@ fn decode_vm<'a>(file: &'a UnitFile, warnings: &mut Vec<String>) -> Vm<'a> {
     Vm {
         qemu_binary: file
             .last(VM_SECTION, QEMU_BINARY_KEY)
-            .map_or_else(default_binary, str::to_owned),
+            .unwrap_or(QEMU)
+            .to_owned(),
         virtiofsd_binary: file
             .last(VM_SECTION, VIRTIOFSD_BINARY_KEY)
             .unwrap_or(VIRTIOFSD)
@@ -564,7 +554,7 @@ mod tests {
         .unwrap();
         assert_eq!(decoded.warnings, [] as [String; 0]);
         let plan = decoded.plan;
-        assert_eq!(plan.binary, default_binary());
+        assert_eq!(plan.binary, QEMU);
         assert_eq!(
             command_line(&plan),
             [
