@@ -237,26 +237,50 @@ takes 1.8 seconds:
 
    $ systemctl --user stop qemu-system@bootstrap.service
 
-.. _uki-network:
+.. _uki-ssh:
 
-3. A network
-============
+3. SSH
+======
 
-QEMU's `user-mode network`_ needs no privileges. Forward a local port to
-the guest's SSH:
+QEMU's `user-mode network`_ needs no privileges, and a `vsock`_ device
+gives the guest a context id, a socket address the host can reach without
+any network. Forward a local port to the guest's SSH, and add the device:
 
 .. code-block:: diff
    :caption: ~/.config/qemu/systemd/bootstrap.qemu
 
     drive=if=pflash,format=raw,snapshot=on,file=%h/bootstrap/uki/ovmf-fd/FV/OVMF_VARS.fd
    +nic=user,model=virtio-net-pci-non-transitional,hostfwd=tcp:127.0.0.1:10022-:22
+   +device=vhost-vsock-pci-non-transitional,guest-cid=42
 
-Regenerate, restart with ``systemctl --user restart``, and log in with
-:cmd:`ssh`:
+NixOS listens for SSH on vsock by itself, through
+:cmd:`systemd-ssh-generator(8)`. Give the machine a ``Host`` block:
+
+.. code-block:: text
+   :caption: ~/bootstrap/ssh/config.d/bootstrap.conf
+
+   Host bootstrap
+       HostName vsock/42
+       ProxyCommand /usr/lib/systemd/systemd-ssh-proxy %h %p
+       ProxyUseFdpass yes
+       IdentityFile ~/bootstrap/ssh/id_ed25519
+       IdentitiesOnly yes
+       User root
+       StrictHostKeyChecking accept-new
+       UserKnownHostsFile /dev/null
+
+.. include:: _ssh_host.rst
+
+Regenerate and restart with ``systemctl --user restart``. With the
+``Include`` in your ``~/.ssh/config``, the machine's name is an :cmd:`ssh`
+alias; without it, the forwarded port takes the key on the command line:
 
 .. code-block:: console
    :class: cmd-host
 
+   $ ssh bootstrap uname -r
+   Warning: Permanently added 'vsock/42' (ED25519) to the list of known hosts.
+   6.18.57
    $ ssh -i ~/bootstrap/ssh/id_ed25519 -p 10022 root@127.0.0.1 uname -r
    6.18.57
 
@@ -317,7 +341,8 @@ Rebuild, regenerate and restart:
    $ nix build
    $ systemctl --user start qemu-system-generator.service
    $ systemctl --user restart qemu-system@bootstrap.service
-   $ ssh -i ~/bootstrap/ssh/id_ed25519 -p 10022 root@127.0.0.1 'cat /mnt/host/hello.txt; touch /mnt/host/from-guest'
+   $ ssh bootstrap 'cat /mnt/host/hello.txt; touch /mnt/host/from-guest'
+   Warning: Permanently added 'vsock/42' (ED25519) to the list of known hosts.
    hello from the host
    $ ls -l ~/bootstrap/share
    -rw-r--r-- 1 user user  0 Oct 23 09:08 from-guest
@@ -325,8 +350,8 @@ Rebuild, regenerate and restart:
 
 The guest's root wrote ``from-guest``, and on the host the file belongs
 to you. :doc:`kernel` boots the same kind of system without firmware and
-goes on to vsock, consoles and systemd settings, which work the same way
-here.
+goes on to SSH poweroff, consoles and systemd settings, which work the
+same way here.
 
 .. _NixOS: https://nixos.org/manual/nixos/stable/
 .. _OVMF: https://github.com/tianocore/tianocore.github.io/wiki/OVMF
@@ -339,4 +364,5 @@ here.
 .. _virtiofsd: https://gitlab.com/virtio-fs/virtiofsd
 .. _specifiers: https://www.freedesktop.org/software/systemd/man/latest/systemd.unit.html#Specifiers
 .. _EDK II: https://github.com/tianocore/edk2
+.. _vsock: https://man7.org/linux/man-pages/man7/vsock.7.html
 .. _user-mode network: https://www.qemu.org/docs/master/system/devices/net.html#using-the-user-mode-network-stack

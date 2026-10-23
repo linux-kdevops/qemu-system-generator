@@ -231,26 +231,50 @@ menu counts down on the serial console:
    ...
    <<< Welcome to NixOS efi-qcow2-26.11.20261020.02c087f (x86_64) - ttyS0 >>>
 
-.. _disk-network:
+.. _disk-ssh:
 
-4. A network
-============
+4. SSH
+======
 
-QEMU's `user-mode network`_ needs no privileges. Forward a local port to
-the guest's SSH:
+QEMU's `user-mode network`_ needs no privileges, and a `vsock`_ device
+gives the guest a context id, a socket address the host can reach without
+any network. Forward a local port to the guest's SSH, and add the device:
 
 .. code-block:: diff
    :caption: ~/.config/qemu/systemd/bootstrap.qemu
 
     drive=file=%h/bootstrap/disk/efi/bootstrap.qcow2,if=virtio,format=qcow2,snapshot=on
    +nic=user,model=virtio-net-pci-non-transitional,hostfwd=tcp:127.0.0.1:10022-:22
+   +device=vhost-vsock-pci-non-transitional,guest-cid=42
 
-Regenerate, restart with ``systemctl --user restart``, and log in with
-:cmd:`ssh`:
+NixOS listens for SSH on vsock by itself, through
+:cmd:`systemd-ssh-generator(8)`. Give the machine a ``Host`` block:
+
+.. code-block:: text
+   :caption: ~/bootstrap/ssh/config.d/bootstrap.conf
+
+   Host bootstrap
+       HostName vsock/42
+       ProxyCommand /usr/lib/systemd/systemd-ssh-proxy %h %p
+       ProxyUseFdpass yes
+       IdentityFile ~/bootstrap/ssh/id_ed25519
+       IdentitiesOnly yes
+       User root
+       StrictHostKeyChecking accept-new
+       UserKnownHostsFile /dev/null
+
+.. include:: _ssh_host.rst
+
+Regenerate and restart with ``systemctl --user restart``. With the
+``Include`` in your ``~/.ssh/config``, the machine's name is an :cmd:`ssh`
+alias; without it, the forwarded port takes the key on the command line:
 
 .. code-block:: console
    :class: cmd-host
 
+   $ ssh bootstrap uname -r
+   Warning: Permanently added 'vsock/42' (ED25519) to the list of known hosts.
+   6.18.57
    $ ssh -i ~/bootstrap/ssh/id_ed25519 -p 10022 root@127.0.0.1 uname -r
    6.18.57
 
@@ -268,4 +292,5 @@ instead.
 .. _image modules: https://github.com/NixOS/nixpkgs/blob/master/nixos/modules/image/images.nix
 .. _specifiers: https://www.freedesktop.org/software/systemd/man/latest/systemd.unit.html#Specifiers
 .. _EDK II: https://github.com/tianocore/edk2
+.. _vsock: https://man7.org/linux/man-pages/man7/vsock.7.html
 .. _user-mode network: https://www.qemu.org/docs/master/system/devices/net.html#using-the-user-mode-network-stack

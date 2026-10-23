@@ -171,21 +171,35 @@ firmware, starts the image's GRUB, and cloud-init reads the seed:
    Try contacting this VM's SSH server via 'ssh vsock%43' from host.
 
 The generated unit registers each machine with your user's
-:cmd:`systemd-machined.service(8)`, which records the vsock id. The guest's
-:cmd:`systemd-ssh-generator(8)` listens for SSH on vsock, and
-:cmd:`systemd-ssh-proxy(1)` lets :cmd:`ssh` on the host reach a registered
-machine by name:
+:cmd:`systemd-machined.service(8)`, which records the vsock id, and the
+guest's :cmd:`systemd-ssh-generator(8)` listens for SSH on vsock. Give the
+machine a ``Host`` block:
+
+.. code-block:: text
+   :caption: ~/bootstrap/ssh/config.d/cloud-debian.conf
+
+   Host cloud-debian
+       HostName vsock/43
+       ProxyCommand /usr/lib/systemd/systemd-ssh-proxy %h %p
+       ProxyUseFdpass yes
+       IdentityFile ~/bootstrap/ssh/id_ed25519
+       IdentitiesOnly yes
+       User root
+       StrictHostKeyChecking accept-new
+       UserKnownHostsFile /dev/null
+
+.. include:: _ssh_host.rst
+
+With the ``Include`` in your ``~/.ssh/config``, the machine's name is an
+:cmd:`ssh` alias:
 
 .. code-block:: console
    :class: cmd-host
 
-   $ ssh -i ~/bootstrap/ssh/id_ed25519 root@machine/cloud-debian 'hostname; uname -r'
+   $ ssh cloud-debian 'hostname; uname -r'
+   Warning: Permanently added 'vsock/43' (ED25519) to the list of known hosts.
    cloud-debian
    7.2.11+deb14-cloud-amd64
-
-``machine/`` needs the ``ssh`` configuration that systemd ships as
-``20-systemd-ssh-proxy.conf``, which most distributions link into
-``/etc/ssh/ssh_config.d/``.
 
 ``[VM]`` holds what is not a QEMU option. With ``SshPrivateKey=``, stopping
 the machine first runs ``systemctl poweroff`` in the guest over vsock, and
@@ -201,7 +215,8 @@ presses the power button only if that fails. The stop takes 3.6 seconds:
 2. Fedora
 =========
 
-The drop-in already holds everything but the disk and the context id:
+The drop-in already holds everything but the disk and the context id,
+and the ``Host`` block differs in the same id:
 
 .. code-block:: ini
    :caption: ~/.config/qemu/systemd/cloud-fedora.qemu
@@ -210,12 +225,26 @@ The drop-in already holds everything but the disk and the context id:
    drive=file=Fedora-Cloud-Base-Generic-44-1.7.x86_64.qcow2,if=virtio,format=qcow2
    device=vhost-vsock-pci-non-transitional,guest-cid=44
 
+.. code-block:: text
+   :caption: ~/bootstrap/ssh/config.d/cloud-fedora.conf
+
+   Host cloud-fedora
+       HostName vsock/44
+       ProxyCommand /usr/lib/systemd/systemd-ssh-proxy %h %p
+       ProxyUseFdpass yes
+       IdentityFile ~/bootstrap/ssh/id_ed25519
+       IdentitiesOnly yes
+       User root
+       StrictHostKeyChecking accept-new
+       UserKnownHostsFile /dev/null
+
 .. code-block:: console
    :class: cmd-host
 
    $ systemctl --user start qemu-system-generator.service
    $ systemctl --user start qemu-system@cloud-fedora.service
-   $ ssh -i ~/bootstrap/ssh/id_ed25519 root@machine/cloud-fedora 'hostname; uname -r'
+   $ ssh cloud-fedora 'hostname; uname -r'
+   Warning: Permanently added 'vsock/44' (ED25519) to the list of known hosts.
    cloud-fedora
    6.19.10-300.fc44.x86_64
 
@@ -231,12 +260,26 @@ The drop-in already holds everything but the disk and the context id:
    drive=file=stonking-server-cloudimg-amd64.img,if=virtio,format=qcow2
    device=vhost-vsock-pci-non-transitional,guest-cid=45
 
+.. code-block:: text
+   :caption: ~/bootstrap/ssh/config.d/cloud-ubuntu.conf
+
+   Host cloud-ubuntu
+       HostName vsock/45
+       ProxyCommand /usr/lib/systemd/systemd-ssh-proxy %h %p
+       ProxyUseFdpass yes
+       IdentityFile ~/bootstrap/ssh/id_ed25519
+       IdentitiesOnly yes
+       User root
+       StrictHostKeyChecking accept-new
+       UserKnownHostsFile /dev/null
+
 .. code-block:: console
    :class: cmd-host
 
    $ systemctl --user start qemu-system-generator.service
    $ systemctl --user start qemu-system@cloud-ubuntu.service
-   $ ssh -i ~/bootstrap/ssh/id_ed25519 root@machine/cloud-ubuntu 'hostname; uname -r'
+   $ ssh cloud-ubuntu 'hostname; uname -r'
+   Warning: Permanently added 'vsock/45' (ED25519) to the list of known hosts.
    cloud-ubuntu
    7.3.0-9-generic
 

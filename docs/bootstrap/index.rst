@@ -43,11 +43,12 @@ the most of the format: vsock, SSH poweroff, consoles, drop-ins, systemd
 settings and shares, which work the same way in the others.
 
 Everything you write or build lives in ``~/bootstrap``: a directory per
-guide, the SSH key in ``ssh/``, and the directory the guests share in
-``share/``. What a machine writes lives where its generated unit's
-``StateDirectory=`` puts it, which is also where a relative path in its
-``.qemu`` file resolves: ``~/.local/state/qemu-system/<name>/`` under a
-user manager, ``/var/lib/qemu-system/<name>/`` under the system manager
+guide, the SSH key and configuration in ``ssh/``, and the directory the
+guests share in ``share/``. What a machine writes lives where its
+generated unit's ``StateDirectory=`` puts it, which is also where a
+relative path in its ``.qemu`` file resolves:
+``~/.local/state/qemu-system/<name>/`` under a user manager,
+``/var/lib/qemu-system/<name>/`` under the system manager
 (:cmd:`systemd.exec(5)`). The NixOS guests boot read-only store paths and
 keep nothing there; the cloud guests keep their disks there.
 

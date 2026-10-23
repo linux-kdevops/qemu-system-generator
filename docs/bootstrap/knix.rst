@@ -237,21 +237,36 @@ it from ``boot.json``, and knix wants ``root=tmpfs`` on the command line:
 
 .. include:: _start.rst
 
-Log in over vsock. :cmd:`systemd-ssh-proxy(1)` lets :cmd:`ssh` on the host
-reach a registered machine by name, through the ``ssh`` configuration
-that systemd ships as ``20-systemd-ssh-proxy.conf``; most distributions
-link it into ``/etc/ssh/ssh_config.d/``. Without it, use
-``-p 10022 root@127.0.0.1``:
+Give the machine a ``Host`` block, so ``ssh bootstrap`` reaches it over
+vsock through the ``Include`` in your ``~/.ssh/config``:
+
+.. code-block:: text
+   :caption: ~/bootstrap/ssh/config.d/bootstrap.conf
+
+   Host bootstrap
+       HostName vsock/42
+       ProxyCommand /usr/lib/systemd/systemd-ssh-proxy %h %p
+       ProxyUseFdpass yes
+       IdentityFile ~/bootstrap/ssh/id_ed25519
+       IdentitiesOnly yes
+       User root
+       StrictHostKeyChecking accept-new
+       UserKnownHostsFile /dev/null
+
+.. include:: _ssh_host.rst
+
+Log in and look at the shares:
 
 .. code-block:: console
    :class: cmd-host
 
-   $ ssh -i ~/bootstrap/ssh/id_ed25519 root@machine/bootstrap \
+   $ ssh bootstrap \
        'uname -r; findmnt --noheadings --output=TARGET,SOURCE,FSTYPE --types=virtiofs'
+   Warning: Permanently added 'vsock/42' (ED25519) to the list of known hosts.
    7.3.0
+   /lib/modules modules virtiofs
    /nix/store   store   virtiofs
    └─/nix/store store   virtiofs
-   /lib/modules modules virtiofs
    /mnt/host    host    virtiofs
 
 After a kernel rebuild, ``make modules_install`` again and restart. After

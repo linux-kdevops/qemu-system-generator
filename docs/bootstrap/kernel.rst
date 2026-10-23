@@ -278,19 +278,32 @@ and :cmd:`machinectl` lists the machine:
    bootstrap vm    qemu-system -  -       -
 
 NixOS listens for SSH on vsock by itself, through
-:cmd:`systemd-ssh-generator(8)`, and :cmd:`systemd-ssh-proxy(1)` lets ``ssh``
-on the host reach a registered machine by name:
+:cmd:`systemd-ssh-generator(8)`. Give the machine a ``Host`` block:
+
+.. code-block:: text
+   :caption: ~/bootstrap/ssh/config.d/bootstrap.conf
+
+   Host bootstrap
+       HostName vsock/42
+       ProxyCommand /usr/lib/systemd/systemd-ssh-proxy %h %p
+       ProxyUseFdpass yes
+       IdentityFile ~/bootstrap/ssh/id_ed25519
+       IdentitiesOnly yes
+       User root
+       StrictHostKeyChecking accept-new
+       UserKnownHostsFile /dev/null
+
+.. include:: _ssh_host.rst
+
+With the ``Include`` in your ``~/.ssh/config``, the machine's name is an
+``ssh`` alias:
 
 .. code-block:: console
    :class: cmd-host
 
-   $ ssh -i ~/bootstrap/ssh/id_ed25519 root@machine/bootstrap systemctl is-system-running
+   $ ssh bootstrap systemctl is-system-running
+   Warning: Permanently added 'vsock/42' (ED25519) to the list of known hosts.
    running
-
-``machine/`` needs the ``ssh`` configuration that systemd ships as
-``20-systemd-ssh-proxy.conf``, which most distributions link into
-``/etc/ssh/ssh_config.d/``. Without it,
-:ref:`step 3 <kernel-network>`'s forwarded port still works.
 
 .. _kernel-poweroff:
 
@@ -487,7 +500,8 @@ regenerate and restart:
 .. code-block:: console
    :class: cmd-host
 
-   $ ssh -i ~/bootstrap/ssh/id_ed25519 root@machine/bootstrap 'cat /mnt/host/hello.txt; touch /mnt/host/from-guest'
+   $ ssh bootstrap 'cat /mnt/host/hello.txt; touch /mnt/host/from-guest'
+   Warning: Permanently added 'vsock/42' (ED25519) to the list of known hosts.
    hello from the host
    $ ls -l ~/bootstrap/share
    -rw-r--r-- 1 user user  0 Oct 22 16:47 from-guest
