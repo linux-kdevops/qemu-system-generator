@@ -67,6 +67,12 @@ html[data-theme="dark"] {
     border-left-color: var(--cb-host);
 }
 
+/* A caption on any other block names the file the block shows or changes. */
+.literal-block-wrapper:not(:has(> .cmd-guest, > .cmd-host)) > .code-block-caption {
+    font-family: var(--pst-font-family-monospace);
+    font-size: 0.85rem;
+}
+
 /* Man pages rendered by mandoc (docs/conf.py). The page title already names
    the page, so drop mandoc's header and footer lines, and indent what scdoc
    writes as an indented block: an option's description, a file's purpose. */

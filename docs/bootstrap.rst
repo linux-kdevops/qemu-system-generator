@@ -61,6 +61,7 @@ and as a system that boots from the host's store from
 :ref:`step 4 <bootstrap-kernel>` on. Create ``~/nixos-bootstrap/vm/flake.nix``:
 
 .. code-block:: nix
+   :caption: ~/nixos-bootstrap/vm/flake.nix
 
    {
      inputs.nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
@@ -98,6 +99,7 @@ and as a system that boots from the host's store from
 public key from ``~/nixos-bootstrap/id_ed25519.pub`` pasted in:
 
 .. code-block:: nix
+   :caption: ~/nixos-bootstrap/vm/configuration.nix
 
    { modulesPath, ... }:
    {
@@ -119,6 +121,7 @@ the initrd. The empty root password is for logging in on the console in
 messages to the serial port:
 
 .. code-block:: nix
+   :caption: ~/nixos-bootstrap/vm/disk.nix
 
    {
      boot.kernelParams = [ "console=ttyS0" ];
@@ -134,6 +137,7 @@ itself, the root is a tmpfs, and the store arrives over virtiofs under
 the tag ``store``, which :ref:`step 5 <bootstrap-store>` sets up:
 
 .. code-block:: nix
+   :caption: ~/nixos-bootstrap/vm/virtiofs.nix
 
    {
      boot.loader.grub.enable = false;
@@ -210,6 +214,7 @@ before starting the machine, which waits until the reload is done:
 Create ``~/.config/qemu/systemd/bootstrap.qemu``:
 
 .. code-block:: ini
+   :caption: ~/.config/qemu/systemd/bootstrap.qemu
 
    [QEMU]
    machine=q35
@@ -280,6 +285,7 @@ Give the machine the disk. ``%h`` is your home directory, one of the
 `specifiers`_ systemd expands in a unit:
 
 .. code-block:: diff
+   :caption: ~/.config/qemu/systemd/bootstrap.qemu
 
     nographic=
     serial=mon:stdio
@@ -336,6 +342,7 @@ holds its variable store, which the firmware writes, so it takes
 ``snapshot=on`` too:
 
 .. code-block:: diff
+   :caption: ~/.config/qemu/systemd/bootstrap.qemu
 
     serial=mon:stdio
    -drive=file=%h/nixos-bootstrap/vm/disk/bootstrap.qcow2,if=virtio,format=qcow2,snapshot=on
@@ -370,6 +377,7 @@ looking for a boot loader, and the system can stay in the host's store.
 Drop the disk and point QEMU at the closure's kernel and initrd:
 
 .. code-block:: diff
+   :caption: ~/.config/qemu/systemd/bootstrap.qemu
 
     serial=mon:stdio
    -drive=if=pflash,format=raw,readonly=on,file=%h/nixos-bootstrap/vm/ovmf-fd/FV/OVMF_CODE.fd
@@ -415,6 +423,7 @@ which tells the initrd which system in the store to boot:
 Add both, with your own path in ``init=``:
 
 .. code-block:: diff
+   :caption: ~/.config/qemu/systemd/bootstrap.qemu
 
     kernel=%h/nixos-bootstrap/vm/result/kernel
     initrd=%h/nixos-bootstrap/vm/result/initrd
@@ -484,6 +493,7 @@ QEMU's `user-mode network`_ needs no privileges. Forward a local port to
 the guest's SSH:
 
 .. code-block:: diff
+   :caption: ~/.config/qemu/systemd/bootstrap.qemu
 
     append=console=ttyS0 init=/nix/store/i7s2903dhm9g5z73vkcbpggmv1iqnvwy-nixos-system-bootstrap-26.11.20261020.02c087f/init
    +nic=user,model=virtio-net-pci-non-transitional,hostfwd=tcp:127.0.0.1:10022-:22
@@ -506,6 +516,7 @@ A `vsock`_ device gives the guest a context id, a socket address the host
 can reach without any network:
 
 .. code-block:: diff
+   :caption: ~/.config/qemu/systemd/bootstrap.qemu
 
     nic=user,model=virtio-net-pci-non-transitional,hostfwd=tcp:127.0.0.1:10022-:22
    +device=vhost-vsock-pci-non-transitional,guest-cid=42
@@ -546,6 +557,7 @@ the machine first runs ``systemctl poweroff`` in the guest over vsock, and
 presses the power button only if that fails:
 
 .. code-block:: diff
+   :caption: ~/.config/qemu/systemd/bootstrap.qemu
 
    +[VM]
    +SshPrivateKey=%h/nixos-bootstrap/id_ed25519
@@ -574,6 +586,7 @@ the machine's runtime directory. ``%t`` is that directory's root and ``%i``
 the machine name:
 
 .. code-block:: diff
+   :caption: ~/.config/qemu/systemd/bootstrap.qemu
 
    -append=console=ttyS0 init=/nix/store/i7s2903dhm9g5z73vkcbpggmv1iqnvwy-nixos-system-bootstrap-26.11.20261020.02c087f/init
    +append=console=ttyS0 console=hvc0 init=/nix/store/i7s2903dhm9g5z73vkcbpggmv1iqnvwy-nixos-system-bootstrap-26.11.20261020.02c087f/init
@@ -607,6 +620,7 @@ drop-in: the files in ``bootstrap.qemu.d/`` are appended to
 touching the file you edit by hand.
 
 .. code-block:: diff
+   :caption: ~/.config/qemu/systemd/bootstrap.qemu
 
     initrd=%h/nixos-bootstrap/vm/result/initrd
    -append=console=ttyS0 console=hvc0 init=/nix/store/i7s2903dhm9g5z73vkcbpggmv1iqnvwy-nixos-system-bootstrap-26.11.20261020.02c087f/init
@@ -650,6 +664,7 @@ service, so the machine takes a description, `resource limits`_ and an
 install target the way a hand-written unit does:
 
 .. code-block:: diff
+   :caption: ~/.config/qemu/systemd/bootstrap.qemu
 
     gid-map=:0:%G:1:
    +
@@ -694,6 +709,7 @@ Make the directory and put a file in it:
 Then add the section:
 
 .. code-block:: diff
+   :caption: ~/.config/qemu/systemd/bootstrap.qemu
 
     gid-map=:0:%G:1:
 
@@ -709,6 +725,7 @@ Then add the section:
 The guest mounts it by tag, so ``virtiofs.nix`` changes too:
 
 .. code-block:: diff
+   :caption: ~/nixos-bootstrap/vm/virtiofs.nix
 
       fileSystems."/nix/store" = {
         device = "store";

@@ -98,6 +98,7 @@ knix upstream:
    $ nix flake init --template github:linux-kdevops/knix
 
 .. code-block:: diff
+   :caption: ~/nixos-bootstrap/knix/flake.nix
 
    -    knix.url = "path:/path/to/knix";
    +    knix.url = "github:linux-kdevops/knix";
@@ -106,6 +107,7 @@ Give the guest the same name, key and share as before in ``default.nix``,
 with your public key pasted in:
 
 .. code-block:: diff
+   :caption: ~/nixos-bootstrap/knix/default.nix
 
         #   knix.nixosModules.testSuites.blktests
    +    knix.nixosModules.mounts.shares
@@ -151,6 +153,7 @@ The kernel comes from your build, the initrd from the knix closure, and
 ``/lib/modules`` from a second share:
 
 .. code-block:: diff
+   :caption: ~/.config/qemu/systemd/bootstrap.qemu
 
     nographic=
     serial=mon:stdio
@@ -206,6 +209,7 @@ the first word of ``ExecStart=``, which must be a literal absolute path,
 so write your home directory out:
 
 .. code-block:: diff
+   :caption: ~/.config/qemu/systemd/bootstrap.qemu
 
     [VM]
    +QemuBinary=/home/user/nixos-bootstrap/qemu-install/bin/qemu-system-x86_64
