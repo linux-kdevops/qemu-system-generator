@@ -13,7 +13,7 @@ qemu-system-generator - systemd generator for .qemu files
 
 *qemu-system-generator* is a systemd generator (*systemd.generator*(7)).
 The service manager runs it at boot and on every *systemctl
-daemon-reload*; it reads every .qemu file on the search path described in
+daemon-reload*; it reads every _.qemu_ file on the search path described in
 *qemu-systemd.unit*(5) and writes, into _normal-dir_, a service unit per
 file together with the socket and service units of each virtiofsd the
 machine uses, and the symlinks that *[Install]* asks for. It exits

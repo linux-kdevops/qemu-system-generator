@@ -6,7 +6,7 @@ qemu-systemd.unit - systemd units from .qemu files
 
 # SYNOPSIS
 
-_name_.qemu
+_name.qemu_
 
 Search path of the system manager, highest precedence first:
 
@@ -25,7 +25,7 @@ Search path of a user manager:
 
 # DESCRIPTION
 
-A .qemu file declares one virtual machine in systemd unit-file syntax.
+A _.qemu_ file declares one virtual machine in systemd unit-file syntax.
 *qemu-system-generator*(8), a systemd generator, reads the files on the
 search path at boot and on every *systemctl daemon-reload* and writes an
 ordinary service unit for each, plus a socket and a service for every
