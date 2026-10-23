@@ -81,7 +81,8 @@ appended to it in file-name order. The type directory _qemu.d/_ applies to
 every file; for a name with dashes, _foo-.qemu.d/_ and _foo-bar-.qemu.d/_
 apply to _foo-bar-baz.qemu_, which is how a family of machines shares its
 lines. A file name further down that hierarchy replaces the same name
-further up. All directories on the search path are consulted.
+further up. All directories on the search path are consulted. A file or
+directory whose name starts with a dot is skipped, as systemd skips it.
 
 # SECTIONS
 

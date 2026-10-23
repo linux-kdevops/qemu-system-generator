@@ -173,6 +173,13 @@ pub struct Source {
     pub dropins: Vec<PathBuf>,
 }
 
+/// A name systemd skips when it lists a directory: of the rules of
+/// `hidden_or_backup_file()` (`src/basic/path-util.c`), the leading dot
+/// is the only one a `.qemu`, `.qemu.d` or `.conf` name can meet.
+fn hidden(file_name: &str) -> bool {
+    file_name.starts_with('.')
+}
+
 fn unit_stem(file_name: &str) -> Option<&str> {
     file_name
         .strip_suffix(SUFFIX)
@@ -206,7 +213,7 @@ pub fn discover(dirs: &[PathBuf], mut warn: impl FnMut(String)) -> Vec<Source> {
         };
         for entry in entries.flatten() {
             let file_name = entry.file_name();
-            let Some(file_name) = file_name.to_str() else {
+            let Some(file_name) = file_name.to_str().filter(|n| !hidden(n)) else {
                 continue;
             };
             let path = entry.path();
@@ -274,7 +281,11 @@ fn collect_dropins(name: &UnitName, dropin_dirs: &BTreeMap<String, Vec<PathBuf>>
             .flatten()
         {
             let path = entry.path();
-            let Some(file_name) = path.file_name().and_then(|n| n.to_str()) else {
+            let Some(file_name) = path
+                .file_name()
+                .and_then(|n| n.to_str())
+                .filter(|n| !hidden(n))
+            else {
                 continue;
             };
             // The suffix is matched byte for byte, as systemd matches it
@@ -397,6 +408,8 @@ mod tests {
         fs::write(low.join("qemu.d/10-a.conf"), "").unwrap();
         fs::write(low.join("qemu.d/00-z.conf"), "").unwrap();
         fs::write(low.join("qemu.d/README"), "").unwrap();
+        fs::write(low.join("qemu.d/.30-hidden.conf"), "").unwrap();
+        fs::write(low.join(".hidden.qemu"), "[QEMU]\n").unwrap();
         fs::create_dir_all(high.join("nixos.qemu.d")).unwrap();
         fs::write(high.join("nixos.qemu.d/20-b.conf"), "").unwrap();
 
