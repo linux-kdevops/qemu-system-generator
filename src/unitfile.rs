@@ -160,12 +160,6 @@ impl UnitFile {
         Ok(file)
     }
 
-    /// Append another file's sections after this one's. This is how
-    /// drop-ins apply: a later file extends an earlier one.
-    pub fn extend(&mut self, other: Self) {
-        self.sections.extend(other.sections);
-    }
-
     /// Every section with this name, in file order.
     pub fn sections_named<'a, 'n>(
         &'a self,
@@ -190,10 +184,6 @@ impl UnitFile {
             .last()
             .map(|e| e.value.as_str())
     }
-
-    pub fn has_section(&self, name: &str) -> bool {
-        self.sections_named(name).next().is_some()
-    }
 }
 
 #[cfg(test)]
@@ -215,8 +205,6 @@ mod tests {
         assert_eq!(f.last("A", "x"), Some("4"));
         assert_eq!(f.last("B", "z"), Some(""));
         assert_eq!(f.sections_named("A").count(), 2);
-        assert!(f.has_section("B"));
-        assert!(!f.has_section("C"));
     }
 
     #[test]

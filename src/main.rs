@@ -203,11 +203,12 @@ fn read_unit_file(path: &Path) -> Result<UnitFile, GenerateError> {
     })
 }
 
-/// The file with its drop-ins appended, in the order they apply.
+/// The file with its drop-ins' sections appended, in the order they
+/// apply.
 fn read_source(source: &Source) -> Result<UnitFile, GenerateError> {
     let mut file = read_unit_file(&source.path)?;
     for dropin in &source.dropins {
-        file.extend(read_unit_file(dropin)?);
+        file.sections.extend(read_unit_file(dropin)?.sections);
     }
     Ok(file)
 }

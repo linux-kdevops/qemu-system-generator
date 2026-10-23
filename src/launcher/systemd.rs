@@ -9,7 +9,7 @@ use std::fmt::{self, Write as _};
 use std::path::{Path, PathBuf};
 
 use crate::backend::qemu::SERVICE;
-use crate::plan::{Paths, Plan, Tag};
+use crate::plan::{Helper, Paths, Plan, Tag};
 use crate::search::{Scope, Source, UnitName};
 use crate::unitfile::UnitFile;
 
@@ -168,10 +168,6 @@ impl UnitText {
             self.line(format_args!("{}={}", entry.key, entry.value));
         }
     }
-
-    fn finish(self) -> String {
-        self.text
-    }
 }
 
 /// The JSON argument of `io.systemd.Machine.Register`. `%i` is expanded
@@ -268,11 +264,11 @@ fn machine_service(source: &Source, file: &UnitFile, plan: &Plan, scope: Scope) 
     }
     unit.passthrough(file, "Service");
 
-    if file.has_section("Install") {
+    if file.sections_named("Install").next().is_some() {
         unit.section("Install");
         unit.passthrough(file, "Install");
     }
-    unit.finish()
+    unit.text
 }
 
 fn helper_socket(source: &Source, program: &str) -> String {
@@ -288,10 +284,10 @@ fn helper_socket(source: &Source, program: &str) -> String {
         "RuntimeDirectory={}",
         helper_runtime_dir(program, "%i")
     ));
-    unit.finish()
+    unit.text
 }
 
-fn helper_service(source: &Source, helper: &crate::plan::Helper) -> String {
+fn helper_service(source: &Source, helper: &Helper) -> String {
     let mut unit = UnitText::new(&source.path);
     unit.line(format_args!("Description={} for %i", helper.program));
     unit.line("StopWhenUnneeded=yes");
@@ -307,7 +303,7 @@ fn helper_service(source: &Source, helper: &crate::plan::Helper) -> String {
         &helper.binary,
         helper.args.iter().map(|a| words(&a.0)),
     );
-    unit.finish()
+    unit.text
 }
 
 /// The unit types systemd knows (`unit_type_table` in `unit-def.c`).
@@ -504,7 +500,7 @@ mod tests {
                 words(&["--shared-dir=/srv/my share"]),
             ],
         );
-        assert!(unit.finish().ends_with(concat!(
+        assert!(unit.text.ends_with(concat!(
             "[Service]\nExecStart=/bin/q \\\n",
             "    -append \"a b\" \\\n",
             "    -S \\\n",

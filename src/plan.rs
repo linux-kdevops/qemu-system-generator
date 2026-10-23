@@ -28,7 +28,7 @@ impl<const N: usize> From<[String; N]> for Arg {
 
 /// The mount tag of a share, which also names the helper that serves it
 /// and so must fit in a unit name.
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Tag(String);
 
 #[derive(Debug, Clone, PartialEq, Eq)]

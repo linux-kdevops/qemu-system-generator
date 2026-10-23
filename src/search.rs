@@ -94,7 +94,7 @@ pub fn unit_dirs(scope: Scope, env: &Environment) -> Vec<PathBuf> {
 /// The stem of a `.qemu` file, which becomes the instance of the
 /// generated units: the characters systemd allows in a unit name
 /// (`unit-name.c`), without `@` so that it cannot read as a template.
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct UnitName(String);
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -112,7 +112,7 @@ impl fmt::Display for InvalidUnitName {
 
 impl Error for InvalidUnitName {}
 
-fn is_name_char(c: char) -> bool {
+const fn is_name_char(c: char) -> bool {
     c.is_ascii_alphanumeric() || matches!(c, ':' | '_' | '.' | '-')
 }
 
