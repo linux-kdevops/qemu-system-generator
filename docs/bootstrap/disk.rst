@@ -255,7 +255,8 @@ Regenerate, restart with ``systemctl --user restart``, and log in with
    6.18.57
 
 Every change to the guest means a new image with the whole system in
-it. :doc:`kernel` keeps the system in the host's store instead.
+it. :doc:`uki` and :doc:`kernel` keep the system in the host's store
+instead.
 
 .. _NixOS: https://nixos.org/manual/nixos/stable/
 .. _nixpkgs: https://github.com/NixOS/nixpkgs

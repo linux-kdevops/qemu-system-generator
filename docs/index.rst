@@ -14,7 +14,7 @@ exits.
 
 The format is specified in :doc:`man/qemu-systemd.unit.5` and the program
 in :doc:`man/qemu-system-generator.8`. :doc:`bootstrap/index` boots a
-first guest without root, in three ways, one feature per step.
+first guest without root, in four ways, one feature per step.
 
 Community
 =========

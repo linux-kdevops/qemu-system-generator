@@ -21,6 +21,10 @@ how the guest boots, which decides what a change to the guest costs.
      - SeaBIOS and GRUB, then OVMF and systemd-boot
      - A NixOS disk image that nixpkgs builds
      - Rebuild the whole image
+   * - :doc:`uki`
+     - OVMF
+     - A NixOS UKI shared over virtiofs, with the host's store
+     - Rebuild the UKI and restart
    * - :doc:`kernel`
      - None: QEMU loads the kernel
      - The kernel and initrd of a NixOS closure, with the host's store
@@ -34,7 +38,7 @@ how the guest boots, which decides what a change to the guest costs.
 the most of the format: vsock, SSH poweroff, consoles, drop-ins, systemd
 settings and shares, which work the same way in the others.
 
-All three share ``~/nixos-bootstrap`` and its SSH key, and write the
+All four share ``~/nixos-bootstrap`` and its SSH key, and write the
 machine ``bootstrap``, in ``~/.config/qemu/systemd/bootstrap.qemu``; before
 following a second one, remove that file and ``bootstrap.qemu.d/``.
 
@@ -42,5 +46,6 @@ following a second one, remove that file and ``bootstrap.qemu.d/``.
    :maxdepth: 1
 
    disk
+   uki
    kernel
    knix
