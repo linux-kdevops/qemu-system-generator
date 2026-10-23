@@ -76,6 +76,8 @@
               ln --symbolic ${pkgs.mandoc}/bin/mandoc $out/bin/
             '')
             (docsPython pkgs)
+            pkgs.markdownlint-cli2
+            pkgs.python3Packages.doc8
             pkgs.systemd
             pkgs.nixfmt
             pkgs.python3
@@ -123,6 +125,44 @@
                 cp --recursive $src source
                 chmod --recursive u+w source
                 sphinx-build --fail-on-warning --builder html source/docs $out
+              '';
+
+          # markdownlint-cli2 reads .markdownlint-cli2.jsonc and doc8 reads
+          # doc8.ini.
+          markdown =
+            pkgs.runCommand "${package.pname}-markdown"
+              {
+                src = pkgs.lib.fileset.toSource {
+                  root = ./.;
+                  fileset = pkgs.lib.fileset.unions [
+                    (pkgs.lib.fileset.fileFilter (file: file.hasExt "md") ./.)
+                    ./.markdownlint-cli2.jsonc
+                  ];
+                };
+                nativeBuildInputs = [ pkgs.markdownlint-cli2 ];
+              }
+              ''
+                cd $src
+                markdownlint-cli2 '**/*.md'
+                touch $out
+              '';
+
+          rst =
+            pkgs.runCommand "${package.pname}-rst"
+              {
+                src = pkgs.lib.fileset.toSource {
+                  root = ./.;
+                  fileset = pkgs.lib.fileset.unions [
+                    ./docs
+                    ./doc8.ini
+                  ];
+                };
+                nativeBuildInputs = [ pkgs.python3Packages.doc8 ];
+              }
+              ''
+                cd $src
+                doc8 docs
+                touch $out
               '';
 
           rustfmt = pkgs.runCommand "${package.pname}-rustfmt" { nativeBuildInputs = [ pkgs.rustfmt ]; } ''

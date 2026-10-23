@@ -100,7 +100,7 @@ files under `/etc/qemu/systemd/`).
 
 ## Layout
 
-```
+```text
 src/unitfile.rs          unit-file syntax: sections as ordered lines, quoting
 src/search.rs            search path, discovery, drop-ins
 src/plan.rs              what a backend decodes a file into, launcher-neutral
@@ -135,7 +135,8 @@ nix flake check
 `systemd-analyze verify` in both scopes. `tests/update-expected` rewrites
 the expected output after a deliberate format change.
 
-`nix flake check` also builds the documentation as Read the Docs does.
+`nix flake check` also builds the documentation as Read the Docs does
+and holds the Markdown and reStructuredText prose to 80 columns.
 To preview it while editing:
 
 ```shell

@@ -125,7 +125,7 @@ All commits must follow these six rules.
 4. Mark AI-assisted work with an `Assisted-by: LLM` trailer ahead of the
    `Signed-off-by` that closes the message, as the kernel places it:
 
-   ```
+   ```text
    subsystem: summarise the change in the imperative mood
 
    Plain-English description of what changed and why, wrapped at 75 columns.
@@ -144,7 +144,7 @@ All commits must follow these six rules.
    approves it gets an `Acked-by` or `Reviewed-by`, again only with
    their permission:
 
-   ```
+   ```text
    Co-developed-by: Co Author <co.author@domain.org>
    Signed-off-by: Co Author <co.author@domain.org>
    Assisted-by: LLM
