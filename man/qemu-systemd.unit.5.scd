@@ -10,18 +10,18 @@ _name_.qemu
 
 Search path of the system manager, highest precedence first:
 
-- /run/qemu/systemd/
-- /etc/qemu/systemd/
-- /usr/share/qemu/systemd/
+- _/run/qemu/systemd/_
+- _/etc/qemu/systemd/_
+- _/usr/share/qemu/systemd/_
 
 Search path of a user manager:
 
-- $XDG_RUNTIME_DIR/qemu/systemd/
-- $XDG_CONFIG_HOME/qemu/systemd/, by default ~/.config/qemu/systemd/
-- /etc/qemu/systemd/users/$UID/
-- /etc/qemu/systemd/users/
-- /usr/share/qemu/systemd/users/$UID/
-- /usr/share/qemu/systemd/users/
+- _$XDG\_RUNTIME\_DIR/qemu/systemd/_
+- _$XDG\_CONFIG\_HOME/qemu/systemd/_, by default _~/.config/qemu/systemd/_
+- _/etc/qemu/systemd/users/$UID/_
+- _/etc/qemu/systemd/users/_
+- _/usr/share/qemu/systemd/users/$UID/_
+- _/usr/share/qemu/systemd/users/_
 
 # DESCRIPTION
 
