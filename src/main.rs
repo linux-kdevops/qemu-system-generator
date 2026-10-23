@@ -213,8 +213,20 @@ fn read_source(source: &Source) -> Result<UnitFile, GenerateError> {
     Ok(file)
 }
 
+/// Sections that neither the backend nor the launcher reads.
+fn unknown_sections(file: &UnitFile) -> impl Iterator<Item = String> + '_ {
+    file.sections
+        .iter()
+        .filter(|s| {
+            let name = s.name.as_str();
+            !backend::qemu::SECTIONS.contains(&name) && !launcher::systemd::SECTIONS.contains(&name)
+        })
+        .map(|s| format!("{}: unknown section [{}], ignoring", s.at(s.line), s.name))
+}
+
 fn generate(source: &Source, scope: Scope) -> Result<Output, GenerateError> {
     let file = read_source(source)?;
+    unknown_sections(&file).for_each(log);
     let decoded = backend::qemu::decode(&source.name, &file, &SystemdPaths).map_err(|source_| {
         GenerateError::Decode {
             path: source_.path().unwrap_or(&source.path).to_owned(),
@@ -394,6 +406,13 @@ mod tests {
             parse_args(args(&["--bogus", "/a"])),
             Err(UsageError::UnknownOption(_))
         ));
+    }
+
+    #[test]
+    fn unknown_sections_are_named() {
+        let file: UnitFile = "[Bogus]\nx=1\n[QEMU]\n[Service]\n[VM]\n".parse().unwrap();
+        let unknown: Vec<_> = unknown_sections(&file).collect();
+        assert_eq!(unknown, [": line 1: unknown section [Bogus], ignoring"]);
     }
 
     #[test]

@@ -15,6 +15,9 @@ use crate::unitfile::UnitFile;
 
 pub const GENERATOR: &str = "qemu-system-generator";
 
+/// The sections copied into the machine's service.
+pub const SECTIONS: [&str; 3] = ["Unit", "Service", "Install"];
+
 /// The prefix of the machine's units, `qemu-system@<name>.service`.
 const MACHINE_PREFIX: &str = SERVICE;
 

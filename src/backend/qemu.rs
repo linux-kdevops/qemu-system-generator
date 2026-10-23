@@ -18,14 +18,8 @@ use crate::unitfile::{Entry, Section, UnitFile};
 pub const SECTION: &str = "QEMU";
 pub const VM_SECTION: &str = "VM";
 pub const VIRTIOFSD_SECTION: &str = "virtiofsd";
-const KNOWN_SECTIONS: [&str; 6] = [
-    VM_SECTION,
-    SECTION,
-    VIRTIOFSD_SECTION,
-    "Unit",
-    "Service",
-    "Install",
-];
+/// The sections the backend reads.
+pub const SECTIONS: [&str; 3] = [VM_SECTION, SECTION, VIRTIOFSD_SECTION];
 
 const QEMU_BINARY_KEY: &str = "QemuBinary";
 const VIRTIOFSD_BINARY_KEY: &str = "VirtiofsdBinary";
@@ -414,12 +408,7 @@ pub fn decode(
     file: &UnitFile,
     paths: &impl Paths,
 ) -> Result<Decoded, DecodeError> {
-    let mut warnings: Vec<String> = file
-        .sections
-        .iter()
-        .filter(|s| !KNOWN_SECTIONS.contains(&s.name.as_str()))
-        .map(|s| format!("{}: unknown section [{}], ignoring", s.at(s.line), s.name))
-        .collect();
+    let mut warnings = Vec::new();
     let vm = decode_vm(file, &mut warnings);
 
     let qemu: Vec<&Entry> = file.entries(SECTION).collect();
@@ -695,7 +684,5 @@ mod tests {
             decode_text("[VM]\nSshPrivateKey=/k\n[QEMU]\nm=1\n").err(),
             Some(DecodeError::SshWithoutVsock)
         );
-        let unknown = decode_text("[Bogus]\nx=1\n[QEMU]\nm=1\n").unwrap();
-        assert_eq!(unknown.warnings.len(), 1);
     }
 }
