@@ -6,10 +6,11 @@ QEMU wrappers
 
 On this page, a QEMU wrapper is a tool that writes the QEMU command line
 itself, from a configuration language or defaults of its own, so that you
-can start a virtual machine without writing that command line. A tool
-that reaches QEMU through a wrapper, or starts QEMU only as a step of
-another job, is not one and is not listed. :doc:`qemu-problem` explains
-why this project is not one more.
+can start a virtual machine without writing that command line. A test
+runner that boots the kernel under test this way is one. A tool that
+reaches QEMU through a wrapper, or starts QEMU only as a step of another
+job, such as fuzzing or editing a disk image, is not one and is not
+listed. :doc:`qemu-problem` explains why this project is not one more.
 
 Entries are grouped by what the tool is for, and a project's own
 description is quoted where it publishes one.
@@ -49,6 +50,19 @@ Kernel development
 Tests in a virtual machine
 ==========================
 
+- `KUnit`_: ``kunit.py run --arch`` boots the kernel's unit tests under
+  QEMU with ``-nodefaults -m 1024 -nographic``.
+- `ktest`_: Kent Overstreet's "infrastructure for running Linux kernel
+  tests inside a virtual machine, primarily for bcachefs."
+- `xfstests-bld`_: Ted Ts'o's ``kvm-xfstests`` boots a file system test
+  appliance in QEMU, with ``NR_CPU=2`` and ``MEM=2048`` by default.
+- `lkp-tests`_: the 0-Day test robot's suite, whose ``lkp qemu`` "uses
+  qemu to start a VM to run LKP test-job."
+- `kirk`_: "the official executor of Linux Test Project", whose QEMU
+  channel starts the guest with ``-m 2G -smp 2`` and a ``virtio-rng-pci``
+  device by default.
+- `cijoe`_: "tools for systems development and testing", whose ``qemu``
+  package starts guests described in its TOML configuration.
 - `danobi/vmtest`_: runs a command in a QEMU machine described by a
   ``vmtest.toml``.
 - `hugelgupf/vmtest`_: "a Go API for launching QEMU VMs."
@@ -124,6 +138,12 @@ systemd units for QEMU
 .. _little-vm-helper: https://github.com/cilium/little-vm-helper
 .. _kernel-development-flake: https://github.com/jordanisaacs/kernel-development-flake
 .. _mkosi: https://github.com/systemd/mkosi
+.. _KUnit: https://docs.kernel.org/dev-tools/kunit/index.html
+.. _ktest: https://github.com/koverstreet/ktest
+.. _xfstests-bld: https://git.kernel.org/pub/scm/fs/ext2/xfstests-bld.git
+.. _lkp-tests: https://github.com/intel/lkp-tests
+.. _kirk: https://github.com/linux-test-project/kirk
+.. _cijoe: https://github.com/refenv/cijoe
 .. _danobi/vmtest: https://github.com/danobi/vmtest
 .. _hugelgupf/vmtest: https://github.com/hugelgupf/vmtest
 .. _anatol/vmtest: https://github.com/anatol/vmtest
