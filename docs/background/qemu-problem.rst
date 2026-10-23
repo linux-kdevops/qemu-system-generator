@@ -147,8 +147,7 @@ generated lines are in :doc:`/man/qemu-systemd.unit.5`'s GENERATED UNITS.
   ``systemd-machined``, best effort.
 - ``DevicePolicy=closed`` with a ``DeviceAllow=`` list, as
   ``systemd-vmspawn@.service`` does. A VFIO device adds its device nodes
-  to the list and raises ``LimitMEMLOCK=`` to the guest memory plus 256 MiB,
-  since it pins that memory.
+  to the list and lifts ``LimitMEMLOCK=``, since it pins guest memory.
 - ``StateDirectory=``, ``RuntimeDirectory=`` and ``WorkingDirectory=``,
   so a relative path resolves in the machine's own state directory.
 - For each ``[virtiofsd]`` section, the vhost-user wiring: a

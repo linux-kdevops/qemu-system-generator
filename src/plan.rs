@@ -97,9 +97,9 @@ pub struct Plan {
     /// `DeviceAllow=` spelling, the one place a plan uses a launcher's
     /// terms; a second launcher would map them.
     pub device_allow: Vec<&'static str>,
-    /// Locked memory the process needs, in MiB, when it pins guest
-    /// memory for an assigned device.
-    pub memlock_mib: Option<u64>,
+    /// Whether the process pins guest memory, for an assigned device, so
+    /// that no locked-memory limit may bind it.
+    pub lock_memory: bool,
     /// The guest's vsock CID and its UUID, for the machine registration.
     pub vsock_cid: Option<u64>,
     pub uuid: Option<String>,

@@ -545,4 +545,4 @@ DeviceAllow=/dev/net/tun rwm
 DeviceAllow=char-pts rw
 DeviceAllow=/dev/vfio/vfio rw
 DeviceAllow=char-vfio rw
-LimitMEMLOCK=8448M
+LimitMEMLOCK=infinity

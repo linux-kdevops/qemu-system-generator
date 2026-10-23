@@ -138,12 +138,10 @@ lines are read, but still emitted exactly as written:
 	backend for virtiofs.
 
 *m=*
-	The guest memory, read twice. A *[virtiofsd]* section needs a shared
-	memory backend of the same size: the first field, or the _size=_
-	field, is copied, and a bare number, which *-m* reads as mebibytes,
-	is given an *M*. A VFIO device needs that memory locked:
-	*LimitMEMLOCK=* is set to it plus 256 MiB, read as an integer with an
-	optional B, K, M, G, T, P or E suffix.
+	The guest memory. A *[virtiofsd]* section needs a shared memory
+	backend of the same size: the first field, or the _size=_ field, is
+	copied, and a bare number, which *-m* reads as mebibytes, is given an
+	*M*.
 
 *uuid=*
 	Sent as the _id_ of the machined registration, so that
@@ -155,9 +153,10 @@ lines are read, but still emitted exactly as written:
 	*systemd-ssh-proxy*(1). *SshPrivateKey=* uses the same device.
 
 *device=vfio-...*
-	Grants the service the VFIO device nodes and raises *LimitMEMLOCK=*,
-	since assigned devices pin guest memory. Binding the device to the
-	vfio-pci driver is host configuration outside the file.
+	Grants the service the VFIO device nodes and sets
+	*LimitMEMLOCK=infinity*, since assigned devices pin guest memory; a
+	tighter limit written in *[Service]* replaces it. Binding the device
+	to the vfio-pci driver is host configuration outside the file.
 
 The generator appends its own lines after the file's: the virtiofs wiring
 described below and *-qmp* on the control socket. The ids _mem_ and
@@ -283,7 +282,9 @@ killed. With *SshPrivateKey=* a guest-side *systemctl poweroff* over SSH
 runs first and the QMP command is the fallback.
 
 A VFIO device adds *DeviceAllow=/dev/vfio/vfio rw*, *DeviceAllow=char-vfio
-rw*, which covers every IOMMU group node, and *LimitMEMLOCK=*.
+rw*, which covers every IOMMU group node, and *LimitMEMLOCK=infinity*,
+which a user manager can raise only to the hard limit set for the user
+(*systemd.exec*(5), "Process Properties").
 
 The registration names the machine after the file, with class _vm_ and
 service _qemu-system_. It is best effort: without

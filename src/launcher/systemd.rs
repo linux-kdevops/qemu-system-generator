@@ -268,8 +268,8 @@ fn machine_service(source: &Source, file: &UnitFile, plan: &Plan, scope: Scope) 
     for device in &plan.device_allow {
         unit.line(format_args!("DeviceAllow={device}"));
     }
-    if let Some(mib) = plan.memlock_mib {
-        unit.line(format_args!("LimitMEMLOCK={mib}M"));
+    if plan.lock_memory {
+        unit.line("LimitMEMLOCK=infinity");
     }
     unit.passthrough(file, "Service");
 
@@ -458,7 +458,7 @@ mod tests {
             ],
             helpers: Vec::new(),
             device_allow: vec!["/dev/kvm rw"],
-            memlock_mib: None,
+            lock_memory: false,
             vsock_cid: None,
             uuid: None,
             ssh_poweroff: None,

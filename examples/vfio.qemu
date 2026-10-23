@@ -3,8 +3,8 @@
 # PCIe passthrough behind an emulated IOMMU, UEFI firmware from OVMF.
 # The host must bind the device to vfio-pci first (driver_override via
 # udev, or vfio-pci.ids= on the kernel command line); the generator
-# only grants the service access to /dev/vfio and raises the memlock
-# limit to what pinning guest memory needs.
+# only grants the service access to /dev/vfio and lifts the memlock
+# limit, which pinning guest memory needs.
 
 [Unit]
 Description=GPU passthrough guest

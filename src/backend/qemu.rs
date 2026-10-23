@@ -49,10 +49,6 @@ const DEVICE_ALLOW: [&str; 5] = [
 /// (`drivers/vfio/group.c`), so one group entry covers every group.
 const VFIO_DEVICE_ALLOW: [&str; 2] = ["/dev/vfio/vfio rw", "char-vfio rw"];
 
-/// Locked memory QEMU needs beyond guest RAM to pin it for an assigned
-/// device, in MiB.
-const MEMLOCK_OVERHEAD_MIB: u64 = 256;
-
 /// Virtqueue size of the generated vhost-user-fs device.
 const VHOST_USER_FS_QUEUE_SIZE: u32 = 1024;
 
@@ -76,10 +72,7 @@ pub enum DecodeError {
         tag: Tag,
     },
     MissingMemory,
-    MemorySize {
-        value: String,
-        source: SizeError,
-    },
+    MemorySize(String),
     GuestCid(String),
     SshWithoutVsock,
 }
@@ -98,7 +91,7 @@ impl fmt::Display for DecodeError {
                 f,
                 "[{VIRTIOFSD_SECTION}] needs m= in [{SECTION}] to size the shared memory backend"
             ),
-            Self::MemorySize { value, .. } => write!(f, "[{SECTION}] m={value}"),
+            Self::MemorySize(value) => write!(f, "[{SECTION}] m={value} has no size"),
             Self::GuestCid(value) => write!(
                 f,
                 "[{SECTION}] guest-cid={value} is not a decimal number, which the machined registration needs"
@@ -127,31 +120,10 @@ impl Error for DecodeError {
     fn source(&self) -> Option<&(dyn Error + 'static)> {
         match self {
             Self::InvalidTag { source, .. } => Some(source),
-            Self::MemorySize { source, .. } => Some(source),
             _ => None,
         }
     }
 }
-
-#[derive(Debug, PartialEq, Eq)]
-pub enum SizeError {
-    NotANumber(String),
-    Overflow,
-}
-
-impl fmt::Display for SizeError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::NotANumber(field) => write!(
-                f,
-                "{field:?} is not an integer with an optional B, K, M, G, T, P or E suffix"
-            ),
-            Self::Overflow => f.write_str("size does not fit in 64 bits of mebibytes"),
-        }
-    }
-}
-
-impl Error for SizeError {}
 
 /// The first comma-separated field of a QEMU option value, which names
 /// the driver or type (`-device nvme,...`, `-machine q35,...`).
@@ -166,55 +138,19 @@ fn property<'a>(value: &'a str, key: &str) -> Option<&'a str> {
         .find_map(|f| f.strip_prefix(key)?.strip_prefix('='))
 }
 
-/// The size field of `-m`: its first field, or `size=` (`qemu-options.hx`).
-fn size_field(m: &str) -> Result<&str, SizeError> {
-    let first = first_field(m);
-    let size = property(m, "size").unwrap_or(first);
+/// The `-object memory-backend-memfd,size=` matching `-m`, whose size is
+/// its first field or its `size=` field (`qemu-options.hx`). QEMU reads
+/// a bare number as mebibytes for `-m` but as bytes for `size=`, so a
+/// bare number gets an M; anything else is passed on as written.
+fn memfd_size(m: &str) -> Option<String> {
+    let size = property(m, "size").unwrap_or_else(|| first_field(m));
     if size.is_empty() {
-        Err(SizeError::NotANumber(String::new()))
+        None
+    } else if size.bytes().all(|b| b.is_ascii_digit()) {
+        Some(format!("{size}M"))
     } else {
-        Ok(size)
+        Some(size.to_owned())
     }
-}
-
-/// The `-object memory-backend-memfd,size=` matching `-m`. QEMU reads a
-/// bare number as mebibytes for `-m` but as bytes for `size=`, so a bare
-/// number gets an M; anything else is passed on as written.
-fn memfd_size(m: &str) -> Result<String, SizeError> {
-    let size = size_field(m)?;
-    if size.bytes().all(|b| b.is_ascii_digit()) {
-        Ok(format!("{size}M"))
-    } else {
-        Ok(size.to_owned())
-    }
-}
-
-/// The `-m` size in mebibytes, read the way `qemu_strtosz_MiB` reads it
-/// (`util/cutils.c`): a bare integer is mebibytes, a suffix is one of
-/// B, K, M, G, T, P or E in either case. Fractions are not read; a file
-/// that needs them writes the size in a smaller unit.
-fn mebibytes(m: &str) -> Result<u64, SizeError> {
-    let size = size_field(m)?;
-    let digits_end = size
-        .find(|c: char| !c.is_ascii_digit())
-        .unwrap_or(size.len());
-    let (digits, suffix) = size.split_at(digits_end);
-    let not_a_number = || SizeError::NotANumber(size.to_owned());
-    if digits.is_empty() {
-        return Err(not_a_number());
-    }
-    let number: u64 = digits.parse().map_err(|_| SizeError::Overflow)?;
-    let mib = match suffix.to_ascii_uppercase().as_str() {
-        "" | "M" => Some(number),
-        "B" => Some(number.div_ceil(1 << 20)),
-        "K" => Some(number.div_ceil(1 << 10)),
-        "G" => number.checked_mul(1 << 10),
-        "T" => number.checked_mul(1 << 20),
-        "P" => number.checked_mul(1 << 30),
-        "E" => number.checked_mul(1 << 40),
-        _ => return Err(not_a_number()),
-    };
-    mib.ok_or(SizeError::Overflow)
 }
 
 /// A QEMU option line as the file wrote it: `-key value`.
@@ -375,10 +311,7 @@ fn share_args(
     }
     if !seen.own_memory_backend {
         let memory = seen.memory.ok_or(DecodeError::MissingMemory)?;
-        let size = memfd_size(memory).map_err(|source| DecodeError::MemorySize {
-            value: memory.to_owned(),
-            source,
-        })?;
+        let size = memfd_size(memory).ok_or_else(|| DecodeError::MemorySize(memory.to_owned()))?;
         args.push(vec![
             "-object".to_owned(),
             format!("memory-backend-memfd,id={MEMORY_BACKEND_ID},size={size},share=on"),
@@ -409,23 +342,6 @@ fn share_args(
         ]);
     }
     Ok(args)
-}
-
-/// The locked memory an assigned device needs: guest RAM plus QEMU's
-/// own allocations.
-fn memlock_mib(seen: &Observed<'_>) -> Result<Option<u64>, DecodeError> {
-    if !seen.vfio {
-        return Ok(None);
-    }
-    let memory = seen.memory.ok_or(DecodeError::MissingMemory)?;
-    let size_error = |source| DecodeError::MemorySize {
-        value: memory.to_owned(),
-        source,
-    };
-    let ram = mebibytes(memory).map_err(size_error)?;
-    ram.checked_add(MEMLOCK_OVERHEAD_MIB)
-        .map(Some)
-        .ok_or_else(|| size_error(SizeError::Overflow))
 }
 
 /// The plan of `file`; a line the backend ignores is reported through
@@ -482,7 +398,7 @@ pub fn decode(
         args,
         helpers,
         device_allow,
-        memlock_mib: memlock_mib(&seen)?,
+        lock_memory: seen.vfio,
         vsock_cid: seen.vsock_cid,
         uuid: seen.uuid.map(str::to_owned),
         ssh_poweroff,
@@ -521,26 +437,8 @@ mod tests {
         assert_eq!(memfd_size("2G").unwrap(), "2G");
         assert_eq!(memfd_size("size=4G,slots=2,maxmem=16G").unwrap(), "4G");
         assert_eq!(memfd_size("512M,maxmem=1G").unwrap(), "512M");
-        let empty = Err(SizeError::NotANumber(String::new()));
-        assert_eq!(memfd_size(""), empty);
-        assert_eq!(memfd_size(",slots=2"), empty);
-    }
-
-    #[test]
-    fn mebibyte_sizes() {
-        assert_eq!(mebibytes("2048").unwrap(), 2048);
-        assert_eq!(mebibytes("2048M").unwrap(), 2048);
-        assert_eq!(mebibytes("8g").unwrap(), 8192);
-        assert_eq!(mebibytes("1T").unwrap(), 1 << 20);
-        assert_eq!(mebibytes("1048576k").unwrap(), 1024);
-        assert_eq!(mebibytes("1048577b").unwrap(), 2);
-        assert_eq!(mebibytes("size=1G,slots=2,maxmem=16G").unwrap(), 1024);
-        assert_eq!(
-            mebibytes("1.5G"),
-            Err(SizeError::NotANumber("1.5G".to_owned()))
-        );
-        assert_eq!(mebibytes("G"), Err(SizeError::NotANumber("G".to_owned())));
-        assert_eq!(mebibytes("99999999999E"), Err(SizeError::Overflow));
+        assert_eq!(memfd_size(""), None);
+        assert_eq!(memfd_size(",slots=2"), None);
     }
 
     #[test]
@@ -575,7 +473,7 @@ mod tests {
             ]
         );
         assert_eq!(plan.device_allow, DEVICE_ALLOW);
-        assert_eq!(plan.memlock_mib, None);
+        assert!(!plan.lock_memory);
         assert_eq!((plan.vsock_cid, plan.uuid), (None, None));
         assert_eq!(plan.helpers, [] as [Helper; 0]);
         assert!(plan.ssh_poweroff.is_none());
@@ -636,7 +534,7 @@ mod tests {
         .unwrap();
         assert_eq!(plan.vsock_cid, Some(42));
         assert_eq!(plan.uuid.as_deref(), Some("u"));
-        assert_eq!(plan.memlock_mib, Some(4096 + 256));
+        assert!(plan.lock_memory);
         assert_eq!(
             plan.device_allow.len(),
             DEVICE_ALLOW.len() + VFIO_DEVICE_ALLOW.len()
@@ -691,13 +589,9 @@ mod tests {
             Some(DecodeError::MissingMemory)
         );
         assert_eq!(
-            decode_text("[QEMU]\ndevice=vfio-pci,host=1\n").err(),
-            Some(DecodeError::MissingMemory)
+            decode_text("[QEMU]\nm=,slots=2\n[virtiofsd]\ntag=a\n").err(),
+            Some(DecodeError::MemorySize(",slots=2".to_owned()))
         );
-        assert!(matches!(
-            decode_text("[QEMU]\nm=1.5G\ndevice=vfio-pci,host=1\n").err(),
-            Some(DecodeError::MemorySize { .. })
-        ));
         assert_eq!(
             decode_text("[QEMU]\ndevice=vhost-vsock-pci,guest-cid=0x2a\n").err(),
             Some(DecodeError::GuestCid("0x2a".to_owned()))
