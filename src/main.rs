@@ -157,6 +157,7 @@ enum GenerateError {
         unit: PathBuf,
         first: PathBuf,
     },
+    Stdout(io::Error),
 }
 
 impl fmt::Display for GenerateError {
@@ -166,6 +167,7 @@ impl fmt::Display for GenerateError {
             | Self::Write { path, .. }
             | Self::Parse { path, .. }
             | Self::Decode { path, .. } => write!(f, "{}", path.display()),
+            Self::Stdout(_) => f.write_str("standard output"),
             Self::Conflict { path, unit, first } => write!(
                 f,
                 "{}: {} is already generated from {}",
@@ -180,7 +182,9 @@ impl fmt::Display for GenerateError {
 impl Error for GenerateError {
     fn source(&self) -> Option<&(dyn Error + 'static)> {
         match self {
-            Self::Read { source, .. } | Self::Write { source, .. } => Some(source),
+            Self::Read { source, .. } | Self::Write { source, .. } | Self::Stdout(source) => {
+                Some(source)
+            }
             Self::Parse { source, .. } => Some(source),
             Self::Decode { source, .. } => Some(source),
             Self::Conflict { .. } => None,
@@ -318,12 +322,7 @@ fn run(options: &Options) -> ExitCode {
             .and_then(|output| claim(&mut claimed, source, &output).map(|()| output))
             .and_then(|output| match &options.sink {
                 Sink::Dir(dir) => write_output(dir, &output),
-                Sink::Stdout => {
-                    print_output(&output, &mut stdout).map_err(|source_| GenerateError::Write {
-                        path: PathBuf::from("<stdout>"),
-                        source: source_,
-                    })
-                }
+                Sink::Stdout => print_output(&output, &mut stdout).map_err(GenerateError::Stdout),
             });
         if let Err(err) = result {
             log_error(&err);
