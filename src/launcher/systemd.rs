@@ -371,14 +371,23 @@ fn install_links(file: &UnitFile, name: &UnitName, mut warn: impl FnMut(String))
                     target: Path::new("..").join(&service),
                 }),
                 // An alias of an instance is an instance of the same
-                // name, a template gets it (`systemctl enable`).
+                // name, a template gets it (`systemctl enable`), and a
+                // unit cannot alias itself.
                 (None, Some((prefix, Some(instance), "service")))
                     if instance.is_empty() || instance == name.as_str() =>
                 {
-                    links.push(Symlink {
-                        path: PathBuf::from(format!("{prefix}@{name}.service")),
-                        target: PathBuf::from(&service),
-                    });
+                    let alias = format!("{prefix}@{name}.service");
+                    if alias == service {
+                        warn(format!(
+                            "{}: [Install] Alias={value} is the unit itself, ignoring",
+                            section.at(entry.line)
+                        ));
+                    } else {
+                        links.push(Symlink {
+                            path: PathBuf::from(alias),
+                            target: PathBuf::from(&service),
+                        });
+                    }
                 }
                 (Some(_), None) => warn(format!(
                     "{}: [Install] {}={value} is not a unit name, ignoring",
@@ -558,6 +567,7 @@ mod tests {
             "WantedBy=a/b.target ../x.target multi-user.target\n",
             "Alias=../../escape.service /x.service vm.service other@vm.service\n",
             "Alias=other@x.service other@vm.socket alias@vm.service\n",
+            "Alias=qemu-system@.service qemu-system@vm.service\n",
         )
         .parse()
         .unwrap();
@@ -573,7 +583,8 @@ mod tests {
                 "alias@vm.service",
             ]
         );
-        assert_eq!(warnings.len(), 7, "{warnings:?}");
+        assert_eq!(warnings.len(), 9, "{warnings:?}");
+        assert!(warnings[7].ends_with("Alias=qemu-system@.service is the unit itself, ignoring"));
     }
 
     #[test]
