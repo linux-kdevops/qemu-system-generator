@@ -82,8 +82,10 @@ fn logical_lines(text: &str) -> Vec<(usize, String)> {
             continue;
         }
         let (start, mut text) = pending.take().unwrap_or((number, String::new()));
-        if let Some(body) = trimmed.strip_suffix('\\') {
-            text.push_str(body.trim_end());
+        // An even run of backslashes is escaped ones, not a continuation.
+        let backslashes = trimmed.len() - trimmed.trim_end_matches('\\').len();
+        if backslashes % 2 == 1 {
+            text.push_str(trimmed[..trimmed.len() - 1].trim_end());
             text.push(' ');
             pending = Some((start, text));
         } else {
@@ -237,6 +239,13 @@ mod tests {
             Some("console=ttyS0 root=/dev/vda rw")
         );
         assert_eq!(f.entries("S").next().map(|e| e.line), Some(2));
+    }
+
+    #[test]
+    fn escaped_backslash_ends_the_line() {
+        let f = parse("[S]\nappend=a\\\\\nm=2\n");
+        assert_eq!(f.last("S", "append"), Some("a\\\\"));
+        assert_eq!(f.last("S", "m"), Some("2"));
     }
 
     #[test]
