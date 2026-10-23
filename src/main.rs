@@ -245,27 +245,27 @@ fn generate(source: &Source, scope: Scope) -> Result<Output, GenerateError> {
     ))
 }
 
-/// Record the units of `output` as generated from `source`, unless an
-/// earlier file generated one of them: `a-b.qemu` with tag `c` and
-/// `a.qemu` with tag `b-c` both name `virtiofsd@a-b-c`.
+/// Record the units and links of `output` as generated from `source`,
+/// unless an earlier file generated one of them: `a-b.qemu` with tag
+/// `c` and `a.qemu` with tag `b-c` both name `virtiofsd@a-b-c`, and an
+/// `[Install]` link may name a unit.
 fn claim(
     claimed: &mut BTreeMap<PathBuf, PathBuf>,
     source: &Source,
     output: &Output,
 ) -> Result<(), GenerateError> {
     if let Some((unit, first)) = output
-        .files
-        .iter()
-        .find_map(|f| Some((&f.path, claimed.get(&f.path)?)))
+        .paths()
+        .find_map(|path| Some((path, claimed.get(path)?)))
     {
         return Err(GenerateError::Conflict {
             path: source.path.clone(),
-            unit: unit.clone(),
+            unit: unit.to_owned(),
             first: first.clone(),
         });
     }
-    for file in &output.files {
-        claimed.insert(file.path.clone(), source.path.clone());
+    for path in output.paths() {
+        claimed.insert(path.to_owned(), source.path.clone());
     }
     Ok(())
 }

@@ -125,6 +125,29 @@ fn a_unit_name_is_generated_once() {
 }
 
 #[test]
+fn an_install_link_cannot_replace_a_unit() {
+    let tmp = env::temp_dir().join(format!("qemu-system-generator-link-{}", std::process::id()));
+    fs::create_dir_all(&tmp).unwrap();
+    fs::write(tmp.join("a.qemu"), "[QEMU]\nm=1\n[virtiofsd]\ntag=b\n").unwrap();
+    fs::write(
+        tmp.join("a-b.qemu"),
+        "[QEMU]\nm=1\n[Install]\nAlias=virtiofsd@.service\n",
+    )
+    .unwrap();
+    let out = dryrun("--system", &tmp);
+    fs::remove_dir_all(&tmp).unwrap();
+    let stderr = String::from_utf8_lossy(&out.stderr);
+    let stdout = String::from_utf8_lossy(&out.stdout);
+    assert_eq!(out.status.code(), Some(1));
+    assert!(
+        stderr.contains("a-b.qemu: virtiofsd@a-b.service is already generated from "),
+        "{stderr}"
+    );
+    assert!(!stdout.contains("---qemu-system@a-b.service---"));
+    assert!(!stdout.contains("virtiofsd@a-b.service -> "));
+}
+
+#[test]
 fn usage_errors_exit_with_two() {
     let out = Command::new(BIN).arg("--bogus").output().unwrap();
     assert_eq!(out.status.code(), Some(2));

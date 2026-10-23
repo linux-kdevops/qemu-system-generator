@@ -77,6 +77,16 @@ pub struct Output {
     pub links: Vec<Symlink>,
 }
 
+impl Output {
+    /// Every path the output puts in the directory.
+    pub fn paths(&self) -> impl Iterator<Item = &Path> {
+        self.files
+            .iter()
+            .map(|f| f.path.as_path())
+            .chain(self.links.iter().map(|l| l.path.as_path()))
+    }
+}
+
 fn machine_unit(name: &UnitName) -> String {
     format!("{MACHINE_PREFIX}@{name}.service")
 }
