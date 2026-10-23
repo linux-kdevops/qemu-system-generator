@@ -61,18 +61,33 @@ enum Command {
     Version,
 }
 
-struct Options {
-    scope: Option<Scope>,
-    dryrun: bool,
-    output_dir: Option<PathBuf>,
+/// Where the units go: the normal-priority directory, or standard
+/// output for `--dryrun`.
+#[derive(Debug, PartialEq, Eq)]
+enum Sink {
+    Dir(PathBuf),
+    Stdout,
 }
 
-#[derive(Debug)]
-struct UsageError(String);
+struct Options {
+    scope: Option<Scope>,
+    sink: Sink,
+}
+
+#[derive(Debug, PartialEq, Eq)]
+enum UsageError {
+    UnknownOption(String),
+    DirectoryCount(usize),
+    NoOutputDir,
+}
 
 impl fmt::Display for UsageError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(&self.0)
+        match self {
+            Self::UnknownOption(flag) => write!(f, "unknown option {flag}"),
+            Self::DirectoryCount(n) => write!(f, "expected one or three directories, got {n}"),
+            Self::NoOutputDir => f.write_str("no output directory"),
+        }
     }
 }
 
@@ -81,33 +96,31 @@ impl Error for UsageError {}
 /// The generator protocol: zero, one or three directories, of which
 /// only the normal-priority one is written to.
 fn parse_args(args: impl IntoIterator<Item = OsString>) -> Result<Command, UsageError> {
-    let mut options = Options {
-        scope: None,
-        dryrun: false,
-        output_dir: None,
-    };
+    let mut scope = None;
+    let mut dryrun = false;
     let mut dirs: Vec<PathBuf> = Vec::new();
     for arg in args {
         match arg.to_str() {
             Some("--help") => return Ok(Command::Help),
             Some("--version") => return Ok(Command::Version),
-            Some("--user") => options.scope = Some(Scope::User),
-            Some("--system") => options.scope = Some(Scope::System),
-            Some("--dryrun") => options.dryrun = true,
+            Some("--user") => scope = Some(Scope::User),
+            Some("--system") => scope = Some(Scope::System),
+            Some("--dryrun") => dryrun = true,
             Some(flag) if flag.starts_with('-') => {
-                return Err(UsageError(format!("unknown option {flag}")));
+                return Err(UsageError::UnknownOption(flag.to_owned()));
             }
             _ => dirs.push(PathBuf::from(arg)),
         }
     }
     if !matches!(dirs.len(), 0 | 1 | 3) {
-        return Err(UsageError("expected one or three directories".to_owned()));
+        return Err(UsageError::DirectoryCount(dirs.len()));
     }
-    options.output_dir = dirs.into_iter().next();
-    if options.output_dir.is_none() && !options.dryrun {
-        return Err(UsageError("no output directory".to_owned()));
-    }
-    Ok(Command::Generate(options))
+    let sink = match dirs.into_iter().next() {
+        _ if dryrun => Sink::Stdout,
+        Some(dir) => Sink::Dir(dir),
+        None => return Err(UsageError::NoOutputDir),
+    };
+    Ok(Command::Generate(Options { scope, sink }))
 }
 
 #[derive(Debug)]
@@ -293,12 +306,14 @@ fn run(options: &Options) -> ExitCode {
     for source in &sources {
         let result = generate(source, scope)
             .and_then(|output| claim(&mut claimed, source, &output).map(|()| output))
-            .and_then(|output| match &options.output_dir {
-                Some(dir) if !options.dryrun => write_output(dir, &output),
-                _ => print_output(&output, &mut stdout).map_err(|source_| GenerateError::Write {
-                    path: PathBuf::from("<stdout>"),
-                    source: source_,
-                }),
+            .and_then(|output| match &options.sink {
+                Sink::Dir(dir) => write_output(dir, &output),
+                Sink::Stdout => {
+                    print_output(&output, &mut stdout).map_err(|source_| GenerateError::Write {
+                        path: PathBuf::from("<stdout>"),
+                        source: source_,
+                    })
+                }
             });
         if let Err(err) = result {
             log(err);
@@ -354,14 +369,23 @@ mod tests {
             panic!("dryrun needs no directory");
         };
         assert_eq!(o.scope, Some(Scope::User));
-        assert!(o.dryrun && o.output_dir.is_none());
+        assert_eq!(o.sink, Sink::Stdout);
         let Ok(Command::Generate(o)) = parse_args(args(&["/n", "/e", "/l"])) else {
             panic!("three directories are the generator protocol");
         };
-        assert_eq!(o.output_dir, Some(PathBuf::from("/n")));
-        assert!(parse_args(args(&[])).is_err());
-        assert!(parse_args(args(&["/a", "/b"])).is_err());
-        assert!(parse_args(args(&["--bogus", "/a"])).is_err());
+        assert_eq!(o.sink, Sink::Dir(PathBuf::from("/n")));
+        assert!(matches!(
+            parse_args(args(&[])),
+            Err(UsageError::NoOutputDir)
+        ));
+        assert!(matches!(
+            parse_args(args(&["/a", "/b"])),
+            Err(UsageError::DirectoryCount(2))
+        ));
+        assert!(matches!(
+            parse_args(args(&["--bogus", "/a"])),
+            Err(UsageError::UnknownOption(_))
+        ));
     }
 
     #[test]
