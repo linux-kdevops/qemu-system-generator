@@ -26,7 +26,8 @@ const SSH: &str = env!("SSH");
 
 /// Paths spelled with specifiers (`systemd.unit(5)`): `%t` is the
 /// runtime directory root of the manager that loads the unit and `%i`
-/// the instance, so one spelling serves both scopes.
+/// the instance, so one spelling serves both scopes. The machine name
+/// is `%i` of the machine's unit, so it is never written out.
 pub struct SystemdPaths;
 
 impl Paths for SystemdPaths {
@@ -35,8 +36,22 @@ impl Paths for SystemdPaths {
     }
 
     fn helper_socket(&self, _machine: &UnitName, program: &str, tag: &Tag) -> String {
-        format!("%t/{program}/%i-{tag}/{program}.sock")
+        helper_socket_path(program, &format!("%i-{tag}"))
     }
+}
+
+/// The runtime directory of a helper, relative to `%t`, for its
+/// instance `<name>-<tag>`. The machine's unit spells that `%i-<tag>`,
+/// the helper's own units `%i`.
+fn helper_runtime_dir(program: &str, instance: &str) -> String {
+    format!("{program}/{instance}")
+}
+
+fn helper_socket_path(program: &str, instance: &str) -> String {
+    format!(
+        "%t/{}/{program}.sock",
+        helper_runtime_dir(program, instance)
+    )
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -264,9 +279,15 @@ fn helper_socket(source: &Source, program: &str) -> String {
     let mut unit = UnitText::new(&source.path);
     unit.line(format_args!("Description={program} socket for %i"));
     unit.section("Socket");
-    unit.line(format_args!("ListenStream=%t/{program}/%i/{program}.sock"));
+    unit.line(format_args!(
+        "ListenStream={}",
+        helper_socket_path(program, "%i")
+    ));
     unit.line("SocketMode=0660");
-    unit.line(format_args!("RuntimeDirectory={program}/%i"));
+    unit.line(format_args!(
+        "RuntimeDirectory={}",
+        helper_runtime_dir(program, "%i")
+    ));
     unit.finish()
 }
 
