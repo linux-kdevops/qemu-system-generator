@@ -233,7 +233,9 @@ its normal-priority output directory, _/run/systemd/generator/_ or
 _$XDG_RUNTIME_DIR/systemd/generator/_ (*systemd.generator*(7)), where
 *systemctl cat* shows them.
 
-The service carries *SourcePath=* back to the file, is part of and
+The service carries *SourcePath=* back to the file and *Documentation=*
+naming *qemu-system*(1), *systemd.service*(5) and *systemd.kill*(5), is
+part of and
 ordered before _machines.target_, after _network.target_ under the system
 manager, *Requires=* and *After=* each daemon's socket and *Requires=*
 its service, and then:
@@ -284,8 +286,9 @@ The registration names the machine after the file, with class _vm_ and
 service _qemu-system_. It is best effort: without
 *systemd-machined.service*(8) the machine still runs.
 
-The daemon's socket listens on _%t/virtiofsd/name-tag/virtiofsd.sock_ and
-its service stops when nothing needs it (*StopWhenUnneeded=*). It is
+The daemon's socket listens on _%t/virtiofsd/name-tag/virtiofsd.sock_,
+with *SocketMode=0660* so that only the manager's user and group can
+connect, and its service stops when nothing needs it (*StopWhenUnneeded=*). It is
 ordered *Before=* the machine so that it outlives the guest's unmount
 during shutdown.
 
