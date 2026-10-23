@@ -170,7 +170,13 @@ fn generate(source: &Source, scope: Scope) -> Result<Output, GenerateError> {
     for warning in &decoded.warnings {
         log(format_args!("{}: {warning}", source.path.display()));
     }
-    Ok(launcher::systemd::emit(source, &file, &decoded.plan, scope))
+    Ok(launcher::systemd::emit(
+        source,
+        &file,
+        &decoded.plan,
+        scope,
+        |warning| log(format_args!("{}: {warning}", source.path.display())),
+    ))
 }
 
 fn write_output(dest: &Path, output: &Output) -> Result<(), GenerateError> {

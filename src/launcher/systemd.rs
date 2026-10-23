@@ -289,33 +289,95 @@ fn helper_service(source: &Source, helper: &crate::plan::Helper) -> String {
     unit.finish()
 }
 
+/// The unit types systemd knows (`unit_type_table` in `unit-def.c`).
+const UNIT_TYPES: [&str; 11] = [
+    "service",
+    "socket",
+    "target",
+    "device",
+    "mount",
+    "automount",
+    "swap",
+    "timer",
+    "path",
+    "slice",
+    "scope",
+];
+
+/// A unit name read as `unit_name_is_valid()` in systemd's
+/// `unit-name.c` reads it: its prefix, its instance (empty for a
+/// template, `None` for a plain name) and its type.
+fn split_unit_name(name: &str) -> Option<(&str, Option<&str>, &str)> {
+    let (stem, kind) = name.rsplit_once('.')?;
+    let valid = !stem.is_empty()
+        && name.len() < 256
+        && UNIT_TYPES.contains(&kind)
+        && !stem.starts_with('@')
+        && stem
+            .chars()
+            .all(|c| c.is_ascii_alphanumeric() || matches!(c, ':' | '-' | '_' | '.' | '\\' | '@'));
+    if !valid {
+        return None;
+    }
+    Some(match stem.split_once('@') {
+        Some((prefix, instance)) => (prefix, Some(instance), kind),
+        None => (stem, None, kind),
+    })
+}
+
 /// The symlinks `systemctl enable` would create, with relative targets
-/// so that the output directory is self-contained.
-fn install_links(file: &UnitFile, service: &str) -> Vec<Symlink> {
+/// so that the output directory is self-contained. A value that is not
+/// a unit name is reported through `warn` and skipped, so that no link
+/// lands outside the directory.
+fn install_links(file: &UnitFile, name: &UnitName, mut warn: impl FnMut(String)) -> Vec<Symlink> {
+    let service = machine_unit(name);
     let mut links = Vec::new();
     for entry in file.entries("Install") {
         let dir = match entry.key.as_str() {
-            "WantedBy" => "wants",
-            "RequiredBy" => "requires",
-            "UpheldBy" => "upholds",
-            "Alias" => {
-                links.extend(entry.value.split_whitespace().map(|alias| Symlink {
-                    path: PathBuf::from(alias),
-                    target: PathBuf::from(service),
-                }));
-                continue;
-            }
+            "WantedBy" => Some("wants"),
+            "RequiredBy" => Some("requires"),
+            "UpheldBy" => Some("upholds"),
+            "Alias" => None,
             _ => continue,
         };
-        links.extend(entry.value.split_whitespace().map(|target| Symlink {
-            path: PathBuf::from(format!("{target}.{dir}")).join(service),
-            target: Path::new("..").join(service),
-        }));
+        for value in entry.value.split_whitespace() {
+            let parsed = split_unit_name(value);
+            match (dir, parsed) {
+                (Some(dir), Some(_)) => links.push(Symlink {
+                    path: PathBuf::from(format!("{value}.{dir}")).join(&service),
+                    target: Path::new("..").join(&service),
+                }),
+                // An alias of an instance is an instance of the same
+                // name, a template gets it (`systemctl enable`).
+                (None, Some((prefix, Some(instance), "service")))
+                    if instance.is_empty() || instance == name.as_str() =>
+                {
+                    links.push(Symlink {
+                        path: PathBuf::from(format!("{prefix}@{name}.service")),
+                        target: PathBuf::from(&service),
+                    });
+                }
+                (Some(_), None) => warn(format!(
+                    "line {}: [Install] {}={value} is not a unit name, ignoring",
+                    entry.line, entry.key
+                )),
+                (None, _) => warn(format!(
+                    "line {}: [Install] Alias={value} is neither a service template nor an instance named {name}, ignoring",
+                    entry.line
+                )),
+            }
+        }
     }
     links
 }
 
-pub fn emit(source: &Source, file: &UnitFile, plan: &Plan, scope: Scope) -> Output {
+pub fn emit(
+    source: &Source,
+    file: &UnitFile,
+    plan: &Plan,
+    scope: Scope,
+    warn: impl FnMut(String),
+) -> Output {
     let service = machine_unit(&source.name);
     let mut files = vec![GeneratedFile {
         path: PathBuf::from(&service),
@@ -334,7 +396,7 @@ pub fn emit(source: &Source, file: &UnitFile, plan: &Plan, scope: Scope) -> Outp
     }
     Output {
         files,
-        links: install_links(file, &service),
+        links: install_links(file, &source.name, warn),
     }
 }
 
@@ -430,10 +492,10 @@ mod tests {
     #[test]
     fn user_description_replaces_the_default() {
         let file: UnitFile =
-            "[Unit]\nDescription=mine\n[Install]\nWantedBy=machines.target\nAlias=vm.service\n"
+            "[Unit]\nDescription=mine\n[Install]\nWantedBy=machines.target\nAlias=vm@.service\n"
                 .parse()
                 .unwrap();
-        let out = emit(&source(), &file, &plan(), Scope::User);
+        let out = emit(&source(), &file, &plan(), Scope::User, |w| panic!("{w}"));
         let text = &out.files[0].text;
         assert!(!text.contains("QEMU System Virtual Machine"));
         assert!(text.contains("\nDescription=mine\n"));
@@ -446,7 +508,7 @@ mod tests {
                     target: PathBuf::from("../qemu-system@vm.service"),
                 },
                 Symlink {
-                    path: PathBuf::from("vm.service"),
+                    path: PathBuf::from("vm@vm.service"),
                     target: PathBuf::from("qemu-system@vm.service"),
                 },
             ]
@@ -455,9 +517,59 @@ mod tests {
 
     #[test]
     fn system_scope_orders_after_network() {
-        let out = emit(&source(), &UnitFile::default(), &plan(), Scope::System);
+        let out = emit(
+            &source(),
+            &UnitFile::default(),
+            &plan(),
+            Scope::System,
+            |w| panic!("{w}"),
+        );
         assert!(out.files[0].text.contains("\nAfter=network.target\n"));
         assert_eq!(out.files[0].path, PathBuf::from("qemu-system@vm.service"));
         assert_eq!(out.links, [] as [Symlink; 0]);
+    }
+
+    #[test]
+    fn install_values_must_be_unit_names() {
+        let file: UnitFile = concat!(
+            "[Install]\n",
+            "WantedBy=a/b.target ../x.target multi-user.target\n",
+            "Alias=../../escape.service /x.service vm.service other@vm.service\n",
+            "Alias=other@x.service other@vm.socket alias@vm.service\n",
+        )
+        .parse()
+        .unwrap();
+        let mut warnings = Vec::new();
+        let name: UnitName = "vm".parse().unwrap();
+        let links = install_links(&file, &name, |w| warnings.push(w));
+        let paths: Vec<_> = links.iter().map(|l| l.path.to_str().unwrap()).collect();
+        assert_eq!(
+            paths,
+            [
+                "multi-user.target.wants/qemu-system@vm.service",
+                "other@vm.service",
+                "alias@vm.service",
+            ]
+        );
+        assert_eq!(warnings.len(), 7, "{warnings:?}");
+    }
+
+    #[test]
+    fn unit_names() {
+        assert_eq!(
+            split_unit_name("machines.target"),
+            Some(("machines", None, "target"))
+        );
+        assert_eq!(
+            split_unit_name("a@.service"),
+            Some(("a", Some(""), "service"))
+        );
+        assert_eq!(
+            split_unit_name("a@b@c.service"),
+            Some(("a", Some("b@c"), "service"))
+        );
+        for bad in ["", ".service", "a", "a.bogus", "@a.service", "a/b.service"] {
+            assert_eq!(split_unit_name(bad), None, "{bad:?}");
+        }
     }
 }

@@ -211,8 +211,13 @@ generated stop commands before new ones. *Description=* in *[Unit]*
 replaces the default. *[Install]* is honoured the way *systemctl enable*
 would: *WantedBy=*, *RequiredBy=*, *UpheldBy=* and *Alias=* become
 symlinks in the generator's output directory; a generated unit cannot be
-enabled afterwards. The user manager has _machines.target_ as the system
-manager does.
+enabled afterwards. Each value must be a unit name; specifiers are not
+expanded there. Since the service is an instance, systemd accepts only an
+*Alias=* that is a service template, which gets the machine name as its
+instance, or that instance spelled out: _nixos.qemu_ with
+*Alias=vm@.service* is also _vm@nixos.service_. A value the generator
+cannot link is reported and skipped. The user manager has
+_machines.target_ as the system manager does.
 
 # GENERATED UNITS
 
