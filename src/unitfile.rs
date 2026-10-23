@@ -3,9 +3,9 @@
 //! systemd unit-file syntax, kept as ordered lines (`systemd.syntax(7)`).
 //!
 //! systemd's own parser is not a public API, so this module owns the
-//! rules that matter here: a trailing backslash continues the line,
-//! comment lines inside a continuation are skipped, `#` and `;` start
-//! comments, keys are split from values at the first `=`, and sections
+//! rules that matter here: `#` and `;` start comment lines, which are
+//! skipped even inside a continuation, a trailing backslash continues
+//! the line, keys are split from values at the first `=`, and sections
 //! keep their lines in file order. What an empty value means is the
 //! consumer's decision.
 
@@ -78,8 +78,7 @@ fn logical_lines(text: &str) -> Vec<(usize, String)> {
     let mut pending: Option<(usize, String)> = None;
     for (number, raw) in (1..).zip(text.lines()) {
         let trimmed = raw.trim();
-        let is_comment = trimmed.starts_with('#') || trimmed.starts_with(';');
-        if pending.is_some() && is_comment {
+        if trimmed.starts_with('#') || trimmed.starts_with(';') {
             continue;
         }
         let (start, mut text) = pending.take().unwrap_or((number, String::new()));
@@ -103,7 +102,7 @@ impl FromStr for UnitFile {
         let mut file = Self::default();
         for (line, logical) in logical_lines(text) {
             let logical = logical.trim();
-            if logical.is_empty() || logical.starts_with('#') || logical.starts_with(';') {
+            if logical.is_empty() {
                 continue;
             }
             let fail = |kind| ParseError { line, kind };
@@ -238,6 +237,13 @@ mod tests {
             Some("console=ttyS0 root=/dev/vda rw")
         );
         assert_eq!(f.entries("S").next().map(|e| e.line), Some(2));
+    }
+
+    #[test]
+    fn comment_lines_never_continue() {
+        let f = parse("[S]\nm=1\n# note \\\nnographic=\n");
+        let keys: Vec<_> = f.entries("S").map(|e| e.key.as_str()).collect();
+        assert_eq!(keys, ["m", "nographic"]);
     }
 
     #[test]
