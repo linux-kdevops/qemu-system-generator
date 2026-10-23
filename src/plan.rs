@@ -17,14 +17,7 @@ use crate::search::UnitName;
 /// Words of a command line that belong together, such as an option and
 /// its argument, so that a launcher can lay them out one group per line.
 /// Each word reaches the program as it is written here.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Arg(pub Vec<String>);
-
-impl<const N: usize> From<[String; N]> for Arg {
-    fn from(words: [String; N]) -> Self {
-        Self(words.into())
-    }
-}
+pub type Arg = Vec<String>;
 
 /// The mount tag of a share, which also names the helper that serves it.
 /// It must fit in a unit name, in a QEMU id after `virtiofs_`

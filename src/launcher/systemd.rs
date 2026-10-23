@@ -229,7 +229,7 @@ fn machine_service(source: &Source, file: &UnitFile, plan: &Plan, scope: Scope) 
         "ExecStart",
         "",
         &plan.binary,
-        plan.args.iter().map(|a| words(&a.0)),
+        plan.args.iter().map(|a| words(a)),
     );
     unit.exec(
         "ExecStartPost",
@@ -313,7 +313,7 @@ fn helper_service(source: &Source, machine: &str, helper: &Helper) -> String {
         "ExecStart",
         "",
         &helper.binary,
-        helper.args.iter().map(|a| words(&a.0)),
+        helper.args.iter().map(|a| words(a)),
     );
     unit.text
 }
@@ -456,8 +456,8 @@ mod tests {
             program: "qemu-system",
             binary: "/usr/bin/qemu-system-x86_64".to_owned(),
             args: vec![
-                ["-m".to_owned(), "1".to_owned()].into(),
-                ["-nographic".to_owned()].into(),
+                vec!["-m".to_owned(), "1".to_owned()],
+                vec!["-nographic".to_owned()],
             ],
             helpers: Vec::new(),
             device_allow: vec!["/dev/kvm rw"],
