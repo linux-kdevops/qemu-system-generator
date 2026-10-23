@@ -56,12 +56,6 @@ These are linked from the icons in the top navigation bar too.
    man/qemu-systemd.unit.5
    man/qemu-system-generator.8
 
-.. toctree::
-   :maxdepth: 1
-   :caption: Contributing
-
-   writing
-
 .. _systemd: https://systemd.io
 .. _QEMU: https://www.qemu.org/docs/master/system/invocation.html
 .. _virtiofsd: https://gitlab.com/virtio-fs/virtiofsd

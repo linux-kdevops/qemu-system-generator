@@ -120,7 +120,6 @@ cmd_links = {
     "systemd.exec(5)": f"{_SYSTEMD}/systemd.exec.html",
     "readlink": f"{_MAN1}/readlink.1.html",
     "sha256sum": f"{_MAN1}/sha256sum.1.html",
-    "git show": "https://git-scm.com/docs/git-show",
     "virsh": "https://www.libvirt.org/manpages/virsh.html",
     "virt-install": "https://github.com/virt-manager/virt-manager/blob/main/man/virt-install.rst",
     "make": "https://www.gnu.org/software/make/manual/make.html",
@@ -157,14 +156,11 @@ def _cmd_role(name, rawtext, text, lineno, inliner, options=None, content=None):
     return [nodes.reference(rawtext, "", code, refuri=uri)], []
 
 
-# ":commit:`<hash>`" links a Linux commit, ":repo:`<path>`" a file of this
-# repository, ":gh:`<owner/repo/path>`" a page on GitHub and
-# ":qemu:`<path>`" one of QEMU's GitLab project, such as "blob/master/<file>"
-# or "commit/<hash>"; each renders as a literal like ":cmd:" and takes the
-# same "title <target>" form.
+# ":gh:`<owner/repo/path>`" links a page on GitHub and ":qemu:`<path>`" one
+# of QEMU's GitLab project, such as "blob/master/<file>" or
+# "commit/<hash>"; each renders as a literal like ":cmd:" and takes the same
+# "title <target>" form.
 _LINKS = {
-    "commit": "https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id={}",
-    "repo": "https://github.com/linux-kdevops/qemu-system-generator/blob/main/{}",
     "gh": "https://github.com/{}",
     "qemu": "https://gitlab.com/qemu-project/qemu/-/{}",
 }

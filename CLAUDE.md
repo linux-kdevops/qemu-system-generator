@@ -10,6 +10,16 @@ units that run them. The format is the deliverable; the man page in
 
 **License**: copyleft-next-0.3.1. SPDX header on every source file.
 
+## Notes
+
+`notes/` holds what contributors and agents read before working, and is
+not published. Read the first entry before writing any commit message,
+doc or comment.
+
+- `notes/writing.md`: how commit messages, docs and comments are
+  written, the examples to read first, and what `scripts/check-prose.py`
+  refuses.
+
 ## Principles
 
 The backend section is a decoder. `[QEMU]` lines are QEMU options, key
@@ -182,7 +192,7 @@ All commits must follow these six rules.
    ln --symbolic --relative scripts/commit-msg "$(git rev-parse --git-path hooks)/commit-msg"
    ```
 
-What a message, a doc or a comment says follows `docs/writing.rst`, taken
+What a message, a doc or a comment says follows `notes/writing.md`, taken
 from how the kernel's maintainers write: read two of its example commits
 before writing one, and hand anything longer than a few lines to a
 fresh-context editor with the brief there. `scripts/check-prose.py`, run
