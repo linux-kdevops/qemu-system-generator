@@ -40,7 +40,8 @@ how the guest boots, which decides what a change to the guest costs.
 
 :doc:`disk` is the closest to a physical machine. :doc:`kernel` covers
 the most of the format: `vsock`_, SSH poweroff, consoles, drop-ins, systemd
-settings and shares, which work the same way in the others.
+settings and shares, which work the same way in the others, and ends on
+`QEMU`_'s :ref:`microvm machine type <kernel-microvm>`.
 
 Everything you write or build lives in ``~/bootstrap``: a directory per
 guide, the SSH key and configuration in ``ssh/``, and the directory the
@@ -70,3 +71,4 @@ one, remove that file and ``bootstrap.qemu.d/``. The cloud guide writes
 .. _NixOS: https://nixos.org/manual/nixos/stable/
 .. _knix: https://github.com/linux-kdevops/knix
 .. _vsock: https://man7.org/linux/man-pages/man7/vsock.7.html
+.. _QEMU: https://www.qemu.org/docs/master/system/invocation.html

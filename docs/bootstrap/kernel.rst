@@ -515,6 +515,97 @@ regenerate and restart:
 The guest's root wrote ``from-guest``, and on the host the file belongs
 to you.
 
+.. _kernel-microvm:
+
+10. A microvm
+=============
+
+QEMU's `microvm`_ machine type has no PCI bus and no firmware to run: its
+devices sit on virtio-mmio, and the kernel reaches its ``/init`` sooner.
+It needs the newest kernel here. On 6.18.57, three or more virtio-mmio
+devices stop the boot at ``ACPI: Core revision``, and this machine has
+five. Switch the guest to ``pkgs.linuxPackages_latest`` as
+:ref:`the guest's section <kernel-latest>` shows, and rebuild:
+
+.. code-block:: console
+   :class: cmd-host
+
+   $ cd ~/bootstrap/kernel
+   $ nix build
+   $ readlink result/kernel
+   /nix/store/sby4x25d1wl7nn915c62jps8nr65sncj-linux-7.3/bzImage
+
+Then change the machine. On microvm the virtio devices take their
+``-device`` names instead of the ``-pci-non-transitional`` ones, and the
+``global=`` line has QEMU's virtio-mmio transport offer virtio 1.0, as a
+non-transitional PCI device does; QEMU defaults to the legacy transport
+(``force-legacy`` in ``hw/virtio/virtio-mmio.c``). Under KVM, microvm
+leaves the RTC out unless ``rtc=on`` asks for it (``hw/i386/microvm.c``).
+Without it the kernel's RTC probe fails, and ``/init`` started at 1.66
+seconds instead of 0.49 here:
+
+.. code-block:: diff
+   :caption: ~/.config/qemu/systemd/bootstrap.qemu
+
+   -machine=q35
+   +machine=microvm,rtc=on
+    accel=kvm
+    cpu=host
+    m=2G
+    smp=2
+    nographic=
+    serial=mon:stdio
+    kernel=%h/bootstrap/kernel/result/kernel
+    initrd=%h/bootstrap/kernel/result/initrd
+   -nic=user,model=virtio-net-pci-non-transitional,hostfwd=tcp:127.0.0.1:10022-:22
+   -device=vhost-vsock-pci-non-transitional,guest-cid=42
+   -device=virtio-serial-pci-non-transitional
+   +global=virtio-mmio.force-legacy=false
+   +nic=user,model=virtio-net-device,hostfwd=tcp:127.0.0.1:10022-:22
+   +device=vhost-vsock-device,guest-cid=42
+   +device=virtio-serial-device
+
+Keep `ACPI`_, microvm's default. With ``acpi=off`` the guest cannot power
+off, and every stop waits out :cmd:`TimeoutStopSec=`. The generator
+follows the machine type for the virtiofs devices it adds:
+
+.. code-block:: console
+   :class: cmd-host
+
+   $ qemu-system-generator --user --dryrun | grep vhost-user-fs
+       -device vhost-user-fs-device,queue-size=1024,chardev=virtiofs_store,tag=store \
+       -device vhost-user-fs-device,queue-size=1024,chardev=virtiofs_host,tag=host \
+
+On microvm this guest's ``systemd-ssh-generator`` opens no vsock
+listener by itself, so ask for one on the kernel command line with
+``systemd.ssh_listen=vsock::22``. Rewrite the drop-in with the new
+closure and that option:
+
+.. code-block:: shell
+   :class: cmd-host
+
+   cat > ~/.config/qemu/systemd/bootstrap.qemu.d/10-closure.conf <<EOF
+   [QEMU]
+   append=console=ttyS0 console=hvc0 systemd.ssh_listen=vsock::22 init=$(readlink ~/bootstrap/kernel/result)/init
+   EOF
+
+Regenerate, restart and log in:
+
+.. code-block:: console
+   :class: cmd-host
+
+   $ systemctl --user start qemu-system-generator.service
+   $ systemctl --user restart qemu-system@bootstrap.service
+   $ ssh bootstrap uname -r
+   Warning: Permanently added 'vsock/42' (ED25519) to the list of known hosts.
+   7.3.0
+
+On this guest the kernel reached ``/init`` at 0.49 seconds against 0.75
+on q35 with the same kernel, but the initrd mounted the store later, at
+1.85 seconds against 1.14, and ``ssh`` answered after 8.9 to 9.1 seconds
+against 8.2 to 8.3. What microvm saves in the kernel, NixOS's userspace
+outweighs, so the other guides keep q35.
+
 Notes
 =====
 
@@ -523,7 +614,7 @@ Notes
   configuration.
 - A machine stopped in the first seconds of its boot can neither take
   the SSH poweroff nor answer the power button yet. The stop then waits
-  for :cmd:`TimeoutStopSec=`, two minutes, before killing it;
+  for ``TimeoutStopSec=``, two minutes, before killing it;
   ``systemctl --user kill`` is quicker.
 - In a ``[virtiofsd]`` section, ``%i`` is ``name-tag``, the daemon's
   instance, not the machine name.
@@ -541,5 +632,7 @@ Notes
 .. _virtiofsd: https://gitlab.com/virtio-fs/virtiofsd
 .. _user-mode network: https://www.qemu.org/docs/master/system/devices/net.html#using-the-user-mode-network-stack
 .. _QEMU: https://www.qemu.org/docs/master/system/invocation.html
+.. _microvm: https://www.qemu.org/docs/master/system/i386/microvm.html
+.. _ACPI: https://uefi.org/specifications
 .. _Linux: https://www.kernel.org
 .. _resource limits: https://www.freedesktop.org/software/systemd/man/latest/systemd.resource-control.html
