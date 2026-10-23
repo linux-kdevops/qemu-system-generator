@@ -93,15 +93,13 @@ impl fmt::Display for DecodeError {
             Self::MissingTag { line, .. } => {
                 write!(f, "line {line}: [{VIRTIOFSD_SECTION}] has no tag=")
             }
-            Self::InvalidTag(err) => write!(f, "[{VIRTIOFSD_SECTION}] {err}"),
+            Self::InvalidTag(_) => write!(f, "[{VIRTIOFSD_SECTION}]"),
             Self::DuplicateTag(tag) => write!(f, "[{VIRTIOFSD_SECTION}] tag={tag} repeated"),
             Self::MissingMemory => write!(
                 f,
                 "[{VIRTIOFSD_SECTION}] needs m= in [{SECTION}] to size the shared memory backend"
             ),
-            Self::MemorySize { value, source } => {
-                write!(f, "[{SECTION}] m={value}: {source}")
-            }
+            Self::MemorySize { value, .. } => write!(f, "[{SECTION}] m={value}"),
             Self::GuestCid(value) => write!(
                 f,
                 "[{SECTION}] guest-cid={value} is not a decimal number, which the machined registration needs"

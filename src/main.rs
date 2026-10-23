@@ -55,6 +55,17 @@ fn log(message: impl fmt::Display) {
     eprintln!("{GENERATOR}: {message}");
 }
 
+/// An error and each of its causes, which its `Display` leaves out.
+fn log_error(err: &dyn Error) {
+    let mut message = err.to_string();
+    let mut cause = err.source();
+    while let Some(err) = cause {
+        message = format!("{message}: {err}");
+        cause = err.source();
+    }
+    log(message);
+}
+
 enum Command {
     Generate(Options),
     Help,
@@ -151,11 +162,10 @@ enum GenerateError {
 impl fmt::Display for GenerateError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::Read { path, source } | Self::Write { path, source } => {
-                write!(f, "{}: {source}", path.display())
-            }
-            Self::Parse { path, source } => write!(f, "{}: {source}", path.display()),
-            Self::Decode { path, source } => write!(f, "{}: {source}", path.display()),
+            Self::Read { path, .. }
+            | Self::Write { path, .. }
+            | Self::Parse { path, .. }
+            | Self::Decode { path, .. } => write!(f, "{}", path.display()),
             Self::Conflict { path, unit, first } => write!(
                 f,
                 "{}: {} is already generated from {}",
@@ -316,7 +326,7 @@ fn run(options: &Options) -> ExitCode {
                 }
             });
         if let Err(err) = result {
-            log(err);
+            log_error(&err);
             failed = true;
         }
     }
