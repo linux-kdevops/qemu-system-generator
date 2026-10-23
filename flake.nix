@@ -11,9 +11,12 @@
         "x86_64-linux"
         "aarch64-linux"
       ];
-      forAllSystems =
-        f:
-        nixpkgs.lib.genAttrs systems (
+      # The generator needs systemd, but the docs build anywhere Sphinx does,
+      # so their apps also cover macOS.
+      docsSystems = systems ++ [ "aarch64-darwin" ];
+      forSystems =
+        systems': f:
+        nixpkgs.lib.genAttrs systems' (
           system:
           f (
             import nixpkgs {
@@ -23,6 +26,7 @@
             }
           )
         );
+      forAllSystems = forSystems systems;
 
       # Sphinx and its extensions, kept to the major versions in
       # docs/requirements.txt, which Read the Docs installs.
@@ -45,7 +49,7 @@
         default = qemu-system-generator;
       });
 
-      apps = forAllSystems (
+      apps = forSystems docsSystems (
         pkgs:
         let
           # Sphinx writes into the checkout, so the docs apps run from its
@@ -80,12 +84,13 @@
               meta = { inherit description; };
             };
         in
-        {
+        pkgs.lib.optionalAttrs pkgs.stdenv.hostPlatform.isLinux {
           default = {
             type = "app";
             program = "${self.packages.${pkgs.stdenv.hostPlatform.system}.default}/bin/qemu-system-generator";
           };
-
+        }
+        // {
           docs = mkDocsApp {
             name = "qemu-system-generator-docs";
             description = "Render the documentation to docs/_build/html with Sphinx";
