@@ -26,8 +26,10 @@ impl<const N: usize> From<[String; N]> for Arg {
     }
 }
 
-/// The mount tag of a share, which also names the helper that serves it
-/// and so must fit in a unit name.
+/// The mount tag of a share, which also names the helper that serves it.
+/// It must fit in a unit name, in a QEMU id after `virtiofs_`
+/// (`id_wellformed()` in QEMU's `util/id.c`), and in a `-device` value,
+/// where a comma would start a new property.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Tag(String);
 
@@ -95,8 +97,9 @@ pub struct Plan {
     pub binary: String,
     pub args: Vec<Arg>,
     pub helpers: Vec<Helper>,
-    /// Device nodes or groups the process may open, in the
-    /// `DeviceAllow=` spelling.
+    /// Device nodes or groups the process may open. These borrow the
+    /// `DeviceAllow=` spelling, the one place a plan uses a launcher's
+    /// terms; a second launcher would map them.
     pub device_allow: Vec<&'static str>,
     /// Locked memory the process needs, in MiB, when it pins guest
     /// memory for an assigned device.
