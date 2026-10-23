@@ -180,34 +180,6 @@ impl UnitFile {
     }
 }
 
-/// Quote one word of a command line the way `systemd.syntax(7)`
-/// "Quoting" reads it back: bare when nothing needs escaping, otherwise
-/// in double quotes with backslash and double quote escaped. A lone
-/// semicolon would separate commands in `ExecStart=`, so it is escaped.
-pub fn quote(word: &str) -> String {
-    if word == ";" {
-        return "\\;".to_owned();
-    }
-    let needs_quotes = word.is_empty()
-        || word
-            .chars()
-            .any(|c| c.is_whitespace() || matches!(c, '"' | '\'' | '\\'));
-    if !needs_quotes {
-        return word.to_owned();
-    }
-    let mut quoted = String::with_capacity(word.len() + 2);
-    quoted.push('"');
-    for c in word.chars() {
-        match c {
-            '\\' => quoted.push_str("\\\\"),
-            '"' => quoted.push_str("\\\""),
-            c => quoted.push(c),
-        }
-    }
-    quoted.push('"');
-    quoted
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -273,16 +245,5 @@ mod tests {
         assert!("[S\n".parse::<UnitFile>().is_err());
         assert!("[]\n".parse::<UnitFile>().is_err());
         assert!("[S]\n=v\n".parse::<UnitFile>().is_err());
-    }
-
-    #[test]
-    fn quoting() {
-        assert_eq!(quote("plain"), "plain");
-        assert_eq!(quote(""), "\"\"");
-        assert_eq!(quote("a b"), "\"a b\"");
-        assert_eq!(quote("say \"hi\""), "\"say \\\"hi\\\"\"");
-        assert_eq!(quote("back\\slash"), "\"back\\\\slash\"");
-        assert_eq!(quote(";"), "\\;");
-        assert_eq!(quote("%t/x"), "%t/x");
     }
 }

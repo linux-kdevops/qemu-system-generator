@@ -11,7 +11,7 @@ use std::path::{Path, PathBuf};
 use crate::backend::qemu::SERVICE;
 use crate::plan::{Arg, Paths, Plan, Tag};
 use crate::search::{Scope, Source, UnitName};
-use crate::unitfile::{UnitFile, quote};
+use crate::unitfile::UnitFile;
 
 pub const GENERATOR: &str = "qemu-system-generator";
 
@@ -66,6 +66,34 @@ fn machine_unit(name: &UnitName) -> String {
 /// `virtiofsd@<name>-<tag>`, the instance string of both helper units.
 fn helper_stem(name: &UnitName, program: &str, tag: &Tag) -> String {
     format!("{program}@{name}-{tag}")
+}
+
+/// Quote one word of a command line the way `systemd.syntax(7)`
+/// "Quoting" reads it back: bare when nothing needs escaping, otherwise
+/// in double quotes with backslash and double quote escaped. A lone
+/// semicolon would separate commands in `ExecStart=`, so it is escaped.
+fn quote(word: &str) -> String {
+    if word == ";" {
+        return "\\;".to_owned();
+    }
+    let needs_quotes = word.is_empty()
+        || word
+            .chars()
+            .any(|c| c.is_whitespace() || matches!(c, '"' | '\'' | '\\'));
+    if !needs_quotes {
+        return word.to_owned();
+    }
+    let mut quoted = String::with_capacity(word.len() + 2);
+    quoted.push('"');
+    for c in word.chars() {
+        match c {
+            '\\' => quoted.push_str("\\\\"),
+            '"' => quoted.push_str("\\\""),
+            c => quoted.push(c),
+        }
+    }
+    quoted.push('"');
+    quoted
 }
 
 /// One `-option value` of a command line, quoted for `ExecStart=`.
@@ -319,6 +347,17 @@ mod tests {
             path: PathBuf::from("/etc/qemu/systemd/vm.qemu"),
             dropins: Vec::new(),
         }
+    }
+
+    #[test]
+    fn quoting() {
+        assert_eq!(quote("plain"), "plain");
+        assert_eq!(quote(""), "\"\"");
+        assert_eq!(quote("a b"), "\"a b\"");
+        assert_eq!(quote("say \"hi\""), "\"say \\\"hi\\\"\"");
+        assert_eq!(quote("back\\slash"), "\"back\\\\slash\"");
+        assert_eq!(quote(";"), "\\;");
+        assert_eq!(quote("%t/x"), "%t/x");
     }
 
     #[test]
