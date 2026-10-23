@@ -61,11 +61,25 @@ const MEMORY_BACKEND_ID: &str = "mem";
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum DecodeError {
-    MissingTag { path: PathBuf, line: usize },
-    InvalidTag(InvalidTag),
-    DuplicateTag(Tag),
+    MissingTag {
+        path: PathBuf,
+        line: usize,
+    },
+    InvalidTag {
+        path: PathBuf,
+        line: usize,
+        source: InvalidTag,
+    },
+    DuplicateTag {
+        path: PathBuf,
+        line: usize,
+        tag: Tag,
+    },
     MissingMemory,
-    MemorySize { value: String, source: SizeError },
+    MemorySize {
+        value: String,
+        source: SizeError,
+    },
     GuestCid(String),
     SshWithoutVsock,
 }
@@ -76,8 +90,10 @@ impl fmt::Display for DecodeError {
             Self::MissingTag { line, .. } => {
                 write!(f, "line {line}: [{VIRTIOFSD_SECTION}] has no tag=")
             }
-            Self::InvalidTag(_) => write!(f, "[{VIRTIOFSD_SECTION}]"),
-            Self::DuplicateTag(tag) => write!(f, "[{VIRTIOFSD_SECTION}] tag={tag} repeated"),
+            Self::InvalidTag { line, .. } => write!(f, "line {line}: [{VIRTIOFSD_SECTION}]"),
+            Self::DuplicateTag { line, tag, .. } => {
+                write!(f, "line {line}: [{VIRTIOFSD_SECTION}] tag={tag} repeated")
+            }
             Self::MissingMemory => write!(
                 f,
                 "[{VIRTIOFSD_SECTION}] needs m= in [{SECTION}] to size the shared memory backend"
@@ -99,7 +115,9 @@ impl DecodeError {
     /// The file the error is in, when it is about one line of it.
     pub fn path(&self) -> Option<&Path> {
         match self {
-            Self::MissingTag { path, .. } => Some(path),
+            Self::MissingTag { path, .. }
+            | Self::InvalidTag { path, .. }
+            | Self::DuplicateTag { path, .. } => Some(path),
             _ => None,
         }
     }
@@ -108,16 +126,10 @@ impl DecodeError {
 impl Error for DecodeError {
     fn source(&self) -> Option<&(dyn Error + 'static)> {
         match self {
-            Self::InvalidTag(err) => Some(err),
+            Self::InvalidTag { source, .. } => Some(source),
             Self::MemorySize { source, .. } => Some(source),
             _ => None,
         }
-    }
-}
-
-impl From<InvalidTag> for DecodeError {
-    fn from(err: InvalidTag) -> Self {
-        Self::InvalidTag(err)
     }
 }
 
@@ -298,17 +310,35 @@ fn observe<'a>(entries: &[&'a Entry]) -> Result<Observed<'a>, DecodeError> {
     Ok(seen)
 }
 
-fn decode_helper(section: &Section, binary: &str) -> Result<Helper, DecodeError> {
-    let tag: Tag = section
+/// One `[virtiofsd]` section, whose tag must be new among `helpers`.
+fn decode_helper(
+    section: &Section,
+    binary: &str,
+    helpers: &[Helper],
+) -> Result<Helper, DecodeError> {
+    let entry = section
         .entries
         .iter()
         .rfind(|e| e.key == "tag")
         .ok_or_else(|| DecodeError::MissingTag {
             path: section.path.clone(),
             line: section.line,
-        })?
+        })?;
+    let tag: Tag = entry
         .value
-        .parse()?;
+        .parse()
+        .map_err(|source| DecodeError::InvalidTag {
+            path: section.path.clone(),
+            line: entry.line,
+            source,
+        })?;
+    if helpers.iter().any(|h| h.tag == tag) {
+        return Err(DecodeError::DuplicateTag {
+            path: section.path.clone(),
+            line: entry.line,
+            tag,
+        });
+    }
     let requires_mounts = section
         .entries
         .iter()
@@ -416,11 +446,7 @@ pub fn decode(
 
     let mut helpers: Vec<Helper> = Vec::new();
     for section in file.sections_named(VIRTIOFSD_SECTION) {
-        let helper = decode_helper(section, &vm.virtiofsd_binary)?;
-        if helpers.iter().any(|h| h.tag == helper.tag) {
-            return Err(DecodeError::DuplicateTag(helper.tag));
-        }
-        helpers.push(helper);
+        helpers.push(decode_helper(section, &vm.virtiofsd_binary, &helpers)?);
     }
 
     // The command line: the file's lines, then what the lifecycle adds.
@@ -659,11 +685,15 @@ mod tests {
         );
         assert!(matches!(
             decode_text("[QEMU]\nm=1\n[virtiofsd]\ntag=a b\n").err(),
-            Some(DecodeError::InvalidTag(_))
+            Some(DecodeError::InvalidTag { line: 4, .. })
         ));
         assert_eq!(
             decode_text("[QEMU]\nm=1\n[virtiofsd]\ntag=a\n[virtiofsd]\ntag=a\n").err(),
-            Some(DecodeError::DuplicateTag("a".parse().unwrap()))
+            Some(DecodeError::DuplicateTag {
+                path: PathBuf::new(),
+                line: 6,
+                tag: "a".parse().unwrap()
+            })
         );
         assert_eq!(
             decode_text("[virtiofsd]\ntag=a\n").err(),
