@@ -129,7 +129,6 @@ impl From<InvalidTag> for DecodeError {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum SizeError {
-    Empty,
     NotANumber(String),
     Overflow,
 }
@@ -137,7 +136,6 @@ pub enum SizeError {
 impl fmt::Display for SizeError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::Empty => f.write_str("no size"),
             Self::NotANumber(field) => write!(
                 f,
                 "{field:?} is not an integer with an optional B, K, M, G, T, P or E suffix"
@@ -167,7 +165,7 @@ fn size_field(m: &str) -> Result<&str, SizeError> {
     let first = first_field(m);
     let size = property(m, "size").unwrap_or(first);
     if size.is_empty() {
-        Err(SizeError::Empty)
+        Err(SizeError::NotANumber(String::new()))
     } else {
         Ok(size)
     }
@@ -513,8 +511,9 @@ mod tests {
         assert_eq!(memfd_size("2G").unwrap(), "2G");
         assert_eq!(memfd_size("size=4G,slots=2,maxmem=16G").unwrap(), "4G");
         assert_eq!(memfd_size("512M,maxmem=1G").unwrap(), "512M");
-        assert_eq!(memfd_size(""), Err(SizeError::Empty));
-        assert_eq!(memfd_size(",slots=2"), Err(SizeError::Empty));
+        let empty = Err(SizeError::NotANumber(String::new()));
+        assert_eq!(memfd_size(""), empty);
+        assert_eq!(memfd_size(",slots=2"), empty);
     }
 
     #[test]

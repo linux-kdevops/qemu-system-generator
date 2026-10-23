@@ -56,7 +56,6 @@ pub struct ParseError {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ParseErrorKind {
     MalformedHeader(String),
-    EmptySectionName,
     MissingEquals(String),
     EmptyKey,
     KeyBeforeSection(String),
@@ -69,7 +68,6 @@ impl fmt::Display for ParseError {
             ParseErrorKind::MalformedHeader(text) => {
                 write!(f, "malformed section header {text:?}")
             }
-            ParseErrorKind::EmptySectionName => f.write_str("empty section name"),
             ParseErrorKind::MissingEquals(text) => write!(f, "expected KEY=VALUE, got {text:?}"),
             ParseErrorKind::EmptyKey => f.write_str("empty key"),
             ParseErrorKind::KeyBeforeSection(key) => {
@@ -128,10 +126,8 @@ impl UnitFile {
             if let Some(rest) = logical.strip_prefix('[') {
                 let name = rest
                     .strip_suffix(']')
+                    .filter(|name| !name.is_empty())
                     .ok_or_else(|| fail(ParseErrorKind::MalformedHeader(logical.to_owned())))?;
-                if name.is_empty() {
-                    return Err(fail(ParseErrorKind::EmptySectionName));
-                }
                 file.sections.push(Section {
                     name: name.to_owned(),
                     entries: Vec::new(),
