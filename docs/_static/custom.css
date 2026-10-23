@@ -73,6 +73,39 @@ html[data-theme="dark"] {
     font-size: 0.85rem;
 }
 
+/* Diff blocks. The theme's accessible Pygments style colours a deleted line
+   blue and leaves an inserted one plain, so give both the usual red and green,
+   as ink and a full-width wash. */
+:root {
+    --diff-add-ink: #1a7f37;
+    --diff-add-wash: rgba(46, 160, 67, 0.15);
+    --diff-del-ink: #cf222e;
+    --diff-del-wash: rgba(248, 81, 73, 0.15);
+}
+
+html[data-theme="dark"] {
+    --diff-add-ink: #3fb950;
+    --diff-add-wash: rgba(46, 160, 67, 0.2);
+    --diff-del-ink: #f85149;
+    --diff-del-wash: rgba(248, 81, 73, 0.2);
+}
+
+.highlight-diff .highlight .gi,
+.highlight-diff .highlight .gd {
+    display: inline-block;
+    min-width: 100%;
+}
+
+html .highlight-diff div.highlight .gi {
+    color: var(--diff-add-ink);
+    background: var(--diff-add-wash);
+}
+
+html .highlight-diff div.highlight .gd {
+    color: var(--diff-del-ink);
+    background: var(--diff-del-wash);
+}
+
 /* Man pages rendered by mandoc (docs/conf.py). The page title already names
    the page, so drop mandoc's header and footer lines, and indent what scdoc
    writes as an indented block: an option's description, a file's purpose. */
