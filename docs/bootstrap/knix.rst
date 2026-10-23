@@ -44,22 +44,22 @@ and install its modules next to it, inside the ``build-kernel`` shell
    :class: cmd-host
 
    $ git clone --depth 1 --branch v7.3 \
-       https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git ~/nixos-bootstrap/linux
-   $ cd ~/nixos-bootstrap/linux
+       https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git ~/bootstrap/knix/linux
+   $ cd ~/bootstrap/knix/linux
    $ K="nix develop github:linux-kdevops/knix#build-kernel --command"
-   $ B=$HOME/nixos-bootstrap/linux-build
+   $ B=$HOME/bootstrap/knix/linux-build
    $ $K make O=$B defconfig kvm_guest.config
    $ $K scripts/config --file $B/.config \
        --enable FUSE_FS --enable VIRTIO_FS \
        --enable VSOCKETS --enable VIRTIO_VSOCKETS
    $ $K make O=$B olddefconfig
    $ $K make O=$B --jobs=$(nproc)
-   $ $K make O=$B INSTALL_MOD_PATH=$HOME/nixos-bootstrap/linux-install modules_install
+   $ $K make O=$B INSTALL_MOD_PATH=$HOME/bootstrap/knix/linux-install modules_install
 
 ``kvm_guest.config`` turns on the virtio drivers; the
 `kernel build documentation`_ covers ``O=`` and the configuration targets.
-The kernel is ``~/nixos-bootstrap/linux-build/arch/x86/boot/bzImage``, and
-the modules are under ``~/nixos-bootstrap/linux-install/lib/modules/``.
+The kernel is ``~/bootstrap/knix/linux-build/arch/x86/boot/bzImage``, and
+the modules are under ``~/bootstrap/knix/linux-install/lib/modules/``.
 
 QEMU
 ----
@@ -71,18 +71,18 @@ workspace (`QEMU build system`_):
    :class: cmd-host
 
    $ git clone --depth 1 --branch v11.1.2 \
-       https://gitlab.com/qemu-project/qemu.git ~/nixos-bootstrap/qemu
-   $ mkdir --parents ~/nixos-bootstrap/qemu-build
-   $ cd ~/nixos-bootstrap/qemu-build
+       https://gitlab.com/qemu-project/qemu.git ~/bootstrap/knix/qemu
+   $ mkdir --parents ~/bootstrap/knix/qemu-build
+   $ cd ~/bootstrap/knix/qemu-build
    $ Q="nix develop github:linux-kdevops/knix#build-qemu --command"
-   $ $Q ~/nixos-bootstrap/qemu/configure --prefix=$HOME/nixos-bootstrap/qemu-install \
+   $ $Q ~/bootstrap/knix/qemu/configure --prefix=$HOME/bootstrap/knix/qemu-install \
        --target-list=x86_64-softmmu --enable-kvm --enable-slirp --disable-docs
    $ $Q make --jobs=$(nproc) install
 
 .. code-block:: console
    :class: cmd-host
 
-   $ ~/nixos-bootstrap/qemu-install/bin/qemu-system-x86_64 --version
+   $ ~/bootstrap/knix/qemu-install/bin/qemu-system-x86_64 --version
    QEMU emulator version 11.1.2 (v11.1.2)
 
 The guest
@@ -94,21 +94,21 @@ knix upstream:
 .. code-block:: console
    :class: cmd-host
 
-   $ mkdir --parents ~/nixos-bootstrap/knix
-   $ cd ~/nixos-bootstrap/knix
+   $ mkdir --parents ~/bootstrap/knix/guest
+   $ cd ~/bootstrap/knix/guest
    $ nix flake init --template github:linux-kdevops/knix
 
 .. code-block:: diff
-   :caption: ~/nixos-bootstrap/knix/flake.nix
+   :caption: ~/bootstrap/knix/guest/flake.nix
 
    -    knix.url = "path:/path/to/knix";
    +    knix.url = "github:linux-kdevops/knix";
 
 Name the guest, mount a share of your own at ``/mnt/host``, and paste the
-public key from ``~/nixos-bootstrap/id_ed25519.pub`` into ``default.nix``:
+public key from ``~/bootstrap/ssh/id_ed25519.pub`` into ``default.nix``:
 
 .. code-block:: diff
-   :caption: ~/nixos-bootstrap/knix/default.nix
+   :caption: ~/bootstrap/knix/guest/default.nix
 
         #   knix.nixosModules.testSuites.blktests
    +    knix.nixosModules.mounts.shares
@@ -159,8 +159,8 @@ Make a directory for the guest to share, and put a file in it:
 .. code-block:: console
    :class: cmd-host
 
-   $ mkdir --parents ~/nixos-bootstrap/share
-   $ echo "hello from the host" > ~/nixos-bootstrap/share/hello.txt
+   $ mkdir --parents ~/bootstrap/share
+   $ echo "hello from the host" > ~/bootstrap/share/hello.txt
 
 Create ``~/.config/qemu/systemd/bootstrap.qemu``. The kernel comes from
 your build, and three shares bring the store, ``/lib/modules`` and the
@@ -170,7 +170,7 @@ directory above:
    :caption: ~/.config/qemu/systemd/bootstrap.qemu
 
    [VM]
-   SshPrivateKey=%h/nixos-bootstrap/id_ed25519
+   SshPrivateKey=%h/bootstrap/ssh/id_ed25519
 
    [QEMU]
    machine=q35
@@ -180,7 +180,7 @@ directory above:
    smp=2
    nographic=
    serial=mon:stdio
-   kernel=%h/nixos-bootstrap/linux-build/arch/x86/boot/bzImage
+   kernel=%h/bootstrap/knix/linux-build/arch/x86/boot/bzImage
    nic=user,model=virtio-net-pci-non-transitional,hostfwd=tcp:127.0.0.1:10022-:22
    device=vhost-vsock-pci-non-transitional,guest-cid=42
 
@@ -192,14 +192,14 @@ directory above:
    gid-map=:0:%G:1:
 
    [virtiofsd]
-   shared-dir=%h/nixos-bootstrap/linux-install/lib/modules
+   shared-dir=%h/bootstrap/knix/linux-install/lib/modules
    tag=modules
    sandbox=namespace
    uid-map=:0:%U:1:
    gid-map=:0:%G:1:
 
    [virtiofsd]
-   shared-dir=%h/nixos-bootstrap/share
+   shared-dir=%h/bootstrap/share
    tag=host
    sandbox=namespace
    uid-map=:0:%U:1:
@@ -232,7 +232,7 @@ it from ``boot.json``, and knix wants ``root=tmpfs`` on the command line:
    mkdir --parents ~/.config/qemu/systemd/bootstrap.qemu.d
    jq --raw-output '."org.nixos.bootspec.v1" |
        "[QEMU]\ninitrd=\(.initrd)\nappend=root=tmpfs console=ttyS0 init=\(.init)"' \
-       ~/nixos-bootstrap/knix/result/boot.json \
+       ~/bootstrap/knix/guest/result/boot.json \
        > ~/.config/qemu/systemd/bootstrap.qemu.d/10-closure.conf
 
 .. include:: _start.rst
@@ -246,7 +246,7 @@ link it into ``/etc/ssh/ssh_config.d/``. Without it, use
 .. code-block:: console
    :class: cmd-host
 
-   $ ssh -i ~/nixos-bootstrap/id_ed25519 root@machine/bootstrap \
+   $ ssh -i ~/bootstrap/ssh/id_ed25519 root@machine/bootstrap \
        'uname -r; findmnt --noheadings --output=TARGET,SOURCE,FSTYPE --types=virtiofs'
    7.3.0
    /nix/store   store   virtiofs
@@ -271,8 +271,8 @@ so write your home directory out:
    :caption: ~/.config/qemu/systemd/bootstrap.qemu
 
     [VM]
-   +QemuBinary=/home/user/nixos-bootstrap/qemu-install/bin/qemu-system-x86_64
-    SshPrivateKey=%h/nixos-bootstrap/id_ed25519
+   +QemuBinary=/home/user/bootstrap/knix/qemu-install/bin/qemu-system-x86_64
+    SshPrivateKey=%h/bootstrap/ssh/id_ed25519
 
 Regenerate and restart, then check which binary runs:
 
@@ -282,7 +282,7 @@ Regenerate and restart, then check which binary runs:
    $ systemctl --user start qemu-system-generator.service
    $ systemctl --user restart qemu-system@bootstrap.service
    $ readlink /proc/$(systemctl --user show --property=MainPID --value qemu-system@bootstrap.service)/exe
-   /home/user/nixos-bootstrap/qemu-install/bin/qemu-system-x86_64
+   /home/user/bootstrap/knix/qemu-install/bin/qemu-system-x86_64
 
 The guest boots in about 9 seconds and stops in 2.
 

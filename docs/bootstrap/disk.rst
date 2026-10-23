@@ -22,10 +22,10 @@ The guest
 ---------
 
 The guest is an ordinary NixOS configuration. Create
-``~/nixos-bootstrap/disk/flake.nix``:
+``~/bootstrap/disk/flake.nix``:
 
 .. code-block:: nix
-   :caption: ~/nixos-bootstrap/disk/flake.nix
+   :caption: ~/bootstrap/disk/flake.nix
 
    {
      inputs.nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
@@ -52,11 +52,11 @@ The guest is an ordinary NixOS configuration. Create
        };
    }
 
-``~/nixos-bootstrap/disk/configuration.nix`` sets the guest up, with the
-public key from ``~/nixos-bootstrap/id_ed25519.pub`` pasted in:
+``~/bootstrap/disk/configuration.nix`` sets the guest up, with the
+public key from ``~/bootstrap/ssh/id_ed25519.pub`` pasted in:
 
 .. code-block:: nix
-   :caption: ~/nixos-bootstrap/disk/configuration.nix
+   :caption: ~/bootstrap/disk/configuration.nix
 
    { modulesPath, ... }:
    {
@@ -73,11 +73,11 @@ public key from ``~/nixos-bootstrap/id_ed25519.pub`` pasted in:
 The :cmd:`qemu-guest.nix` profile puts the virtio drivers in the
 `initrd`_. The empty root password lets you log in on a console.
 
-``~/nixos-bootstrap/disk/disk.nix`` names the images and sends the
+``~/bootstrap/disk/disk.nix`` names the images and sends the
 kernel's messages to the serial port:
 
 .. code-block:: nix
-   :caption: ~/nixos-bootstrap/disk/disk.nix
+   :caption: ~/bootstrap/disk/disk.nix
 
    {
      boot.kernelParams = [ "console=ttyS0" ];
@@ -144,7 +144,7 @@ couple of minutes:
 .. code-block:: console
    :class: cmd-host
 
-   $ cd ~/nixos-bootstrap/disk
+   $ cd ~/bootstrap/disk
    $ nix build
    $ ls result
    bootstrap.qcow2  nix-support
@@ -157,7 +157,7 @@ Give the machine the disk. ``%h`` is your home directory, one of the
 
     nographic=
     serial=mon:stdio
-   +drive=file=%h/nixos-bootstrap/disk/result/bootstrap.qcow2,if=virtio,format=qcow2,snapshot=on
+   +drive=file=%h/bootstrap/disk/result/bootstrap.qcow2,if=virtio,format=qcow2,snapshot=on
 
 The image is in the store, which is read-only. With ``snapshot=on``, QEMU
 writes to a temporary file instead, and what the guest wrote is gone
@@ -212,10 +212,10 @@ holds its variable store, which the firmware writes, so it takes
    :caption: ~/.config/qemu/systemd/bootstrap.qemu
 
     serial=mon:stdio
-   -drive=file=%h/nixos-bootstrap/disk/result/bootstrap.qcow2,if=virtio,format=qcow2,snapshot=on
-   +drive=if=pflash,format=raw,readonly=on,file=%h/nixos-bootstrap/disk/ovmf-fd/FV/OVMF_CODE.fd
-   +drive=if=pflash,format=raw,snapshot=on,file=%h/nixos-bootstrap/disk/ovmf-fd/FV/OVMF_VARS.fd
-   +drive=file=%h/nixos-bootstrap/disk/efi/bootstrap.qcow2,if=virtio,format=qcow2,snapshot=on
+   -drive=file=%h/bootstrap/disk/result/bootstrap.qcow2,if=virtio,format=qcow2,snapshot=on
+   +drive=if=pflash,format=raw,readonly=on,file=%h/bootstrap/disk/ovmf-fd/FV/OVMF_CODE.fd
+   +drive=if=pflash,format=raw,snapshot=on,file=%h/bootstrap/disk/ovmf-fd/FV/OVMF_VARS.fd
+   +drive=file=%h/bootstrap/disk/efi/bootstrap.qcow2,if=virtio,format=qcow2,snapshot=on
 
 Regenerate and start. The firmware starts the disk's boot loader, whose
 menu counts down on the serial console:
@@ -242,7 +242,7 @@ the guest's SSH:
 .. code-block:: diff
    :caption: ~/.config/qemu/systemd/bootstrap.qemu
 
-    drive=file=%h/nixos-bootstrap/disk/efi/bootstrap.qcow2,if=virtio,format=qcow2,snapshot=on
+    drive=file=%h/bootstrap/disk/efi/bootstrap.qcow2,if=virtio,format=qcow2,snapshot=on
    +nic=user,model=virtio-net-pci-non-transitional,hostfwd=tcp:127.0.0.1:10022-:22
 
 Regenerate, restart with ``systemctl --user restart``, and log in with
@@ -251,7 +251,7 @@ Regenerate, restart with ``systemctl --user restart``, and log in with
 .. code-block:: console
    :class: cmd-host
 
-   $ ssh -i ~/nixos-bootstrap/id_ed25519 -p 10022 root@127.0.0.1 uname -r
+   $ ssh -i ~/bootstrap/ssh/id_ed25519 -p 10022 root@127.0.0.1 uname -r
    6.18.57
 
 Every change to the guest means a new image with the whole system in

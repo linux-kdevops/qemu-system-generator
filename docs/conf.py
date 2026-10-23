@@ -87,6 +87,7 @@ cmd_links = {
     "machines.target": f"{_SYSTEMD}/systemd.special.html",
     "ssh": f"{_MAN1}/ssh.1.html",
     "ssh-keygen": f"{_MAN1}/ssh-keygen.1.html",
+    "systemd.exec(5)": f"{_SYSTEMD}/systemd.exec.html",
     "readlink": f"{_MAN1}/readlink.1.html",
     "socat": "http://www.dest-unreach.org/socat/doc/socat.html",
     "jq": "https://jqlang.org/manual/",

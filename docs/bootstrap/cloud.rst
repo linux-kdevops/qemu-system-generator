@@ -67,12 +67,12 @@ The seeds
 ---------
 
 cloud-init's `NoCloud`_ source reads its configuration from a file system
-labelled ``cidata``. ``~/nixos-bootstrap/cloud/user-data`` holds what every
-machine gets, with the public key from ``~/nixos-bootstrap/id_ed25519.pub``
+labelled ``cidata``. ``~/bootstrap/cloud/user-data`` holds what every
+machine gets, with the public key from ``~/bootstrap/ssh/id_ed25519.pub``
 pasted in:
 
 .. code-block:: yaml
-   :caption: ~/nixos-bootstrap/cloud/user-data
+   :caption: ~/bootstrap/cloud/user-data
 
    #cloud-config
    disable_root: false
@@ -88,7 +88,7 @@ each state directory:
 .. code-block:: shell
    :class: cmd-host
 
-   cd ~/nixos-bootstrap/cloud
+   cd ~/bootstrap/cloud
    for name in cloud-debian cloud-fedora cloud-ubuntu; do
      printf 'instance-id: %s\nlocal-hostname: %s\n' $name $name > meta-data
      nix shell nixpkgs#cloud-utils --command \
@@ -111,7 +111,7 @@ the part of the name up to a dash, ``cloud-.qemu.d/``, applies to every
    :caption: ~/.config/qemu/systemd/cloud-.qemu.d/10-cloud.conf
 
    [VM]
-   SshPrivateKey=%h/nixos-bootstrap/id_ed25519
+   SshPrivateKey=%h/bootstrap/ssh/id_ed25519
 
    [QEMU]
    machine=q35
@@ -179,7 +179,7 @@ machine by name:
 .. code-block:: console
    :class: cmd-host
 
-   $ ssh -i ~/nixos-bootstrap/id_ed25519 root@machine/cloud-debian 'hostname; uname -r'
+   $ ssh -i ~/bootstrap/ssh/id_ed25519 root@machine/cloud-debian 'hostname; uname -r'
    cloud-debian
    7.2.11+deb14-cloud-amd64
 
@@ -215,7 +215,7 @@ The drop-in already holds everything but the disk and the context id:
 
    $ systemctl --user start qemu-system-generator.service
    $ systemctl --user start qemu-system@cloud-fedora.service
-   $ ssh -i ~/nixos-bootstrap/id_ed25519 root@machine/cloud-fedora 'hostname; uname -r'
+   $ ssh -i ~/bootstrap/ssh/id_ed25519 root@machine/cloud-fedora 'hostname; uname -r'
    cloud-fedora
    6.19.10-300.fc44.x86_64
 
@@ -236,7 +236,7 @@ The drop-in already holds everything but the disk and the context id:
 
    $ systemctl --user start qemu-system-generator.service
    $ systemctl --user start qemu-system@cloud-ubuntu.service
-   $ ssh -i ~/nixos-bootstrap/id_ed25519 root@machine/cloud-ubuntu 'hostname; uname -r'
+   $ ssh -i ~/bootstrap/ssh/id_ed25519 root@machine/cloud-ubuntu 'hostname; uname -r'
    cloud-ubuntu
    7.3.0-9-generic
 

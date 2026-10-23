@@ -42,10 +42,18 @@ how the guest boots, which decides what a change to the guest costs.
 the most of the format: vsock, SSH poweroff, consoles, drop-ins, systemd
 settings and shares, which work the same way in the others.
 
-All five share ``~/nixos-bootstrap`` and its SSH key. The NixOS guides
-and the knix guide write the machine ``bootstrap``, in
-``~/.config/qemu/systemd/bootstrap.qemu``; before following a second one,
-remove that file and ``bootstrap.qemu.d/``. The cloud guide writes
+Everything you write or build lives in ``~/bootstrap``: a directory per
+guide, the SSH key in ``ssh/``, and the directory the guests share in
+``share/``. What a machine writes lives where its generated unit's
+``StateDirectory=`` puts it, which is also where a relative path in its
+``.qemu`` file resolves: ``~/.local/state/qemu-system/<name>/`` under a
+user manager, ``/var/lib/qemu-system/<name>/`` under the system manager
+(:cmd:`systemd.exec(5)`). The NixOS guests boot read-only store paths and
+keep nothing there; the cloud guests keep their disks there.
+
+The NixOS guides and the knix guide all write the machine ``bootstrap``,
+in ``~/.config/qemu/systemd/bootstrap.qemu``; before following a second
+one, remove that file and ``bootstrap.qemu.d/``. The cloud guide writes
 ``cloud-debian``, ``cloud-fedora`` and ``cloud-ubuntu`` beside it.
 
 .. toctree::

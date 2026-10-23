@@ -24,10 +24,10 @@ The guest
 ---------
 
 The guest is an ordinary NixOS configuration, and the UKI is built from
-it. Create ``~/nixos-bootstrap/uki/flake.nix``:
+it. Create ``~/bootstrap/uki/flake.nix``:
 
 .. code-block:: nix
-   :caption: ~/nixos-bootstrap/uki/flake.nix
+   :caption: ~/bootstrap/uki/flake.nix
 
    {
      inputs.nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
@@ -63,11 +63,11 @@ kernel and initrd, with the command line
 package puts it where the firmware looks on a medium without boot
 entries, ``\EFI\BOOT\BOOTX64.EFI``.
 
-``~/nixos-bootstrap/uki/configuration.nix`` sets the guest up, with the
-public key from ``~/nixos-bootstrap/id_ed25519.pub`` pasted in:
+``~/bootstrap/uki/configuration.nix`` sets the guest up, with the
+public key from ``~/bootstrap/ssh/id_ed25519.pub`` pasted in:
 
 .. code-block:: nix
-   :caption: ~/nixos-bootstrap/uki/configuration.nix
+   :caption: ~/bootstrap/uki/configuration.nix
 
    { modulesPath, ... }:
    {
@@ -84,12 +84,12 @@ public key from ``~/nixos-bootstrap/id_ed25519.pub`` pasted in:
 The :cmd:`qemu-guest.nix` profile puts the virtio and virtiofs drivers in
 the initrd. The empty root password lets you log in on a console.
 
-``~/nixos-bootstrap/uki/uki.nix`` has no boot loader and no disk. The
+``~/bootstrap/uki/uki.nix`` has no boot loader and no disk. The
 root is a `tmpfs`_, and the store arrives over virtiofs under the tag
 ``store``, which :ref:`step 2 <uki-store>` sets up:
 
 .. code-block:: nix
-   :caption: ~/nixos-bootstrap/uki/uki.nix
+   :caption: ~/bootstrap/uki/uki.nix
 
    {
      boot.kernelParams = [ "console=ttyS0" ];
@@ -116,7 +116,7 @@ Build the UKI and the firmware with :cmd:`nix build`:
 .. code-block:: console
    :class: cmd-host
 
-   $ cd ~/nixos-bootstrap/uki
+   $ cd ~/bootstrap/uki
    $ nix build
    $ nix build .#ovmf --out-link ovmf
    $ ls -l result/EFI/BOOT
@@ -144,11 +144,11 @@ Create ``~/.config/qemu/systemd/bootstrap.qemu``:
    smp=2
    nographic=
    serial=mon:stdio
-   drive=if=pflash,format=raw,readonly=on,file=%h/nixos-bootstrap/uki/ovmf-fd/FV/OVMF_CODE.fd
-   drive=if=pflash,format=raw,snapshot=on,file=%h/nixos-bootstrap/uki/ovmf-fd/FV/OVMF_VARS.fd
+   drive=if=pflash,format=raw,readonly=on,file=%h/bootstrap/uki/ovmf-fd/FV/OVMF_CODE.fd
+   drive=if=pflash,format=raw,snapshot=on,file=%h/bootstrap/uki/ovmf-fd/FV/OVMF_VARS.fd
 
    [virtiofsd]
-   shared-dir=%h/nixos-bootstrap/uki/result/
+   shared-dir=%h/bootstrap/uki/result/
    tag=esp
    sandbox=namespace
    uid-map=:0:%U:1:
@@ -248,7 +248,7 @@ the guest's SSH:
 .. code-block:: diff
    :caption: ~/.config/qemu/systemd/bootstrap.qemu
 
-    drive=if=pflash,format=raw,snapshot=on,file=%h/nixos-bootstrap/uki/ovmf-fd/FV/OVMF_VARS.fd
+    drive=if=pflash,format=raw,snapshot=on,file=%h/bootstrap/uki/ovmf-fd/FV/OVMF_VARS.fd
    +nic=user,model=virtio-net-pci-non-transitional,hostfwd=tcp:127.0.0.1:10022-:22
 
 Regenerate, restart with ``systemctl --user restart``, and log in with
@@ -257,7 +257,7 @@ Regenerate, restart with ``systemctl --user restart``, and log in with
 .. code-block:: console
    :class: cmd-host
 
-   $ ssh -i ~/nixos-bootstrap/id_ed25519 -p 10022 root@127.0.0.1 uname -r
+   $ ssh -i ~/bootstrap/ssh/id_ed25519 -p 10022 root@127.0.0.1 uname -r
    6.18.57
 
 .. _uki-share:
@@ -272,8 +272,8 @@ mount in the guest. Make the directory and put a file in it:
 .. code-block:: console
    :class: cmd-host
 
-   $ mkdir --parents ~/nixos-bootstrap/share
-   $ echo "hello from the host" > ~/nixos-bootstrap/share/hello.txt
+   $ mkdir --parents ~/bootstrap/share
+   $ echo "hello from the host" > ~/bootstrap/share/hello.txt
 
 Add the section:
 
@@ -287,7 +287,7 @@ Add the section:
     gid-map=:0:%G:1:
    +
    +[virtiofsd]
-   +shared-dir=%h/nixos-bootstrap/share
+   +shared-dir=%h/bootstrap/share
    +tag=host
    +sandbox=namespace
    +uid-map=:0:%U:1:
@@ -296,7 +296,7 @@ Add the section:
 Mount it by its tag:
 
 .. code-block:: diff
-   :caption: ~/nixos-bootstrap/uki/uki.nix
+   :caption: ~/bootstrap/uki/uki.nix
 
       fileSystems."/nix/store" = {
         device = "store";
@@ -313,13 +313,13 @@ Rebuild, regenerate and restart:
 .. code-block:: console
    :class: cmd-host
 
-   $ cd ~/nixos-bootstrap/uki
+   $ cd ~/bootstrap/uki
    $ nix build
    $ systemctl --user start qemu-system-generator.service
    $ systemctl --user restart qemu-system@bootstrap.service
-   $ ssh -i ~/nixos-bootstrap/id_ed25519 -p 10022 root@127.0.0.1 'cat /mnt/host/hello.txt; touch /mnt/host/from-guest'
+   $ ssh -i ~/bootstrap/ssh/id_ed25519 -p 10022 root@127.0.0.1 'cat /mnt/host/hello.txt; touch /mnt/host/from-guest'
    hello from the host
-   $ ls -l ~/nixos-bootstrap/share
+   $ ls -l ~/bootstrap/share
    -rw-r--r-- 1 user user  0 Oct 23 09:08 from-guest
    -rw-rw-r-- 1 user user 20 Oct 23 09:08 hello.txt
 

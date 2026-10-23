@@ -12,13 +12,14 @@ What you need
 Preparation
 ===========
 
-Everything lives in one directory:
+Everything you write or build lives in ``~/bootstrap``, with the SSH key
+in ``ssh/``:
 
 .. code-block:: console
    :caption: host
    :class: cmd-host
 
-   $ mkdir --parents ~/nixos-bootstrap
+   $ mkdir --parents ~/bootstrap/ssh
 
 A throwaway SSH key
 -------------------
@@ -29,7 +30,7 @@ Create it with :cmd:`ssh-keygen`:
 .. code-block:: console
    :class: cmd-host
 
-   $ ssh-keygen -t ed25519 -N "" -C bootstrap -f ~/nixos-bootstrap/id_ed25519
+   $ ssh-keygen -t ed25519 -N "" -C bootstrap -f ~/bootstrap/ssh/id_ed25519
 
 .. _KVM: https://docs.kernel.org/virt/kvm/index.html
 .. _Nix: https://nix.dev/manual/nix/latest/

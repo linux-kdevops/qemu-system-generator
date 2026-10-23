@@ -22,10 +22,10 @@ The guest
 ---------
 
 The guest is an ordinary NixOS configuration. Create
-``~/nixos-bootstrap/kernel/flake.nix``:
+``~/bootstrap/kernel/flake.nix``:
 
 .. code-block:: nix
-   :caption: ~/nixos-bootstrap/kernel/flake.nix
+   :caption: ~/bootstrap/kernel/flake.nix
 
    {
      inputs.nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
@@ -44,11 +44,11 @@ The guest is an ordinary NixOS configuration. Create
        };
    }
 
-``~/nixos-bootstrap/kernel/configuration.nix`` sets the guest up, with the
-public key from ``~/nixos-bootstrap/id_ed25519.pub`` pasted in:
+``~/bootstrap/kernel/configuration.nix`` sets the guest up, with the
+public key from ``~/bootstrap/ssh/id_ed25519.pub`` pasted in:
 
 .. code-block:: nix
-   :caption: ~/nixos-bootstrap/kernel/configuration.nix
+   :caption: ~/bootstrap/kernel/configuration.nix
 
    { modulesPath, ... }:
    {
@@ -66,12 +66,12 @@ The :cmd:`qemu-guest.nix` profile puts the virtio and virtiofs drivers in
 the initrd. The empty root password is for logging in on the console in
 :ref:`step 6 <kernel-console>`.
 
-``~/nixos-bootstrap/kernel/virtiofs.nix`` has no boot loader and no disk.
+``~/bootstrap/kernel/virtiofs.nix`` has no boot loader and no disk.
 The root is a tmpfs, and the store arrives over virtiofs under the tag
 ``store``, which :ref:`step 2 <kernel-store>` sets up:
 
 .. code-block:: nix
-   :caption: ~/nixos-bootstrap/kernel/virtiofs.nix
+   :caption: ~/bootstrap/kernel/virtiofs.nix
 
    {
      boot.loader.grub.enable = false;
@@ -91,7 +91,7 @@ Build it with :cmd:`nix build`:
 .. code-block:: console
    :class: cmd-host
 
-   $ cd ~/nixos-bootstrap/kernel
+   $ cd ~/bootstrap/kernel
    $ nix build
 
 ``result`` now holds the system. Its ``kernel`` and ``initrd`` are what QEMU
@@ -126,8 +126,8 @@ closure's kernel and initrd. ``%h`` is your home directory, one of the
    smp=2
    nographic=
    serial=mon:stdio
-   kernel=%h/nixos-bootstrap/kernel/result/kernel
-   initrd=%h/nixos-bootstrap/kernel/result/initrd
+   kernel=%h/bootstrap/kernel/result/kernel
+   initrd=%h/bootstrap/kernel/result/initrd
    append=console=ttyS0
 
 .. include:: _start.rst
@@ -163,7 +163,7 @@ which tells the initrd which system in the store to boot:
 .. code-block:: console
    :class: cmd-host
 
-   $ readlink ~/nixos-bootstrap/kernel/result
+   $ readlink ~/bootstrap/kernel/result
    /nix/store/i7s2903dhm9g5z73vkcbpggmv1iqnvwy-nixos-system-bootstrap-26.11.20261020.02c087f
 
 Add both, with your own path in ``init=``:
@@ -171,8 +171,8 @@ Add both, with your own path in ``init=``:
 .. code-block:: diff
    :caption: ~/.config/qemu/systemd/bootstrap.qemu
 
-    kernel=%h/nixos-bootstrap/kernel/result/kernel
-    initrd=%h/nixos-bootstrap/kernel/result/initrd
+    kernel=%h/bootstrap/kernel/result/kernel
+    initrd=%h/bootstrap/kernel/result/initrd
    -append=console=ttyS0
    +append=console=ttyS0 init=/nix/store/i7s2903dhm9g5z73vkcbpggmv1iqnvwy-nixos-system-bootstrap-26.11.20261020.02c087f/init
    +
@@ -249,7 +249,7 @@ Regenerate, restart with ``systemctl --user restart``, and log in with
 .. code-block:: console
    :class: cmd-host
 
-   $ ssh -i ~/nixos-bootstrap/id_ed25519 -p 10022 root@127.0.0.1 uname -r
+   $ ssh -i ~/bootstrap/ssh/id_ed25519 -p 10022 root@127.0.0.1 uname -r
    6.18.57
 
 .. _kernel-vsock:
@@ -284,7 +284,7 @@ on the host reach a registered machine by name:
 .. code-block:: console
    :class: cmd-host
 
-   $ ssh -i ~/nixos-bootstrap/id_ed25519 root@machine/bootstrap systemctl is-system-running
+   $ ssh -i ~/bootstrap/ssh/id_ed25519 root@machine/bootstrap systemctl is-system-running
    running
 
 ``machine/`` needs the ``ssh`` configuration that systemd ships as
@@ -305,7 +305,7 @@ presses the power button only if that fails:
    :caption: ~/.config/qemu/systemd/bootstrap.qemu
 
    +[VM]
-   +SshPrivateKey=%h/nixos-bootstrap/id_ed25519
+   +SshPrivateKey=%h/bootstrap/ssh/id_ed25519
    +
     [QEMU]
     machine=q35
@@ -367,7 +367,7 @@ touching the file you edit by hand.
 .. code-block:: diff
    :caption: ~/.config/qemu/systemd/bootstrap.qemu
 
-    initrd=%h/nixos-bootstrap/kernel/result/initrd
+    initrd=%h/bootstrap/kernel/result/initrd
    -append=console=ttyS0 console=hvc0 init=/nix/store/i7s2903dhm9g5z73vkcbpggmv1iqnvwy-nixos-system-bootstrap-26.11.20261020.02c087f/init
     nic=user,model=virtio-net-pci-non-transitional,hostfwd=tcp:127.0.0.1:10022-:22
 
@@ -377,7 +377,7 @@ touching the file you edit by hand.
    mkdir --parents ~/.config/qemu/systemd/bootstrap.qemu.d
    cat > ~/.config/qemu/systemd/bootstrap.qemu.d/10-closure.conf <<EOF
    [QEMU]
-   append=console=ttyS0 console=hvc0 init=$(readlink ~/nixos-bootstrap/kernel/result)/init
+   append=console=ttyS0 console=hvc0 init=$(readlink ~/bootstrap/kernel/result)/init
    EOF
 
 :cmd:`readlink` fills in the path. To see what the generator makes of the
@@ -448,8 +448,8 @@ Make the directory and put a file in it:
 .. code-block:: console
    :class: cmd-host
 
-   $ mkdir --parents ~/nixos-bootstrap/share
-   $ echo "hello from the host" > ~/nixos-bootstrap/share/hello.txt
+   $ mkdir --parents ~/bootstrap/share
+   $ echo "hello from the host" > ~/bootstrap/share/hello.txt
 
 Then add the section:
 
@@ -459,7 +459,7 @@ Then add the section:
     gid-map=:0:%G:1:
 
    +[virtiofsd]
-   +shared-dir=%h/nixos-bootstrap/share
+   +shared-dir=%h/bootstrap/share
    +tag=host
    +sandbox=namespace
    +uid-map=:0:%U:1:
@@ -470,7 +470,7 @@ Then add the section:
 The guest mounts it by tag, so ``virtiofs.nix`` changes too:
 
 .. code-block:: diff
-   :caption: ~/nixos-bootstrap/kernel/virtiofs.nix
+   :caption: ~/bootstrap/kernel/virtiofs.nix
 
       fileSystems."/nix/store" = {
         device = "store";
@@ -487,9 +487,9 @@ regenerate and restart:
 .. code-block:: console
    :class: cmd-host
 
-   $ ssh -i ~/nixos-bootstrap/id_ed25519 root@machine/bootstrap 'cat /mnt/host/hello.txt; touch /mnt/host/from-guest'
+   $ ssh -i ~/bootstrap/ssh/id_ed25519 root@machine/bootstrap 'cat /mnt/host/hello.txt; touch /mnt/host/from-guest'
    hello from the host
-   $ ls -l ~/nixos-bootstrap/share
+   $ ls -l ~/bootstrap/share
    -rw-r--r-- 1 user user  0 Oct 22 16:47 from-guest
    -rw-rw-r-- 1 user user 20 Oct 22 16:47 hello.txt
 
