@@ -14,27 +14,15 @@ use std::str::FromStr;
 
 use crate::search::UnitName;
 
-/// One command-line option and its argument, kept apart so that a
-/// launcher can lay them out one option per line.
+/// Words of a command line that belong together, such as an option and
+/// its argument, so that a launcher can lay them out one group per line.
+/// Each word reaches the program as it is written here.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Arg {
-    pub option: String,
-    pub value: Option<String>,
-}
+pub struct Arg(pub Vec<String>);
 
-impl Arg {
-    pub fn flag(option: impl Into<String>) -> Self {
-        Self {
-            option: option.into(),
-            value: None,
-        }
-    }
-
-    pub fn with(option: impl Into<String>, value: impl Into<String>) -> Self {
-        Self {
-            option: option.into(),
-            value: Some(value.into()),
-        }
+impl<const N: usize> From<[String; N]> for Arg {
+    fn from(words: [String; N]) -> Self {
+        Self(words.into())
     }
 }
 

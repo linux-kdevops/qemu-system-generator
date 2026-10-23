@@ -9,7 +9,7 @@ use std::fmt::{self, Write as _};
 use std::path::{Path, PathBuf};
 
 use crate::backend::qemu::SERVICE;
-use crate::plan::{Arg, Paths, Plan, Tag};
+use crate::plan::{Paths, Plan, Tag};
 use crate::search::{Scope, Source, UnitName};
 use crate::unitfile::UnitFile;
 
@@ -96,12 +96,13 @@ fn quote(word: &str) -> String {
     quoted
 }
 
-/// One `-option value` of a command line, quoted for `ExecStart=`.
-fn word(arg: &Arg) -> String {
-    match &arg.value {
-        Some(value) => format!("{} {}", arg.option, quote(value)),
-        None => arg.option.clone(),
-    }
+/// A group of words of a command line, each quoted for `ExecStart=`.
+fn words<S: AsRef<str>>(group: &[S]) -> String {
+    group
+        .iter()
+        .map(|w| quote(w.as_ref()))
+        .collect::<Vec<_>>()
+        .join(" ")
 }
 
 /// Unit text under construction. Writing to a `String` cannot fail, so
@@ -133,10 +134,16 @@ impl UnitText {
 
     /// A command line, one word group per continuation line. `prefix`
     /// is the `-` of a command whose failure is tolerated.
-    fn exec(&mut self, key: &str, prefix: &str, program: &str, words: &[String]) {
+    fn exec(
+        &mut self,
+        key: &str,
+        prefix: &str,
+        program: &str,
+        groups: impl IntoIterator<Item = String>,
+    ) {
         let _ = write!(self.text, "{key}={prefix}{}", quote(program));
-        for w in words {
-            let _ = write!(self.text, " \\\n    {w}");
+        for group in groups {
+            let _ = write!(self.text, " \\\n    {group}");
         }
         self.text.push('\n');
     }
@@ -195,38 +202,42 @@ fn machine_service(source: &Source, file: &UnitFile, plan: &Plan, scope: Scope) 
     unit.line(format_args!("RuntimeDirectory={MACHINE_PREFIX}/%i"));
     unit.line(format_args!("StateDirectory={MACHINE_PREFIX}/%i"));
     unit.line(format_args!("WorkingDirectory=%S/{MACHINE_PREFIX}/%i"));
-    let words: Vec<String> = plan.args.iter().map(word).collect();
-    unit.exec("ExecStart", "", &plan.binary, &words);
+    unit.exec(
+        "ExecStart",
+        "",
+        &plan.binary,
+        plan.args.iter().map(|a| words(&a.0)),
+    );
     unit.exec(
         "ExecStartPost",
         "-",
         VARLINKCTL,
-        &[
-            "call".to_owned(),
-            "%t/systemd/machine/io.systemd.Machine".to_owned(),
-            "io.systemd.Machine.Register".to_owned(),
-            quote(&register_json(plan)),
+        [
+            words(&["call"]),
+            words(&["%t/systemd/machine/io.systemd.Machine"]),
+            words(&["io.systemd.Machine.Register"]),
+            words(&[register_json(plan)]),
         ],
     );
     if let Some(ssh) = &plan.ssh_poweroff {
-        let words = [
-            "-o ConnectTimeout=5".to_owned(),
-            "-o UserKnownHostsFile=/dev/null".to_owned(),
-            "-o StrictHostKeyChecking=no".to_owned(),
-            "-o IdentitiesOnly=yes".to_owned(),
-            format!("-i {}", quote(&ssh.private_key)),
-            format!("root@vsock/{}", ssh.vsock_cid),
-            "systemctl poweroff".to_owned(),
+        let groups = [
+            words(&["-o", "ConnectTimeout=5"]),
+            words(&["-o", "UserKnownHostsFile=/dev/null"]),
+            words(&["-o", "StrictHostKeyChecking=no"]),
+            words(&["-o", "IdentitiesOnly=yes"]),
+            words(&["-i", &ssh.private_key]),
+            words(&[format!("root@vsock/{}", ssh.vsock_cid)]),
+            words(&["systemctl", "poweroff"]),
         ];
-        unit.exec("ExecStop", "-", SSH, &words);
+        unit.exec("ExecStop", "-", SSH, groups);
     }
     unit.exec(
         "ExecStop",
         "-",
         SOCAT,
-        &[
-            format!("OPEN:{QMP_POWERDOWN}!!OPEN:/dev/null,wronly"),
-            format!("UNIX-CONNECT:{}", plan.control_socket),
+        [
+            words(&[format!("OPEN:{QMP_POWERDOWN}!!OPEN:/dev/null,wronly")]),
+            words(&[format!("UNIX-CONNECT:{}", plan.control_socket)]),
         ],
     );
     unit.line("KillSignal=SIGCONT");
@@ -269,8 +280,12 @@ fn helper_service(source: &Source, helper: &crate::plan::Helper) -> String {
     }
     unit.section("Service");
     unit.line("Type=simple");
-    let words: Vec<String> = helper.args.iter().map(word).collect();
-    unit.exec("ExecStart", "", &helper.binary, &words);
+    unit.exec(
+        "ExecStart",
+        "",
+        &helper.binary,
+        helper.args.iter().map(|a| words(&a.0)),
+    );
     unit.finish()
 }
 
@@ -331,7 +346,10 @@ mod tests {
     fn plan() -> Plan {
         Plan {
             binary: "/usr/bin/qemu-system-x86_64".to_owned(),
-            args: vec![Arg::with("-m", "1"), Arg::flag("-nographic")],
+            args: vec![
+                ["-m".to_owned(), "1".to_owned()].into(),
+                ["-nographic".to_owned()].into(),
+            ],
             helpers: Vec::new(),
             device_allow: vec!["/dev/kvm rw"],
             memlock_mib: None,
@@ -395,12 +413,18 @@ mod tests {
             "ExecStart",
             "",
             "/bin/q",
-            &[word(&Arg::with("-append", "a b")), word(&Arg::flag("-S"))],
+            [
+                words(&["-append", "a b"]),
+                words(&["-S"]),
+                words(&["--shared-dir=/srv/my share"]),
+            ],
         );
-        assert!(
-            unit.finish()
-                .ends_with("[Service]\nExecStart=/bin/q \\\n    -append \"a b\" \\\n    -S\n")
-        );
+        assert!(unit.finish().ends_with(concat!(
+            "[Service]\nExecStart=/bin/q \\\n",
+            "    -append \"a b\" \\\n",
+            "    -S \\\n",
+            "    \"--shared-dir=/srv/my share\"\n",
+        )));
     }
 
     #[test]

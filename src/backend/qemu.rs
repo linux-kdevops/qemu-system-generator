@@ -224,9 +224,9 @@ fn mebibytes(m: &str) -> Result<u64, SizeError> {
 fn qemu_arg(entry: &Entry) -> Arg {
     let option = format!("-{}", entry.key);
     if entry.value.is_empty() {
-        Arg::flag(option)
+        [option].into()
     } else {
-        Arg::with(option, entry.value.as_str())
+        [option, entry.value.clone()].into()
     }
 }
 
@@ -234,9 +234,9 @@ fn qemu_arg(entry: &Entry) -> Arg {
 /// word, which its clap parser reads for every option.
 fn virtiofsd_arg(entry: &Entry) -> Arg {
     if entry.value.is_empty() {
-        Arg::flag(format!("--{}", entry.key))
+        [format!("--{}", entry.key)].into()
     } else {
-        Arg::flag(format!("--{}={}", entry.key, entry.value))
+        [format!("--{}={}", entry.key, entry.value)].into()
     }
 }
 
@@ -338,7 +338,7 @@ fn decode_helper(section: &Section, binary: &str) -> Result<Helper, DecodeError>
         .entries
         .iter()
         .map(virtiofsd_arg)
-        .chain(std::iter::once(Arg::flag("--fd=3")))
+        .chain(std::iter::once(["--fd=3".to_owned()].into()))
         .collect();
     Ok(Helper {
         program: VIRTIOFSD_SECTION,
@@ -368,14 +368,14 @@ fn share_args(
             value: memory.to_owned(),
             source,
         })?;
-        args.push(Arg::with(
-            "-object",
+        args.push(Arg::from([
+            "-object".to_owned(),
             format!("memory-backend-memfd,id={MEMORY_BACKEND_ID},size={size},share=on"),
-        ));
-        args.push(Arg::with(
-            "-machine",
+        ]));
+        args.push(Arg::from([
+            "-machine".to_owned(),
             format!("memory-backend={MEMORY_BACKEND_ID}"),
-        ));
+        ]));
     }
     let fs_device = if seen.microvm {
         "vhost-user-fs-device"
@@ -386,16 +386,16 @@ fn share_args(
         let tag = &helper.tag;
         let chardev = format!("virtiofs_{tag}");
         let socket = paths.helper_socket(machine, helper.program, tag);
-        args.push(Arg::with(
-            "-chardev",
+        args.push(Arg::from([
+            "-chardev".to_owned(),
             format!("socket,id={chardev},path={socket}"),
-        ));
-        args.push(Arg::with(
-            "-device",
+        ]));
+        args.push(Arg::from([
+            "-device".to_owned(),
             format!(
                 "{fs_device},queue-size={VHOST_USER_FS_QUEUE_SIZE},chardev={chardev},tag={tag}"
             ),
-        ));
+        ]));
     }
     Ok(args)
 }
@@ -454,10 +454,10 @@ pub fn decode(
         .copied()
         .map(qemu_arg)
         .chain(share_args(&seen, &helpers, machine, paths)?)
-        .chain(std::iter::once(Arg::with(
-            "-qmp",
+        .chain(std::iter::once(Arg::from([
+            "-qmp".to_owned(),
             format!("unix:{control_socket},server=on,wait=off"),
-        )))
+        ])))
         .collect();
 
     let mut device_allow = DEVICE_ALLOW.to_vec();
@@ -517,13 +517,7 @@ mod tests {
     }
 
     fn command_line(plan: &Plan) -> Vec<String> {
-        plan.args
-            .iter()
-            .map(|a| match &a.value {
-                Some(v) => format!("{} {v}", a.option),
-                None => a.option.clone(),
-            })
-            .collect()
+        plan.args.iter().map(|a| a.0.join(" ")).collect()
     }
 
     #[test]
@@ -605,11 +599,7 @@ mod tests {
         assert_eq!(plan.helpers[0].requires_mounts, ["/srv/a"]);
         assert_eq!(plan.helpers[1].requires_mounts, [] as [String; 0]);
         assert_eq!(plan.helpers[0].binary, VIRTIOFSD);
-        let words: Vec<_> = plan.helpers[0]
-            .args
-            .iter()
-            .map(|a| a.option.as_str())
-            .collect();
+        let words: Vec<_> = plan.helpers[0].args.iter().map(|a| a.0.join(" ")).collect();
         assert_eq!(
             words,
             ["--shared-dir=/srv/a", "--tag=a", "--xattr", "--fd=3"]
