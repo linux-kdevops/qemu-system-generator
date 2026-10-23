@@ -299,13 +299,11 @@ fn print_output(output: &Output, out: &mut impl io::Write) -> io::Result<()> {
 }
 
 fn resolve_scope(requested: Option<Scope>, env: &Environment) -> Scope {
-    requested
-        .or_else(|| env::var("SYSTEMD_SCOPE").ok()?.parse().ok())
-        .unwrap_or(if env.uid == 0 {
-            Scope::System
-        } else {
-            Scope::User
-        })
+    requested.or(env.scope).unwrap_or(if env.uid == 0 {
+        Scope::System
+    } else {
+        Scope::User
+    })
 }
 
 fn run(options: &Options) -> ExitCode {
@@ -408,9 +406,12 @@ mod tests {
             ..Environment::default()
         };
         assert_eq!(resolve_scope(Some(Scope::User), &root), Scope::User);
-        if env::var_os("SYSTEMD_SCOPE").is_none() {
-            assert_eq!(resolve_scope(None, &root), Scope::System);
-            assert_eq!(resolve_scope(None, &user), Scope::User);
-        }
+        assert_eq!(resolve_scope(None, &root), Scope::System);
+        assert_eq!(resolve_scope(None, &user), Scope::User);
+        let scoped = Environment {
+            scope: Some(Scope::User),
+            ..root
+        };
+        assert_eq!(resolve_scope(None, &scoped), Scope::User);
     }
 }

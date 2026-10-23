@@ -25,42 +25,12 @@ pub enum Scope {
     User,
 }
 
-impl FromStr for Scope {
-    type Err = UnknownScope;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s {
-            "system" => Ok(Self::System),
-            "user" => Ok(Self::User),
-            other => Err(UnknownScope(other.to_owned())),
-        }
-    }
-}
-
-impl fmt::Display for Scope {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(match self {
-            Self::System => "system",
-            Self::User => "user",
-        })
-    }
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct UnknownScope(pub String);
-
-impl fmt::Display for UnknownScope {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "unknown scope {:?}, expected system or user", self.0)
-    }
-}
-
-impl Error for UnknownScope {}
-
 /// What the search path depends on, read from the process once so that
 /// the rest of the module is a pure function of it.
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct Environment {
+    /// `$SYSTEMD_SCOPE` (`systemd.generator(7)`).
+    pub scope: Option<Scope>,
     pub unit_dirs: Option<OsString>,
     pub xdg_runtime_dir: Option<PathBuf>,
     pub xdg_config_home: Option<PathBuf>,
@@ -71,6 +41,11 @@ pub struct Environment {
 impl Environment {
     pub fn from_process() -> Self {
         Self {
+            scope: match env::var("SYSTEMD_SCOPE").as_deref() {
+                Ok("system") => Some(Scope::System),
+                Ok("user") => Some(Scope::User),
+                _ => None,
+            },
             unit_dirs: env::var_os(UNIT_DIRS_ENV),
             xdg_runtime_dir: env::var_os("XDG_RUNTIME_DIR").map(PathBuf::from),
             xdg_config_home: env::var_os("XDG_CONFIG_HOME").map(PathBuf::from),
@@ -328,13 +303,6 @@ mod tests {
         let name: UnitName = "fstests-xfs-1".parse().unwrap();
         let levels: Vec<_> = dropin_levels(&name).collect();
         assert_eq!(levels, ["", "fstests-", "fstests-xfs-", "fstests-xfs-1"]);
-    }
-
-    #[test]
-    fn scopes() {
-        assert_eq!("user".parse::<Scope>(), Ok(Scope::User));
-        assert_eq!("system".parse::<Scope>(), Ok(Scope::System));
-        assert!("global".parse::<Scope>().is_err());
     }
 
     #[test]
