@@ -11,7 +11,7 @@ against what it needs, collecting its output, limiting its resources and
 running the daemons that serve it. QEMU does the first, as a command line
 only, and leaves the second to whoever starts it.
 
-More than fifty tools fill the gap, each filling both halves in its own
+Dozens of tools fill the gap, each filling both halves in its own
 way; :doc:`wrappers` lists them. This project fills it without another
 vocabulary: the command line stays QEMU's own, one option per line, and
 systemd runs the lifecycle.
