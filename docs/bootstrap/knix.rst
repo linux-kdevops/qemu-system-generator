@@ -397,6 +397,308 @@ other:
    64 bytes from 10.0.100.46: icmp_seq=1 ttl=64 time=0.185 ms
    ...
 
+.. _knix-fast:
+
+4. A faster boot
+================
+
+Your own kernel and QEMU let this guide go further than the others: a
+kernel with only what this machine uses, a smaller firmware, and no
+initrd of its own. The other changes are the ones every NixOS guide
+makes.
+
+Each step is timed as :ref:`fast-measure` shows.
+
+The machine as it stands takes 7.7 seconds.
+
+A smaller kernel
+----------------
+
+``defconfig`` builds drivers for hardware this machine does not have and
+makes a 15 MB image for the firmware to load. `linux-config-fragments`_
+holds fragments to merge onto an empty configuration, with a
+``builtin/`` set that turns a feature from a module into part of the
+kernel. Fetch them:
+
+.. code-block:: console
+   :class: cmd-host
+
+   $ git clone --depth 1 https://github.com/linux-kdevops/linux-config-fragments.git \
+       ~/bootstrap/knix/linux-config-fragments
+
+What this machine needs beyond them goes in a fragment of your own:
+
+.. code-block:: text
+   :caption: ~/bootstrap/knix/fast.config
+
+   # The machine: q35's PCI bus and ACPI, the RTC, a hardware RNG
+   CONFIG_PCI=y
+   CONFIG_ACPI=y
+   CONFIG_RTC_CLASS=y
+   CONFIG_RTC_DRV_CMOS=y
+   CONFIG_HW_RANDOM_VIRTIO=y
+   CONFIG_X86_X2APIC=y
+   CONFIG_NR_CPUS=64
+   # Devices for the other machine types and boot paths
+   CONFIG_VIRTIO_MMIO=y
+   CONFIG_VIRTIO_CONSOLE=y
+   CONFIG_PVH=y
+   # What systemd and the network stack expect
+   CONFIG_NET=y
+   CONFIG_INET=y
+   CONFIG_PACKET=y
+   CONFIG_UNIX=y
+   CONFIG_BPF_SYSCALL=y
+   CONFIG_CGROUP_BPF=y
+   CONFIG_DEVTMPFS_MOUNT=y
+   CONFIG_NO_HZ_IDLE=y
+   CONFIG_PRINTK_TIME=y
+   CONFIG_KERNEL_ZSTD=y
+
+Merge it with the fragments for a systemd guest with virtiofs, virtio-net
+and vsock built in, into a build directory of its own so that ``peer``
+keeps the first kernel. ``merge_config.sh -n`` starts from
+``allnoconfig``, and ``-y`` keeps a ``=y`` from a ``builtin/`` fragment
+over a ``=m`` (`linux-config-fragments`_ has the rules):
+
+.. code-block:: console
+   :class: cmd-host
+
+   $ cd ~/bootstrap/knix/linux
+   $ K="nix develop github:linux-kdevops/knix#build-kernel --command"
+   $ B=$HOME/bootstrap/knix/linux-fast-build
+   $ F=$HOME/bootstrap/knix/linux-config-fragments/kernel/configs
+   $ $K make O=$B allnoconfig
+   $ $K scripts/kconfig/merge_config.sh -y -n -O $B $B/.config \
+       $F/core/64bit.config $F/core/core.config $F/core/modules.config \
+       $F/core/systemd.config $F/core/initrd.config $F/arch/x86_64.config \
+       $F/core/acpi-poweroff.config $F/virt/virtio-fs.config \
+       $F/virt/virtio-net.config $F/virt/vsock.config $F/core/localversion.config \
+       $F/builtin/core/systemd.config $F/builtin/virt/virtio-fs.config \
+       $F/builtin/virt/virtio-net.config $F/builtin/virt/vsock.config \
+       $HOME/bootstrap/knix/fast.config
+   $ $K make O=$B olddefconfig
+   $ $K make O=$B --jobs=$(nproc)
+   $ $K make O=$B INSTALL_MOD_PATH=$HOME/bootstrap/knix/linux-fast-install modules_install
+
+It builds in about a minute and a half, into a 4.4 MB image. Point the
+machine at it and at its modules:
+
+.. code-block:: diff
+   :caption: ~/.config/qemu/systemd/bootstrap.qemu
+
+   -kernel=%h/bootstrap/knix/linux-build/arch/x86/boot/bzImage
+   +kernel=%h/bootstrap/knix/linux-fast-build/arch/x86/boot/bzImage
+   ...
+    [virtiofsd]
+   -shared-dir=%h/bootstrap/knix/linux-install/lib/modules
+   +shared-dir=%h/bootstrap/knix/linux-fast-install/lib/modules
+
+7.6 seconds. The kernel's share falls from 0.8 to 0.3 seconds, but
+userspace takes longer and eats most of that back.
+
+The console
+-----------
+
+:ref:`fast-console` explains these settings.
+
+.. code-block:: shell
+   :class: cmd-host
+
+   jq --raw-output '."org.nixos.bootspec.v1" |
+       "[QEMU]\ninitrd=\(.initrd)\nappend=root=tmpfs console=ttyS0 systemd.tty.term.console=vt220 systemd.tty.rows.console=24 systemd.tty.columns.console=80 init=\(.init)"' \
+       ~/bootstrap/knix/guest/result/boot.json \
+       > ~/.config/qemu/systemd/bootstrap.qemu.d/10-closure.conf
+
+Regenerate and restart: 5.6 seconds.
+
+The store
+---------
+
+:ref:`fast-store` explains why the store, and only the store.
+
+.. code-block:: diff
+   :caption: ~/.config/qemu/systemd/bootstrap.qemu
+
+    [virtiofsd]
+    shared-dir=/nix/store
+    tag=store
+   +cache=always
+    sandbox=namespace
+
+5.0 seconds.
+
+The firmware
+------------
+
+QEMU ships `qboot`_, "a simple x86 firmware that can boot Linux" from
+``kernel=``, as ``qboot.rom``. It can replace SeaBIOS on q35:
+
+.. code-block:: diff
+   :caption: ~/.config/qemu/systemd/bootstrap.qemu
+
+    machine=q35
+   +bios=qboot.rom
+
+4.7 seconds; the time before the kernel starts falls from 0.24 to 0.15
+seconds.
+
+The mount rate limit
+--------------------
+
+This kernel has virtiofs built in, so the limit can go
+(:ref:`fast-mounts`):
+
+.. code-block:: shell
+   :class: cmd-host
+
+   jq --raw-output '."org.nixos.bootspec.v1" |
+       "[QEMU]\ninitrd=\(.initrd)\nappend=root=tmpfs console=ttyS0 systemd.tty.term.console=vt220 systemd.tty.rows.console=24 systemd.tty.columns.console=80 SYSTEMD_DEFAULT_MOUNT_RATE_LIMIT_BURST=1000 init=\(.init)"' \
+       ~/bootstrap/knix/guest/result/boot.json \
+       > ~/.config/qemu/systemd/bootstrap.qemu.d/10-closure.conf
+
+3.3 seconds, and the initrd's share falls from 1.6 to 0.7.
+
+The closure
+-----------
+
+:ref:`fast-closure` explains these four settings.
+
+A fifth one is on the kernel command line: systemd applies the preset
+policy on a first boot, and ``systemd.condition_first_boot=false``
+tells it this is not one (:cmd:`kernel-command-line(7)`).
+
+.. code-block:: diff
+   :caption: ~/bootstrap/knix/guest/default.nix
+
+      networking.hostName = "bootstrap";
+   +  services.openssh.hostKeys = [
+   +    { type = "ed25519"; path = "/etc/ssh/ssh_host_ed25519_key"; }
+   +  ];
+   +  security.pam.services.sshd.startSession = lib.mkForce false;
+   +  console.enable = false;
+   +  systemd.suppressedSystemUnits = [
+   +    "systemd-journal-catalog-update.service"
+   +    "systemd-update-done.service"
+   +  ];
+
+.. code-block:: console
+   :class: cmd-host
+
+   $ cd ~/bootstrap/knix/guest
+   $ nix build .#toplevel
+
+.. code-block:: shell
+   :class: cmd-host
+
+   jq --raw-output '."org.nixos.bootspec.v1" |
+       "[QEMU]\ninitrd=\(.initrd)\nappend=root=tmpfs console=ttyS0 systemd.tty.term.console=vt220 systemd.tty.rows.console=24 systemd.tty.columns.console=80 SYSTEMD_DEFAULT_MOUNT_RATE_LIMIT_BURST=1000 systemd.condition_first_boot=false init=\(.init)"' \
+       ~/bootstrap/knix/guest/result/boot.json \
+       > ~/.config/qemu/systemd/bootstrap.qemu.d/10-closure.conf
+
+2.6 seconds.
+
+Quiet
+-----
+
+:ref:`fast-quiet` explains what it costs.
+
+.. code-block:: shell
+   :class: cmd-host
+
+   jq --raw-output '."org.nixos.bootspec.v1" |
+       "[QEMU]\ninitrd=\(.initrd)\nappend=root=tmpfs console=ttyS0 systemd.tty.term.console=vt220 systemd.tty.rows.console=24 systemd.tty.columns.console=80 SYSTEMD_DEFAULT_MOUNT_RATE_LIMIT_BURST=1000 systemd.condition_first_boot=false quiet init=\(.init)"' \
+       ~/bootstrap/knix/guest/result/boot.json \
+       > ~/.config/qemu/systemd/bootstrap.qemu.d/10-closure.conf
+
+2.0 seconds.
+
+No initrd
+---------
+
+The initrd's systemd starts, mounts the root and the store, runs the
+NixOS activation and hands over to the system's systemd, which starts
+again and loads every unit a second time. Without a systemd initrd, the
+system's systemd starts once. The closure already has what that takes:
+with the systemd initrd, NixOS copies its stage 2 script to
+``prepare-root`` (``nixos/modules/system/activation/top-level.nix`` in
+nixpkgs), and that script, run as PID 1, mounts what is missing, runs
+the activation and starts systemd
+(``nixos/modules/system/boot/stage-2-init.sh``). It only needs the store
+mounted first. A static BusyBox does that from an initramfs of 1.4 MB:
+
+.. code-block:: shell
+   :class: cmd-host
+
+   mkdir --parents ~/bootstrap/knix/tiny/bin
+   install --mode=0755 "$(nix build --no-link --print-out-paths nixpkgs#pkgsStatic.busybox)/bin/busybox" \
+       ~/bootstrap/knix/tiny/bin/busybox
+
+.. code-block:: sh
+   :caption: ~/bootstrap/knix/tiny/init
+
+   #!/bin/busybox sh
+   /bin/busybox mkdir -p /dev /proc /sys /nix/store
+   /bin/busybox mount -t devtmpfs devtmpfs /dev
+   /bin/busybox mount -t proc proc /proc
+   /bin/busybox ln -s /proc/self/fd /dev/fd
+   exec </dev/console >/dev/console 2>&1
+   /bin/busybox mount -t virtiofs store /nix/store || exec /bin/busybox sh
+   exec "$CLOSURE/prepare-root"
+
+``prepare-root`` reads ``/proc/cmdline`` and writes through
+``/dev/fd``, hence the two lines before the store. The archive's root
+becomes the guest's ``/``, and sshd refuses an authorized keys file when
+it or any directory above it is writable by group or others
+(``safe_path()`` in OpenSSH's ``misc.c``), so set the modes before
+packing it:
+
+.. code-block:: shell
+   :class: cmd-host
+
+   chmod 0755 ~/bootstrap/knix/tiny ~/bootstrap/knix/tiny/bin ~/bootstrap/knix/tiny/init
+   cd ~/bootstrap/knix/tiny
+   find . | cpio --quiet --create --format=newc --owner=0:0 > ~/bootstrap/knix/tiny.cpio
+
+The drop-in boots it with the closure's path in ``CLOSURE=``, which
+reaches the script as an environment variable like the rate limit. It
+leaves out ``root=``: with no root device named, the kernel makes its
+initial root a tmpfs (``init/do_mounts.c``), and NixOS's ``/`` is a
+tmpfs anyway. It leaves out ``init=`` too, so the kernel runs ``/init``:
+
+.. code-block:: shell
+   :class: cmd-host
+
+   cat > ~/.config/qemu/systemd/bootstrap.qemu.d/10-closure.conf <<EOF
+   [QEMU]
+   initrd=%h/bootstrap/knix/tiny.cpio
+   append=console=ttyS0 systemd.tty.term.console=vt220 systemd.tty.rows.console=24 systemd.tty.columns.console=80 SYSTEMD_DEFAULT_MOUNT_RATE_LIMIT_BURST=1000 systemd.condition_first_boot=false quiet CLOSURE=$(readlink ~/bootstrap/knix/guest/result)
+   EOF
+
+1.5 seconds. ``systemd-analyze`` in the guest now reports no initrd, and
+counts the activation as the kernel's. ``prepare-root`` exists while
+``system.nixos-init.enable`` is off, as it is in knix's closure; its
+replacement does not run without an initrd yet.
+
+More processors
+---------------
+
+The kernel above allows 64 processors, so more vCPUs reach systemd's
+parallel start:
+
+.. code-block:: diff
+   :caption: ~/.config/qemu/systemd/bootstrap.qemu
+
+   -smp=2
+   +smp=4
+
+1.5 seconds again, a little less: the middle of ten boots is 1.49. That
+is a fifth of where this section started. Eight vCPUs gain nothing more,
+and ``mitigations=off`` and booting the uncompressed ``vmlinux`` gain
+nothing measurable. microvm, with this kernel and the store's cache,
+took 5.7 to 6.0 seconds where q35 took 4.9 to 5.0, all of it in the
+guest's userspace.
+
 .. _Linux: https://www.kernel.org
 .. _QEMU: https://www.qemu.org/docs/master/system/invocation.html
 .. _systemd: https://systemd.io
@@ -409,3 +711,5 @@ other:
 .. _QEMU build system: https://www.qemu.org/docs/master/devel/build-system.html
 .. _virtiofs: https://virtio-fs.gitlab.io
 .. _user-mode network: https://www.qemu.org/docs/master/system/devices/net.html#using-the-user-mode-network-stack
+.. _linux-config-fragments: https://github.com/linux-kdevops/linux-config-fragments
+.. _qboot: https://github.com/bonzini/qboot

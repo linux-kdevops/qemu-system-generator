@@ -89,6 +89,8 @@ cmd_links = {
     "systemd-machined.service(8)": f"{_SYSTEMD}/systemd-machined.service.html",
     "systemd-ssh-generator(8)": f"{_SYSTEMD}/systemd-ssh-generator.html",
     "kernel-command-line(7)": f"{_SYSTEMD}/kernel-command-line.html",
+    "systemd(1)": f"{_SYSTEMD}/systemd.html",
+    "systemd-analyze(1)": f"{_SYSTEMD}/systemd-analyze.html",
     "systemd-ssh-proxy(1)": f"{_SYSTEMD}/systemd-ssh-proxy.html",
     "machines.target": f"{_SYSTEMD}/systemd.special.html#machines.target",
     "machine.slice": f"{_SYSTEMD}/systemd.special.html#machine.slice",

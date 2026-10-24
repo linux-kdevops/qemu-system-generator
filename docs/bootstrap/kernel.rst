@@ -719,6 +719,121 @@ other:
    64 bytes from 10.0.100.46: icmp_seq=1 ttl=64 time=0.276 ms
    ...
 
+.. _kernel-fast:
+
+12. A faster boot
+=================
+
+Each step is timed as :ref:`fast-measure` shows.
+
+The machine as it stands takes 8.9 to 9.4 seconds.
+
+The console
+-----------
+
+:ref:`fast-console` explains these settings.
+
+Add them to the drop-in:
+
+.. code-block:: shell
+   :class: cmd-host
+
+   cat > ~/.config/qemu/systemd/bootstrap.qemu.d/10-closure.conf <<EOF
+   [QEMU]
+   append=console=ttyS0 console=hvc0 systemd.ssh_listen=vsock::22 systemd.tty.term.console=vt220 systemd.tty.rows.console=24 systemd.tty.columns.console=80 init=$(readlink ~/bootstrap/kernel/result)/init
+   EOF
+
+Regenerate and restart: 7.3 seconds, and the initrd's share falls from
+3.1 to 2.1.
+
+The store
+---------
+
+:ref:`fast-store` explains why the store, and only the store.
+
+.. code-block:: diff
+   :caption: ~/.config/qemu/systemd/bootstrap.qemu
+
+    [virtiofsd]
+    shared-dir=/nix/store
+    tag=store
+   +cache=always
+    sandbox=namespace
+
+6.1 seconds.
+
+The closure
+-----------
+
+:ref:`fast-closure` explains these four settings.
+
+.. code-block:: diff
+   :caption: ~/bootstrap/kernel/configuration.nix
+
+   -{ modulesPath, pkgs, ... }:
+   +{ lib, modulesPath, pkgs, ... }:
+   ...
+      services.openssh.enable = true;
+   +  services.openssh.hostKeys = [
+   +    { type = "ed25519"; path = "/etc/ssh/ssh_host_ed25519_key"; }
+   +  ];
+   +  security.pam.services.sshd.startSession = lib.mkForce false;
+   +  console.enable = false;
+   +  systemd.suppressedSystemUnits = [
+   +    "systemd-journal-catalog-update.service"
+   +    "systemd-update-done.service"
+   +  ];
+
+Rebuild, and rewrite the drop-in with the new closure:
+
+.. code-block:: console
+   :class: cmd-host
+
+   $ cd ~/bootstrap/kernel
+   $ nix build
+
+.. code-block:: shell
+   :class: cmd-host
+
+   cat > ~/.config/qemu/systemd/bootstrap.qemu.d/10-closure.conf <<EOF
+   [QEMU]
+   append=console=ttyS0 console=hvc0 systemd.ssh_listen=vsock::22 systemd.tty.term.console=vt220 systemd.tty.rows.console=24 systemd.tty.columns.console=80 init=$(readlink ~/bootstrap/kernel/result)/init
+   EOF
+
+5.1 seconds. ``peer`` keeps the closure its own drop-in names until you
+rewrite that one too.
+
+More processors
+---------------
+
+systemd starts what it can in parallel:
+
+.. code-block:: diff
+   :caption: ~/.config/qemu/systemd/bootstrap.qemu
+
+   -smp=2
+   +smp=4
+
+5.0 seconds.
+
+Quiet
+-----
+
+:ref:`fast-quiet` explains what it costs.
+
+.. code-block:: shell
+   :class: cmd-host
+
+   cat > ~/.config/qemu/systemd/bootstrap.qemu.d/10-closure.conf <<EOF
+   [QEMU]
+   append=console=ttyS0 console=hvc0 systemd.ssh_listen=vsock::22 systemd.tty.term.console=vt220 systemd.tty.rows.console=24 systemd.tty.columns.console=80 quiet init=$(readlink ~/bootstrap/kernel/result)/init
+   EOF
+
+4.7 seconds, half the time this section started from.
+
+The initrd still waits about 0.8 seconds on systemd's mount rate limit,
+which this guest cannot lift safely (:ref:`fast-mounts`).
+
 Notes
 =====
 

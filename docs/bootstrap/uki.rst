@@ -324,6 +324,125 @@ to you. :doc:`kernel` boots the same kind of system without firmware and
 goes on to SSH poweroff, consoles and systemd settings, which work the
 same way here.
 
+.. _uki-fast:
+
+5. A faster boot
+================
+
+Each step is timed as :ref:`fast-measure` shows.
+
+The machine as it stands takes 8.7 seconds.
+
+The console
+-----------
+
+:ref:`fast-console` explains these settings.
+
+The UKI carries its command line, so the settings go in ``uki.nix``:
+
+.. code-block:: diff
+   :caption: ~/bootstrap/uki/uki.nix
+
+    {
+   -  boot.kernelParams = [ "console=ttyS0" ];
+   +  boot.kernelParams = [
+   +    "console=ttyS0"
+   +    "systemd.tty.term.console=vt220"
+   +    "systemd.tty.rows.console=24"
+   +    "systemd.tty.columns.console=80"
+   +  ];
+
+Rebuild after each change to ``uki.nix`` or ``configuration.nix``; the
+share serves the new UKI at the next start:
+
+.. code-block:: console
+   :class: cmd-host
+
+   $ cd ~/bootstrap/uki
+   $ nix build
+
+6.9 seconds.
+
+The store
+---------
+
+:ref:`fast-store` explains why the store, and only the store.
+
+.. code-block:: diff
+   :caption: ~/.config/qemu/systemd/bootstrap.qemu
+
+    [virtiofsd]
+    shared-dir=/nix/store
+    tag=store
+   +cache=always
+    sandbox=namespace
+
+5.9 seconds.
+
+The closure
+-----------
+
+:ref:`fast-closure` explains these four settings.
+
+.. code-block:: diff
+   :caption: ~/bootstrap/uki/configuration.nix
+
+   -{ modulesPath, ... }:
+   +{ lib, modulesPath, ... }:
+   ...
+      services.openssh.enable = true;
+   +  services.openssh.hostKeys = [
+   +    { type = "ed25519"; path = "/etc/ssh/ssh_host_ed25519_key"; }
+   +  ];
+   +  security.pam.services.sshd.startSession = lib.mkForce false;
+   +  console.enable = false;
+   +  systemd.suppressedSystemUnits = [
+   +    "systemd-journal-catalog-update.service"
+   +    "systemd-update-done.service"
+   +  ];
+
+.. code-block:: console
+   :class: cmd-host
+
+   $ nix build
+
+5.5 seconds.
+
+More processors
+---------------
+
+systemd starts what it can in parallel:
+
+.. code-block:: diff
+   :caption: ~/.config/qemu/systemd/bootstrap.qemu
+
+   -smp=2
+   +smp=4
+
+5.4 seconds.
+
+Quiet
+-----
+
+:ref:`fast-quiet` explains what it costs.
+
+.. code-block:: diff
+   :caption: ~/bootstrap/uki/uki.nix
+
+        "systemd.tty.columns.console=80"
+   +    "quiet"
+      ];
+
+.. code-block:: console
+   :class: cmd-host
+
+   $ nix build
+
+5.3 seconds, from 8.7. The login is ready before the boot is:
+``systemd-analyze critical-chain`` in the guest shows
+``multi-user.target`` after ``dhcpcd.service``, which takes 4.2 seconds
+and is not on the way to a login.
+
 .. _systemd: https://systemd.io
 .. _NixOS: https://nixos.org/manual/nixos/stable/
 .. _OVMF: https://github.com/tianocore/tianocore.github.io/wiki/OVMF

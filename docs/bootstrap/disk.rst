@@ -258,6 +258,125 @@ Every change to the guest means a new image with the whole system in
 it. :doc:`uki` and :doc:`kernel` keep the system in the host's store
 instead.
 
+.. _disk-fast:
+
+5. A faster boot
+================
+
+Each step is timed as :ref:`fast-measure` shows.
+
+The machine as it stands takes 12.4 seconds.
+
+The boot loader
+---------------
+
+systemd-boot shows its menu for ``boot.loader.timeout`` seconds, 5 by
+default in NixOS, before it boots the default entry. Boot it at once:
+
+.. code-block:: diff
+   :caption: ~/bootstrap/disk/disk.nix
+
+    {
+      boot.kernelParams = [ "console=ttyS0" ];
+   +  boot.loader.timeout = 0;
+
+A change to ``disk.nix`` or ``configuration.nix`` is a change to the
+image, so rebuild it after each one, which takes about a minute:
+
+.. code-block:: console
+   :class: cmd-host
+
+   $ cd ~/bootstrap/disk
+   $ nix build .#efi --out-link efi
+
+7.2 seconds.
+
+The console
+-----------
+
+:ref:`fast-console` explains these settings.
+
+.. code-block:: diff
+   :caption: ~/bootstrap/disk/disk.nix
+
+    {
+   -  boot.kernelParams = [ "console=ttyS0" ];
+   +  boot.kernelParams = [
+   +    "console=ttyS0"
+   +    "systemd.tty.term.console=vt220"
+   +    "systemd.tty.rows.console=24"
+   +    "systemd.tty.columns.console=80"
+   +  ];
+
+.. code-block:: console
+   :class: cmd-host
+
+   $ nix build .#efi --out-link efi
+
+5.0 seconds.
+
+The closure
+-----------
+
+:ref:`fast-closure` explains these four settings.
+
+.. code-block:: diff
+   :caption: ~/bootstrap/disk/configuration.nix
+
+   -{ modulesPath, ... }:
+   +{ lib, modulesPath, ... }:
+   ...
+      services.openssh.enable = true;
+   +  services.openssh.hostKeys = [
+   +    { type = "ed25519"; path = "/etc/ssh/ssh_host_ed25519_key"; }
+   +  ];
+   +  security.pam.services.sshd.startSession = lib.mkForce false;
+   +  console.enable = false;
+   +  systemd.suppressedSystemUnits = [
+   +    "systemd-journal-catalog-update.service"
+   +    "systemd-update-done.service"
+   +  ];
+
+.. code-block:: console
+   :class: cmd-host
+
+   $ nix build .#efi --out-link efi
+
+4.6 seconds.
+
+More processors
+---------------
+
+systemd starts what it can in parallel:
+
+.. code-block:: diff
+   :caption: ~/.config/qemu/systemd/bootstrap.qemu
+
+   -smp=2
+   +smp=4
+
+4.6 seconds; this guest gains little from it.
+
+Quiet
+-----
+
+:ref:`fast-quiet` explains what it costs.
+
+.. code-block:: diff
+   :caption: ~/bootstrap/disk/disk.nix
+
+        "systemd.tty.columns.console=80"
+   +    "quiet"
+      ];
+
+.. code-block:: console
+   :class: cmd-host
+
+   $ nix build .#efi --out-link efi
+
+4.5 seconds, about a third of where this section started.
+:doc:`kernel` boots with no firmware and no boot loader.
+
 .. _systemd: https://systemd.io
 .. _NixOS: https://nixos.org/manual/nixos/stable/
 .. _nixpkgs: https://github.com/NixOS/nixpkgs
@@ -265,6 +384,7 @@ instead.
 .. _GRUB: https://www.gnu.org/software/grub/manual/grub/grub.html
 .. _OVMF: https://github.com/tianocore/tianocore.github.io/wiki/OVMF
 .. _systemd-boot: https://www.freedesktop.org/software/systemd/man/latest/systemd-boot.html
+.. _initrd: https://docs.kernel.org/filesystems/ramfs-rootfs-initramfs.html
 .. _image modules: https://github.com/NixOS/nixpkgs/blob/master/nixos/modules/image/images.nix
 .. _specifiers: https://www.freedesktop.org/software/systemd/man/latest/systemd.unit.html#Specifiers
 .. _EDK II: https://github.com/tianocore/edk2
