@@ -77,8 +77,10 @@ way:
        HostName vsock/44
    Host cloud-ubuntu
        HostName vsock/45
+   Host peer
+       HostName vsock/46
 
-   Host bootstrap cloud-debian cloud-fedora cloud-ubuntu
+   Host bootstrap cloud-debian cloud-fedora cloud-ubuntu peer
        ProxyCommand /usr/lib/systemd/systemd-ssh-proxy %h %p
        ProxyUseFdpass yes
        IdentityFile ~/bootstrap/ssh/id_ed25519

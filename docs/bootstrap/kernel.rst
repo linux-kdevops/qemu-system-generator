@@ -589,6 +589,136 @@ on q35 with the same kernel, but the initrd mounted the store later, at
 against 8.2 to 8.3. What microvm saves in the kernel, NixOS's userspace
 outweighs, so the other guides keep q35.
 
+.. _kernel-peer:
+
+11. A second machine on one network
+===================================
+
+A second machine, ``peer``, joins ``bootstrap`` on a multicast segment
+and boots the same closure, which holds both machines' addresses
+(:doc:`network`):
+
+.. code-block:: diff
+   :caption: ~/bootstrap/kernel/configuration.nix
+
+      networking.hostName = "bootstrap";
+   +  networking.useNetworkd = true;
+   +  systemd.network.networks = {
+   +    "10-lan-bootstrap" = {
+   +      matchConfig.MACAddress = "52:54:00:00:00:42";
+   +      address = [ "10.0.100.42/24" ];
+   +    };
+   +    "10-lan-peer" = {
+   +      matchConfig.MACAddress = "52:54:00:00:00:46";
+   +      address = [ "10.0.100.46/24" ];
+   +    };
+   +  };
+      services.openssh.enable = true;
+
+With ``networking.useNetworkd``, NixOS asks for the user-mode card's
+address over DHCP through systemd-networkd too, from its
+``99-ethernet-default-dhcp`` network, which the two ``10-`` networks
+come before. Rebuild, and rewrite the drop-in as in
+:ref:`step 10 <kernel-microvm>`:
+
+.. code-block:: console
+   :class: cmd-host
+
+   $ cd ~/bootstrap/kernel
+   $ nix build
+
+.. code-block:: shell
+   :class: cmd-host
+
+   cat > ~/.config/qemu/systemd/bootstrap.qemu.d/10-closure.conf <<EOF
+   [QEMU]
+   append=console=ttyS0 console=hvc0 systemd.ssh_listen=vsock::22 init=$(readlink ~/bootstrap/kernel/result)/init
+   EOF
+
+Give ``bootstrap`` its card:
+
+.. code-block:: diff
+   :caption: ~/.config/qemu/systemd/bootstrap.qemu
+
+    netdev=user,id=net0,hostfwd=tcp:127.0.0.1:10022-:22
+    device=virtio-net-device,netdev=net0
+   +netdev=dgram,id=lan,remote.type=inet,remote.host=239.255.0.1,remote.port=5555,local.type=inet,local.host=127.0.0.1,local.port=0
+   +device=virtio-net-device,netdev=lan,mac=52:54:00:00:00:42
+    device=vhost-vsock-device,guest-cid=42
+
+``peer`` needs the store and the share, which the closure mounts, a
+context id of its own and no forwarded port, since ``bootstrap`` holds
+10022:
+
+.. code-block:: ini
+   :caption: ~/.config/qemu/systemd/peer.qemu
+
+   [VM]
+   SshPrivateKey=%h/bootstrap/ssh/id_ed25519
+
+   [QEMU]
+   machine=microvm,rtc=on
+   accel=kvm
+   cpu=host
+   m=2G
+   smp=2
+   nographic=
+   serial=mon:stdio
+   kernel=%h/bootstrap/kernel/result/kernel
+   initrd=%h/bootstrap/kernel/result/initrd
+   global=virtio-mmio.force-legacy=false
+   netdev=user,id=net0
+   device=virtio-net-device,netdev=net0
+   netdev=dgram,id=lan,remote.type=inet,remote.host=239.255.0.1,remote.port=5555,local.type=inet,local.host=127.0.0.1,local.port=0
+   device=virtio-net-device,netdev=lan,mac=52:54:00:00:00:46
+   device=vhost-vsock-device,guest-cid=46
+
+   [virtiofsd]
+   shared-dir=/nix/store
+   tag=store
+   sandbox=namespace
+   uid-map=:0:%U:1:
+   gid-map=:0:%G:1:
+
+   [virtiofsd]
+   shared-dir=%h/bootstrap/share
+   tag=host
+   sandbox=namespace
+   uid-map=:0:%U:1:
+   gid-map=:0:%G:1:
+
+Its drop-in names the same closure, and gives the machine its own
+hostname:
+
+.. code-block:: shell
+   :class: cmd-host
+
+   mkdir --parents ~/.config/qemu/systemd/peer.qemu.d
+   cat > ~/.config/qemu/systemd/peer.qemu.d/10-closure.conf <<EOF
+   [QEMU]
+   append=console=ttyS0 systemd.hostname=peer systemd.ssh_listen=vsock::22 init=$(readlink ~/bootstrap/kernel/result)/init
+   EOF
+
+Regenerate, restart ``bootstrap``, start ``peer``, and each reaches the
+other:
+
+.. code-block:: console
+   :class: cmd-host
+
+   $ systemctl --user start qemu-system-generator.service
+   $ systemctl --user restart qemu-system@bootstrap.service
+   $ systemctl --user start qemu-system@peer.service
+   $ ssh peer 'hostname; ping -c 1 10.0.100.42'
+   Warning: Permanently added 'vsock/46' (ED25519) to the list of known hosts.
+   peer
+   PING 10.0.100.42 (10.0.100.42) 56(84) bytes of data.
+   64 bytes from 10.0.100.42: icmp_seq=1 ttl=64 time=0.501 ms
+   ...
+   $ ssh bootstrap ping -c 1 10.0.100.46
+   PING 10.0.100.46 (10.0.100.46) 56(84) bytes of data.
+   64 bytes from 10.0.100.46: icmp_seq=1 ttl=64 time=0.276 ms
+   ...
+
 Notes
 =====
 

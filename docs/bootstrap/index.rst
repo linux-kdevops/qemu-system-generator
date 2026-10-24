@@ -44,8 +44,8 @@ the most of the format: `vsock`_, SSH poweroff, consoles, drop-ins, systemd
 settings and shares, which work the same way in the others, and ends on
 `QEMU`_'s :ref:`microvm machine type <kernel-microvm>`.
 
-What the guides share is written once, on its own page: :doc:`host` and
-:doc:`nixos`.
+What the guides share is written once, on its own page: :doc:`host`,
+:doc:`nixos` and :doc:`network`.
 
 The file format is specified in
 :doc:`qemu-systemd.unit(5) </man/qemu-systemd.unit.5>` and the generator in
@@ -63,8 +63,12 @@ keep nothing there; the cloud guests keep their disks there.
 
 The NixOS guides and the `knix`_ guide all write the machine ``bootstrap``,
 in ``~/.config/qemu/systemd/bootstrap.qemu``; before following a second
-one, remove that file and ``bootstrap.qemu.d/``. The cloud guide writes
-``cloud-debian``, ``cloud-fedora`` and ``cloud-ubuntu`` beside it.
+one, remove that file and ``bootstrap.qemu.d/``. The kernel and knix
+guides end with a second machine, ``peer``, on one network with
+``bootstrap`` (:ref:`kernel <kernel-peer>`, :ref:`knix <knix-peer>`),
+so remove ``peer.qemu`` and ``peer.qemu.d/`` too. The cloud guide writes
+``cloud-debian``, ``cloud-fedora`` and ``cloud-ubuntu`` beside them, and
+ends by :ref:`joining two of them on one network <cloud-network>`.
 
 .. toctree::
    :maxdepth: 1
@@ -76,6 +80,7 @@ one, remove that file and ``bootstrap.qemu.d/``. The cloud guide writes
    knix
    cloud
    nixos
+   network
 
 .. _systemd: https://systemd.io
 .. _NixOS: https://nixos.org/manual/nixos/stable/

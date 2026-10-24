@@ -268,6 +268,135 @@ Regenerate and restart, then check which binary runs:
 
 The guest boots in about 9 seconds and stops in 2.
 
+.. _knix-peer:
+
+3. A second machine on one network
+==================================
+
+A second machine, ``peer``, joins ``bootstrap`` on a multicast segment
+and boots the same closure, which holds both machines' addresses
+(:doc:`network`):
+
+.. code-block:: diff
+   :caption: ~/bootstrap/knix/guest/default.nix
+
+      networking.hostName = "bootstrap";
+   +  systemd.network.networks = {
+   +    "10-lan-bootstrap" = {
+   +      matchConfig.MACAddress = "52:54:00:00:00:42";
+   +      address = [ "10.0.100.42/24" ];
+   +    };
+   +    "10-lan-peer" = {
+   +      matchConfig.MACAddress = "52:54:00:00:00:46";
+   +      address = [ "10.0.100.46/24" ];
+   +    };
+   +  };
+
+The two ``10-`` networks come before knix's ``80-ethernet``, which asks
+for every other card's address over DHCP. Rebuild, and rewrite the
+drop-in as in :ref:`step 1 <knix-kernel>`:
+
+.. code-block:: console
+   :class: cmd-host
+
+   $ cd ~/bootstrap/knix/guest
+   $ nix build .#toplevel
+
+.. code-block:: shell
+   :class: cmd-host
+
+   jq --raw-output '."org.nixos.bootspec.v1" |
+       "[QEMU]\ninitrd=\(.initrd)\nappend=root=tmpfs console=ttyS0 init=\(.init)"' \
+       ~/bootstrap/knix/guest/result/boot.json \
+       > ~/.config/qemu/systemd/bootstrap.qemu.d/10-closure.conf
+
+Give ``bootstrap`` its card:
+
+.. code-block:: diff
+   :caption: ~/.config/qemu/systemd/bootstrap.qemu
+
+    nic=user,model=virtio-net-pci-non-transitional,hostfwd=tcp:127.0.0.1:10022-:22
+   +netdev=dgram,id=lan,remote.type=inet,remote.host=239.255.0.1,remote.port=5555,local.type=inet,local.host=127.0.0.1,local.port=0
+   +device=virtio-net-pci-non-transitional,netdev=lan,mac=52:54:00:00:00:42
+    device=vhost-vsock-pci-non-transitional,guest-cid=42
+
+``peer`` needs the three shares the closure mounts, a context id of its
+own and no forwarded port, since ``bootstrap`` holds 10022:
+
+.. code-block:: ini
+   :caption: ~/.config/qemu/systemd/peer.qemu
+
+   [VM]
+   QemuBinary=%h/bootstrap/knix/qemu-install/bin/qemu-system-x86_64
+   SshPrivateKey=%h/bootstrap/ssh/id_ed25519
+
+   [QEMU]
+   machine=q35
+   accel=kvm
+   cpu=host
+   m=2G
+   smp=2
+   nographic=
+   serial=mon:stdio
+   kernel=%h/bootstrap/knix/linux-build/arch/x86/boot/bzImage
+   nic=user,model=virtio-net-pci-non-transitional
+   netdev=dgram,id=lan,remote.type=inet,remote.host=239.255.0.1,remote.port=5555,local.type=inet,local.host=127.0.0.1,local.port=0
+   device=virtio-net-pci-non-transitional,netdev=lan,mac=52:54:00:00:00:46
+   device=vhost-vsock-pci-non-transitional,guest-cid=46
+
+   [virtiofsd]
+   shared-dir=/nix/store
+   tag=store
+   sandbox=namespace
+   uid-map=:0:%U:1:
+   gid-map=:0:%G:1:
+
+   [virtiofsd]
+   shared-dir=%h/bootstrap/knix/linux-install/lib/modules
+   tag=modules
+   sandbox=namespace
+   uid-map=:0:%U:1:
+   gid-map=:0:%G:1:
+
+   [virtiofsd]
+   shared-dir=%h/bootstrap/share
+   tag=host
+   sandbox=namespace
+   uid-map=:0:%U:1:
+   gid-map=:0:%G:1:
+
+Its drop-in names the same closure, and gives the machine its own
+hostname:
+
+.. code-block:: shell
+   :class: cmd-host
+
+   mkdir --parents ~/.config/qemu/systemd/peer.qemu.d
+   jq --raw-output '."org.nixos.bootspec.v1" |
+       "[QEMU]\ninitrd=\(.initrd)\nappend=root=tmpfs console=ttyS0 systemd.hostname=peer init=\(.init)"' \
+       ~/bootstrap/knix/guest/result/boot.json \
+       > ~/.config/qemu/systemd/peer.qemu.d/10-closure.conf
+
+Regenerate, restart ``bootstrap``, start ``peer``, and each reaches the
+other:
+
+.. code-block:: console
+   :class: cmd-host
+
+   $ systemctl --user start qemu-system-generator.service
+   $ systemctl --user restart qemu-system@bootstrap.service
+   $ systemctl --user start qemu-system@peer.service
+   $ ssh peer 'hostname; ping -c 1 10.0.100.42'
+   Warning: Permanently added 'vsock/46' (ED25519) to the list of known hosts.
+   peer
+   PING 10.0.100.42 (10.0.100.42) 56(84) bytes of data.
+   64 bytes from 10.0.100.42: icmp_seq=1 ttl=64 time=0.322 ms
+   ...
+   $ ssh bootstrap ping -c 1 10.0.100.46
+   PING 10.0.100.46 (10.0.100.46) 56(84) bytes of data.
+   64 bytes from 10.0.100.46: icmp_seq=1 ttl=64 time=0.185 ms
+   ...
+
 .. _Linux: https://www.kernel.org
 .. _QEMU: https://www.qemu.org/docs/master/system/invocation.html
 .. _systemd: https://systemd.io

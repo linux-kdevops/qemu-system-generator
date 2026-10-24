@@ -261,6 +261,93 @@ there with the name of one in ``cloud-.qemu.d/`` replaces it.
 To start a guest over, stop it and download its image again; cloud-init
 reads the seed on the fresh image's first boot.
 
+.. _cloud-network:
+
+5. A network between two machines
+=================================
+
+A second card on a multicast segment joins cloud-debian and cloud-fedora,
+as :doc:`network` explains. Give cloud-debian its card in a drop-in of
+its own:
+
+.. code-block:: ini
+   :caption: ~/.config/qemu/systemd/cloud-debian.qemu.d/20-lan.conf
+
+   [QEMU]
+   netdev=dgram,id=lan,remote.type=inet,remote.host=239.255.0.1,remote.port=5555,local.type=inet,local.host=127.0.0.1,local.port=0
+   device=virtio-net-pci-non-transitional,netdev=lan,mac=52:54:00:00:00:43
+
+cloud-fedora's drop-in differs only in the ``mac=``:
+
+.. code-block:: ini
+   :caption: ~/.config/qemu/systemd/cloud-fedora.qemu.d/20-lan.conf
+
+   [QEMU]
+   netdev=dgram,id=lan,remote.type=inet,remote.host=239.255.0.1,remote.port=5555,local.type=inet,local.host=127.0.0.1,local.port=0
+   device=virtio-net-pci-non-transitional,netdev=lan,mac=52:54:00:00:00:44
+
+cloud-init sets the addresses (:ref:`network-addresses`). Each
+configuration names both cards by their MAC addresses; the user-mode
+card keeps QEMU's first default address and asks for one over DHCP:
+
+.. code-block:: yaml
+   :caption: ~/bootstrap/cloud/cloud-debian.network
+
+   version: 2
+   ethernets:
+     user:
+       match:
+         macaddress: "52:54:00:12:34:56"
+       dhcp4: true
+     lan:
+       match:
+         macaddress: "52:54:00:00:00:43"
+       addresses: [10.0.100.43/24]
+
+.. code-block:: yaml
+   :caption: ~/bootstrap/cloud/cloud-fedora.network
+
+   version: 2
+   ethernets:
+     user:
+       match:
+         macaddress: "52:54:00:12:34:56"
+       dhcp4: true
+     lan:
+       match:
+         macaddress: "52:54:00:00:00:44"
+       addresses: [10.0.100.44/24]
+
+cloud-init reads the network configuration for a new ``instance-id``
+only, so write both seeds again with one:
+
+.. code-block:: shell
+   :class: cmd-host
+
+   cd ~/bootstrap/cloud
+   for name in cloud-debian cloud-fedora; do
+     printf 'instance-id: %s-lan\nlocal-hostname: %s\n' $name $name > meta-data
+     nix shell nixpkgs#cloud-utils --command \
+       cloud-localds --network-config=$name.network \
+       ~/.local/state/qemu-system/$name/seed.iso user-data meta-data
+   done
+
+Regenerate and restart both, and each reaches the other:
+
+.. code-block:: console
+   :class: cmd-host
+
+   $ systemctl --user start qemu-system-generator.service
+   $ systemctl --user restart qemu-system@cloud-debian.service qemu-system@cloud-fedora.service
+   $ ssh cloud-debian ping -c 1 10.0.100.44
+   PING 10.0.100.44 (10.0.100.44) 56(84) bytes of data.
+   64 bytes from 10.0.100.44: icmp_seq=1 ttl=64 time=0.337 ms
+   ...
+   $ ssh cloud-fedora ping -c 1 10.0.100.43
+   PING 10.0.100.43 (10.0.100.43) 56(84) bytes of data.
+   64 bytes from 10.0.100.43: icmp_seq=1 ttl=64 time=0.161 ms
+   ...
+
 .. _Debian: https://cloud.debian.org/images/cloud/
 .. _Fedora: https://fedoraproject.org/cloud/download
 .. _Ubuntu: https://cloud-images.ubuntu.com
