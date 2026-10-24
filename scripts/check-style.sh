@@ -7,7 +7,8 @@
 # binary, so both are exempt.
 set -o errexit -o nounset -o pipefail
 
-scope=(-- . ':!LICENSES' ':!*.png' ':!*.ico')
+# A patch keeps the whitespace of the lines it quotes.
+scope=(-- . ':!LICENSES' ':!*.png' ':!*.ico' ':!*.patch')
 status=0
 here="$(dirname "${BASH_SOURCE[0]}")"
 
@@ -127,7 +128,7 @@ while IFS= read -r f; do
 		echo "error: $f: missing 'SPDX-License-Identifier:' in the first two lines"
 		status=1
 	fi
-done < <(git ls-files "${scope[@]}" | grep --extended-regexp '\.(rs|nix|sh|py|qemu|conf|rst|css|yaml|jsonc|ini)$|^scripts/[^.]*$|^tests/(verify|update-expected)$' || true)
+done < <(git ls-files "${scope[@]}" | grep --extended-regexp '\.(rs|nix|sh|py|qemu|conf|rst|css|yaml|jsonc|ini)$|^(scripts|steps/[^/]*)/[^./]*$|^tests/(verify|update-expected)$' || true)
 
 [ "$status" -eq 0 ] && echo "style: OK"
 exit "$status"
