@@ -19,6 +19,9 @@ doc or comment.
 - `notes/writing.md`: how commit messages, docs and comments are
   written, the examples to read first, and what `scripts/check-prose.py`
   refuses.
+- `notes/steps.md`: the rules for `steps/`, `dags/` and `.github/`,
+  borrowed from kdevops-ng and kdevops-ng-minimal-dagu, with where each
+  comes from.
 
 ## Principles
 
@@ -121,10 +124,10 @@ All commits must follow these six rules.
 2. Write the subject as `subsystem: summary` in the imperative mood,
    where the subsystem names the area changed: `generator`, `backend`,
    `launcher`, `unitfile`, `search`, `plan`, `examples`, `tests`,
-   `docs`, `nix`, `scripts`, `README`, `CLAUDE.md`, or
-   `qemu-system-generator` for a cross-cutting change. Keep the whole
-   subject within 75 characters, following the Linux kernel rule that
-   the summary "must be no more than 70-75 characters"
+   `docs`, `nix`, `scripts`, `steps`, `dags`, `github`, `README`,
+   `CLAUDE.md`, or `qemu-system-generator` for a cross-cutting change.
+   Keep the whole subject within 75 characters, following the Linux
+   kernel rule that the summary "must be no more than 70-75 characters"
    (Documentation/process/submitting-patches.rst). Aim short; never pad
    to fill the limit.
 
