@@ -524,8 +524,19 @@ QEMU's `microvm`_ machine type has no PCI bus and no firmware to run: its
 devices sit on virtio-mmio, and the kernel reaches its ``/init`` sooner.
 It needs the newest kernel here. On 6.18.57, three or more virtio-mmio
 devices stop the boot at ``ACPI: Core revision``, and this machine has
-five. Switch the guest to ``pkgs.linuxPackages_latest`` as
-:ref:`the guest's section <kernel-latest>` shows, and rebuild:
+five. Switch the guest to ``pkgs.linuxPackages_latest``, as
+:ref:`the guest's section <kernel-latest>` shows:
+
+.. code-block:: diff
+   :caption: ~/bootstrap/kernel/configuration.nix
+
+   -{ modulesPath, ... }:
+   +{ modulesPath, pkgs, ... }:
+    {
+      imports = [ (modulesPath + "/profiles/qemu-guest.nix") ];
+   +  boot.kernelPackages = pkgs.linuxPackages_latest;
+
+And rebuild:
 
 .. code-block:: console
    :class: cmd-host
