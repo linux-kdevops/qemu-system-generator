@@ -9,6 +9,21 @@ What you need
 - `Nix`_ with flakes enabled.
 - A checkout of `this repository`_.
 
+Two of these need root, once. systemd's udev rules give ``/dev/kvm`` and
+``/dev/vhost-vsock`` to the ``kvm`` group, and the vsock device needs the
+``vhost_vsock`` module, loaded at every boot from then on:
+
+.. code-block:: console
+   :caption: host
+   :class: cmd-host
+
+   $ sudo usermod --append --groups kvm "$(whoami)"
+   $ echo vhost_vsock | sudo tee /etc/modules-load.d/vhost_vsock.conf
+   $ sudo modprobe vhost_vsock
+
+Log out and back in for the group to take effect. Nothing else in these
+guides runs as root.
+
 Preparation
 ===========
 
@@ -16,7 +31,6 @@ Everything you write or build lives in ``~/bootstrap``, with the SSH key
 and configuration in ``ssh/``:
 
 .. code-block:: console
-   :caption: host
    :class: cmd-host
 
    $ mkdir --parents ~/bootstrap/ssh/config.d
