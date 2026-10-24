@@ -119,7 +119,10 @@ man/                     man pages, scdoc
 docs/                    walk-throughs and the Sphinx site
 examples/                one file per feature; the conformance inputs
 tests/                   expected generator output, verify script
-nix/                     package and NixOS module
+nix/                     package, NixOS module and Dagu
+steps/                   the guides of docs/bootstrap/ as steps
+dags/, config.yaml       the Dagu DAG that wires the steps, and its config
+notes/                   rules for contributors, unpublished
 ```
 
 The suffix selects the backend and a section named after the backend's
@@ -142,6 +145,21 @@ nix flake check
 `tests/update-expected` rewrites the expected output after a deliberate
 format change.
 
+`steps/` follows each guide of `docs/bootstrap/` on this host and checks
+the machines it leaves, and `dags/bootstrap.yaml` wires the steps for
+[Dagu]; `.github/workflows/bootstrap.yaml` runs the same DAG for every
+guide. A run does what the guide does, so it replaces `~/bootstrap/<guide>`
+and the guide's `.qemu` files, and adds the generator to your Nix profile:
+
+```shell
+nix develop .#steps --ignore-env \
+    --keep-env-var HOME --keep-env-var XDG_RUNTIME_DIR \
+    --command dagu --config config.yaml start bootstrap -- \
+    guide=kernel "names=bootstrap peer"
+```
+
+`notes/steps.md` has the rules the steps follow.
+
 `nix flake check` also builds the documentation as Read the Docs does
 and holds the Markdown and reStructuredText prose to 80 columns.
 To render it, or to preview it while editing:
@@ -160,6 +178,7 @@ On a remote host, forward the port first with
 [Podman]: https://podman.io
 [Quadlet]: https://github.com/podman-container-tools/podman/tree/main/pkg/systemd/quadlet
 [quadlet-man]: https://docs.podman.io/en/latest/markdown/podman-systemd.unit.5.html
+[Dagu]: https://github.com/dagucloud/dagu
 [Sphinx]: https://www.sphinx-doc.org
 [Read the Docs]: https://about.readthedocs.com
 [virtiofsd]: https://gitlab.com/virtio-fs/virtiofsd
