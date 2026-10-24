@@ -5,9 +5,10 @@ Bootstrap
 =========
 
 Each guide below boots a guest under your user's `systemd`_ manager from
-:key:`.qemu` files, without root, and stands on its own: it starts from an
-empty host and builds its file up one feature per step. They differ in
-how the guest boots, which decides what a change to the guest costs.
+:key:`.qemu` files, without root. Each starts from a host prepared once
+as :doc:`host` shows, and builds its file up one feature per step. They
+differ in how the guest boots, which decides what a change to the guest
+costs.
 
 .. list-table::
    :header-rows: 1
@@ -43,9 +44,16 @@ the most of the format: `vsock`_, SSH poweroff, consoles, drop-ins, systemd
 settings and shares, which work the same way in the others, and ends on
 `QEMU`_'s :ref:`microvm machine type <kernel-microvm>`.
 
-Everything you write or build lives in ``~/bootstrap``: a directory per
-guide, the SSH key and configuration in ``ssh/``, and the directory the
-guests share in ``share/``. What a machine writes lives where its
+What the guides share is written once, on its own page: :doc:`host` and
+:doc:`nixos`.
+
+The file format is specified in
+:doc:`qemu-systemd.unit(5) </man/qemu-systemd.unit.5>` and the generator in
+:doc:`qemu-system-generator(8) </man/qemu-system-generator.8>`. The outputs
+in the guides are real, trimmed to the lines that matter, with the home
+directory shown as ``/home/user``.
+
+What a machine writes lives where its
 generated unit's :cmd:`StateDirectory=` puts it, which is also where a
 relative path in its ``.qemu`` file resolves:
 ``~/.local/state/qemu-system/<name>/`` under a user manager,
@@ -61,11 +69,13 @@ one, remove that file and ``bootstrap.qemu.d/``. The cloud guide writes
 .. toctree::
    :maxdepth: 1
 
+   host
    disk
    uki
    kernel
    knix
    cloud
+   nixos
 
 .. _systemd: https://systemd.io
 .. _NixOS: https://nixos.org/manual/nixos/stable/

@@ -18,7 +18,7 @@ the generator in :doc:`qemu-system-generator(8) </man/qemu-system-generator.8>`.
 The outputs below are real, trimmed to the lines that matter, with the
 home directory shown as ``/home/user``.
 
-.. include:: _prepare.rst
+Prepare the host as :doc:`host` shows, once for every guide.
 
 The images
 ----------
@@ -95,8 +95,6 @@ each state directory:
        cloud-localds ~/.local/state/qemu-system/$name/seed.iso user-data meta-data
    done
 
-.. include:: _generator.rst
-
 .. _cloud-debian:
 
 1. Debian testing
@@ -170,28 +168,9 @@ firmware, starts the image's `GRUB`_, and cloud-init reads the seed:
    ...
    Try contacting this VM's SSH server via 'ssh vsock%43' from host.
 
-The generated unit registers each machine with your user's
-:cmd:`systemd-machined.service(8)`, which records the vsock id, and the
-guest's :cmd:`systemd-ssh-generator(8)` listens for SSH on vsock. Give the
-machine a ``Host`` block:
-
-.. code-block:: text
-   :caption: ~/bootstrap/ssh/config.d/cloud-debian.conf
-
-   Host cloud-debian
-       HostName vsock/43
-       ProxyCommand /usr/lib/systemd/systemd-ssh-proxy %h %p
-       ProxyUseFdpass yes
-       IdentityFile ~/bootstrap/ssh/id_ed25519
-       IdentitiesOnly yes
-       User root
-       StrictHostKeyChecking accept-new
-       UserKnownHostsFile /dev/null
-
-.. include:: _ssh_host.rst
-
-With the ``Include`` in your ``~/.ssh/config``, the machine's name is an
-:cmd:`ssh` alias:
+The guest's :cmd:`systemd-ssh-generator(8)` listens for SSH on vsock.
+:ref:`host-ssh` already names the machine by its context id, so its name
+is an :cmd:`ssh` alias:
 
 .. code-block:: console
    :class: cmd-host
@@ -201,10 +180,8 @@ With the ``Include`` in your ``~/.ssh/config``, the machine's name is an
    cloud-debian
    7.2.11+deb14-cloud-amd64
 
-:key:`[VM]` holds what is not a QEMU option. With :key:`SshPrivateKey=`,
-stopping the machine first runs ``systemctl poweroff`` in the guest over
-vsock, and presses the power button only if that fails. The stop takes 3.6
-seconds:
+With :key:`SshPrivateKey=` from the drop-in, the stop powers the guest off
+over SSH first (:ref:`SSH poweroff <host-poweroff>`), in 3.6 seconds:
 
 .. code-block:: console
    :class: cmd-host
@@ -217,7 +194,7 @@ seconds:
 =========
 
 The drop-in already holds everything but the disk and the context id,
-and the ``Host`` block differs in the same id:
+which :ref:`host-ssh` already names:
 
 .. code-block:: ini
    :caption: ~/.config/qemu/systemd/cloud-fedora.qemu
@@ -225,19 +202,6 @@ and the ``Host`` block differs in the same id:
    [QEMU]
    drive=file=Fedora-Cloud-Base-Generic-44-1.7.x86_64.qcow2,if=virtio,format=qcow2
    device=vhost-vsock-pci-non-transitional,guest-cid=44
-
-.. code-block:: text
-   :caption: ~/bootstrap/ssh/config.d/cloud-fedora.conf
-
-   Host cloud-fedora
-       HostName vsock/44
-       ProxyCommand /usr/lib/systemd/systemd-ssh-proxy %h %p
-       ProxyUseFdpass yes
-       IdentityFile ~/bootstrap/ssh/id_ed25519
-       IdentitiesOnly yes
-       User root
-       StrictHostKeyChecking accept-new
-       UserKnownHostsFile /dev/null
 
 .. code-block:: console
    :class: cmd-host
@@ -260,19 +224,6 @@ and the ``Host`` block differs in the same id:
    [QEMU]
    drive=file=stonking-server-cloudimg-amd64.img,if=virtio,format=qcow2
    device=vhost-vsock-pci-non-transitional,guest-cid=45
-
-.. code-block:: text
-   :caption: ~/bootstrap/ssh/config.d/cloud-ubuntu.conf
-
-   Host cloud-ubuntu
-       HostName vsock/45
-       ProxyCommand /usr/lib/systemd/systemd-ssh-proxy %h %p
-       ProxyUseFdpass yes
-       IdentityFile ~/bootstrap/ssh/id_ed25519
-       IdentitiesOnly yes
-       User root
-       StrictHostKeyChecking accept-new
-       UserKnownHostsFile /dev/null
 
 .. code-block:: console
    :class: cmd-host

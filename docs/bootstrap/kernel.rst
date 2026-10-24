@@ -10,13 +10,7 @@ itself, the root file system is a `tmpfs`_, and ``/nix/store`` is the
 host's own, shared over `virtiofs`_. Its :key:`.qemu` file grows by one
 feature per step, and no step needs root.
 
-The file format is specified in
-:doc:`qemu-systemd.unit(5) </man/qemu-systemd.unit.5>` and the generator in
-:doc:`qemu-system-generator(8) </man/qemu-system-generator.8>`. The outputs
-below are real, trimmed to the lines that matter, with the home directory
-shown as ``/home/user``.
-
-.. include:: _prepare.rst
+Prepare the host as :doc:`host` shows, once for every guide.
 
 The guest
 ---------
@@ -44,8 +38,8 @@ The guest is an ordinary NixOS configuration. Create
        };
    }
 
-``~/bootstrap/kernel/configuration.nix`` sets the guest up, with the
-public key from ``~/bootstrap/ssh/id_ed25519.pub`` pasted in:
+``~/bootstrap/kernel/configuration.nix`` sets the guest up as
+:ref:`nixos-configuration` describes, with your public key pasted in:
 
 .. code-block:: nix
    :caption: ~/bootstrap/kernel/configuration.nix
@@ -62,13 +56,8 @@ public key from ``~/bootstrap/ssh/id_ed25519.pub`` pasted in:
      system.stateVersion = "26.05";
    }
 
-The :cmd:`qemu-guest.nix` profile puts the virtio and virtiofs drivers in
-the initrd. The empty root password is for logging in on the console in
-:ref:`step 6 <kernel-console>`.
-
-.. _kernel-latest:
-
-.. include:: _kernel.rst
+The guest keeps the kernel NixOS picks by default; :ref:`nixos-kernel`
+shows how to switch.
 
 ``~/bootstrap/kernel/virtiofs.nix`` has no boot loader and no disk.
 The root is a tmpfs, and the store arrives over virtiofs under the tag
@@ -108,8 +97,6 @@ boots, and its ``init`` is what the kernel runs once the store is mounted:
    lrwxrwxrwx 1 root root 71 Jan  1  1970 result/initrd -> /nix/store/3rxnmhxn6xfh2hwiakgircj03j4gvd1g-initrd-linux-6.18.57/initrd
    lrwxrwxrwx 1 root root 65 Jan  1  1970 result/kernel -> /nix/store/maq0fxv0r4p9bac4haqy45c4vhlc33ag-linux-6.18.57/bzImage
 
-.. include:: _generator.rst
-
 .. _kernel-kernel:
 
 1. A kernel
@@ -134,7 +121,8 @@ closure's kernel and initrd. ``%h`` is your home directory, one of the
    initrd=%h/bootstrap/kernel/result/initrd
    append=console=ttyS0
 
-.. include:: _start.rst
+Regenerate and start it as :ref:`host-start` shows; the journal has the
+serial console.
 
 No boot loader reads the closure's command line, so ``append=`` is all
 the kernel gets. `Linux`_ boots, and the initrd stops where it looks for the
@@ -154,7 +142,8 @@ store:
    ...
    You are in emergency mode. After logging in, type "journalctl -xb" to view
 
-.. include:: _kill.rst
+Kill it, as :ref:`a guest that cannot answer the power button <host-kill>`
+needs.
 
 .. _kernel-store:
 
@@ -187,12 +176,8 @@ Add both, with your own path in ``init=``:
    +uid-map=:0:%U:1:
    +gid-map=:0:%G:1:
 
-Each :key:`[virtiofsd]` section runs one `virtiofsd`_ daemon for one shared
-directory. Its keys are the long options of ``virtiofsd --help``
-without the dashes. The generator runs the daemon from its own socket
-unit and adds the QEMU lines that connect to it. ``sandbox=``,
-``uid-map=`` and ``gid-map=`` let it run without root: ``%U`` and ``%G``
-are your user and group ids, which the guest's root maps to.
+The :key:`[virtiofsd]` section runs a daemon that shares the store
+without root (:ref:`host-virtiofsd`).
 
 Regenerate and start. NixOS boots in about 14 seconds:
 
@@ -270,9 +255,8 @@ can reach without any network:
     nic=user,model=virtio-net-pci-non-transitional,hostfwd=tcp:127.0.0.1:10022-:22
    +device=vhost-vsock-pci-non-transitional,guest-cid=42
 
-The generated unit registers each machine with your user's
-:cmd:`systemd-machined.service(8)`. With a vsock device it records the id,
-and :cmd:`machinectl` lists the machine:
+The machine registers with machined (:ref:`host-machined`), which
+records the id:
 
 .. code-block:: console
    :class: cmd-host
@@ -281,26 +265,8 @@ and :cmd:`machinectl` lists the machine:
    MACHINE   CLASS SERVICE     OS VERSION ADDRESSES
    bootstrap vm    qemu-system -  -       -
 
-NixOS listens for SSH on vsock by itself, through
-:cmd:`systemd-ssh-generator(8)`. Give the machine a ``Host`` block:
-
-.. code-block:: text
-   :caption: ~/bootstrap/ssh/config.d/bootstrap.conf
-
-   Host bootstrap
-       HostName vsock/42
-       ProxyCommand /usr/lib/systemd/systemd-ssh-proxy %h %p
-       ProxyUseFdpass yes
-       IdentityFile ~/bootstrap/ssh/id_ed25519
-       IdentitiesOnly yes
-       User root
-       StrictHostKeyChecking accept-new
-       UserKnownHostsFile /dev/null
-
-.. include:: _ssh_host.rst
-
-With the ``Include`` in your ``~/.ssh/config``, the machine's name is an
-``ssh`` alias:
+NixOS listens for SSH on vsock by itself, and :ref:`host-ssh` already
+names the machine by this context id:
 
 .. code-block:: console
    :class: cmd-host
@@ -314,9 +280,8 @@ With the ``Include`` in your ``~/.ssh/config``, the machine's name is an
 5. Poweroff over SSH
 ====================
 
-:key:`[VM]` holds what is not a QEMU option. With :key:`SshPrivateKey=`,
-stopping the machine first runs ``systemctl poweroff`` in the guest over
-vsock, and presses the power button only if that fails:
+With :key:`SshPrivateKey=` in :key:`[VM]`, the stop powers the guest off
+over SSH first (:ref:`SSH poweroff <host-poweroff>`):
 
 .. code-block:: diff
    :caption: ~/.config/qemu/systemd/bootstrap.qemu
@@ -525,7 +490,7 @@ devices sit on virtio-mmio, and the kernel reaches its ``/init`` sooner.
 It needs the newest kernel here. On 6.18.57, three or more virtio-mmio
 devices stop the boot at ``ACPI: Core revision``, and this machine has
 five. Switch the guest to ``pkgs.linuxPackages_latest``, as
-:ref:`the guest's section <kernel-latest>` shows:
+:ref:`nixos-kernel` shows:
 
 .. code-block:: diff
    :caption: ~/bootstrap/kernel/configuration.nix
@@ -647,7 +612,6 @@ Notes
 .. _tmpfs: https://docs.kernel.org/filesystems/tmpfs.html
 .. _virtiofs: https://virtio-fs.gitlab.io
 .. _specifiers: https://www.freedesktop.org/software/systemd/man/latest/systemd.unit.html#Specifiers
-.. _virtiofsd: https://gitlab.com/virtio-fs/virtiofsd
 .. _user-mode network: https://www.qemu.org/docs/master/system/devices/net.html#using-the-user-mode-network-stack
 .. _QEMU: https://www.qemu.org/docs/master/system/invocation.html
 .. _microvm: https://www.qemu.org/docs/master/system/i386/microvm.html

@@ -12,13 +12,7 @@ over `virtiofs`_. The system it boots stays in the host's ``/nix/store``,
 shared the same way. Its :key:`.qemu` file grows by one feature per step,
 and no step needs root.
 
-The file format is specified in
-:doc:`qemu-systemd.unit(5) </man/qemu-systemd.unit.5>` and the generator in
-:doc:`qemu-system-generator(8) </man/qemu-system-generator.8>`. The outputs
-below are real, trimmed to the lines that matter, with the home directory
-shown as ``/home/user``.
-
-.. include:: _prepare.rst
+Prepare the host as :doc:`host` shows, once for every guide.
 
 The guest
 ---------
@@ -63,8 +57,8 @@ kernel and initrd, with the command line
 package puts it where the firmware looks on a medium without boot
 entries, ``\EFI\BOOT\BOOTX64.EFI``.
 
-``~/bootstrap/uki/configuration.nix`` sets the guest up, with the
-public key from ``~/bootstrap/ssh/id_ed25519.pub`` pasted in:
+``~/bootstrap/uki/configuration.nix`` sets the guest up as
+:ref:`nixos-configuration` describes, with your public key pasted in:
 
 .. code-block:: nix
    :caption: ~/bootstrap/uki/configuration.nix
@@ -81,10 +75,8 @@ public key from ``~/bootstrap/ssh/id_ed25519.pub`` pasted in:
      system.stateVersion = "26.05";
    }
 
-The :cmd:`qemu-guest.nix` profile puts the virtio and virtiofs drivers in
-the initrd. The empty root password lets you log in on a console.
-
-.. include:: _kernel.rst
+The guest keeps the kernel NixOS picks by default; :ref:`nixos-kernel`
+shows how to switch.
 
 ``~/bootstrap/uki/uki.nix`` has no boot loader and no disk. The
 root is a `tmpfs`_, and the store arrives over virtiofs under the tag
@@ -126,8 +118,6 @@ Build the UKI and the firmware with ``nix build``:
 
 The firmware is a package output named ``fd``, so its link is ``ovmf-fd``.
 
-.. include:: _generator.rst
-
 .. _uki-esp:
 
 1. The firmware and the UKI
@@ -156,20 +146,16 @@ Create ``~/.config/qemu/systemd/bootstrap.qemu``:
    uid-map=:0:%U:1:
    gid-map=:0:%G:1:
 
-.. include:: _start.rst
+Regenerate and start it as :ref:`host-start` shows; the journal has the
+serial console.
 
 On the PC machines, a firmware in the first flash device replaces QEMU's
 default `SeaBIOS`_. The first flash device holds OVMF's code, read-only.
 The second holds its variable store, which the firmware writes; with
 ``snapshot=on``, QEMU writes to a temporary file instead.
 
-Each :key:`[virtiofsd]` section runs one `virtiofsd`_ daemon for one shared
-directory. Its keys are the long options of ``virtiofsd --help`` without
-the dashes. The generator runs the daemon from its own socket unit and
-adds the QEMU lines that connect to it. ``sandbox=``, ``uid-map=`` and
-``gid-map=`` let it run without root: ``%U`` and ``%G`` are your user and
-group ids, which the guest's root maps to, and ``%h`` is your home
-directory, among the `specifiers`_ systemd expands in a unit.
+The :key:`[virtiofsd]` section runs a daemon that shares the directory
+without root (:ref:`host-virtiofsd`).
 
 With the trailing slash on ``shared-dir=``, the path resolves through
 the ``result`` link when the daemon starts, so every start serves the
@@ -195,7 +181,8 @@ stops where it looks for the store:
    ...
    You are in emergency mode. After logging in, type "journalctl -xb" to view
 
-.. include:: _kill.rst
+Kill it, as :ref:`a guest that cannot answer the power button <host-kill>`
+needs.
 
 .. _uki-store:
 
@@ -244,9 +231,9 @@ takes 1.8 seconds:
 3. SSH
 ======
 
-QEMU's `user-mode network`_ needs no privileges, and a vsock device
-gives the guest a context id, a socket address the host can reach without
-any network. Forward a local port to the guest's SSH, and add the device:
+Forward a local port to the guest's SSH over QEMU's `user-mode network`_,
+which needs no privileges, and add the vsock device with the context id
+:ref:`host-ssh` names:
 
 .. code-block:: diff
    :caption: ~/.config/qemu/systemd/bootstrap.qemu
@@ -255,27 +242,9 @@ any network. Forward a local port to the guest's SSH, and add the device:
    +nic=user,model=virtio-net-pci-non-transitional,hostfwd=tcp:127.0.0.1:10022-:22
    +device=vhost-vsock-pci-non-transitional,guest-cid=42
 
-NixOS listens for SSH on vsock by itself, through
-:cmd:`systemd-ssh-generator(8)`. Give the machine a ``Host`` block:
-
-.. code-block:: text
-   :caption: ~/bootstrap/ssh/config.d/bootstrap.conf
-
-   Host bootstrap
-       HostName vsock/42
-       ProxyCommand /usr/lib/systemd/systemd-ssh-proxy %h %p
-       ProxyUseFdpass yes
-       IdentityFile ~/bootstrap/ssh/id_ed25519
-       IdentitiesOnly yes
-       User root
-       StrictHostKeyChecking accept-new
-       UserKnownHostsFile /dev/null
-
-.. include:: _ssh_host.rst
-
-Regenerate and restart with ``systemctl --user restart``. With the
-``Include`` in your ``~/.ssh/config``, the machine's name is an :cmd:`ssh`
-alias; without it, the forwarded port takes the key on the command line:
+Regenerate and restart. :ref:`host-ssh` already names the machine by
+this context id; without that ``Include`` in your ``~/.ssh/config``, the
+forwarded port takes the key on the command line:
 
 .. code-block:: console
    :class: cmd-host
@@ -364,8 +333,6 @@ same way here.
 .. _UKI module: https://github.com/NixOS/nixpkgs/blob/master/nixos/modules/system/boot/uki.nix
 .. _tmpfs: https://docs.kernel.org/filesystems/tmpfs.html
 .. _SeaBIOS: https://www.seabios.org/
-.. _virtiofsd: https://gitlab.com/virtio-fs/virtiofsd
-.. _specifiers: https://www.freedesktop.org/software/systemd/man/latest/systemd.unit.html#Specifiers
 .. _EDK II: https://github.com/tianocore/edk2
 .. _QEMU: https://www.qemu.org/docs/master/system/invocation.html
 .. _user-mode network: https://www.qemu.org/docs/master/system/devices/net.html#using-the-user-mode-network-stack

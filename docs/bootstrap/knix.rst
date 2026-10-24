@@ -9,12 +9,6 @@ This guide boots a `NixOS`_ guest under your user's `systemd`_ manager on a
 host's ``/nix/store``, shared over `virtiofs`_, and so do the kernel's
 modules. No step needs root.
 
-The file format is specified in
-:doc:`qemu-systemd.unit(5) </man/qemu-systemd.unit.5>` and the generator in
-:doc:`qemu-system-generator(8) </man/qemu-system-generator.8>`. The outputs
-below are real, trimmed to the lines that matter, with the home directory
-shown as ``/home/user``.
-
 Why knix
 ========
 
@@ -31,7 +25,7 @@ kernel in your tree with :cmd:`make` as usual, and the same closure boots
 every build. knix also provides the ``build-kernel`` and ``build-qemu``
 shells, which bring the toolchains.
 
-.. include:: _prepare.rst
+Prepare the host as :doc:`host` shows, once for every guide.
 
 The kernel
 ----------
@@ -147,8 +141,6 @@ The initrd's name mentions a nixpkgs kernel, but knix empties its module
 lists, so it boots any kernel that has the boot-critical drivers built
 in.
 
-.. include:: _generator.rst
-
 .. _knix-kernel:
 
 1. Your kernel
@@ -205,21 +197,12 @@ directory above:
    uid-map=:0:%U:1:
    gid-map=:0:%G:1:
 
-``%h`` is your home directory, and ``%U`` and ``%G`` your user and group
-ids, among the `specifiers`_ systemd expands in a unit. ``nic=`` forwards
-a local port to the guest's SSH over QEMU's `user-mode network`_. The
-vsock device gives the guest a context id, which the generated unit
-registers with your user's :cmd:`systemd-machined.service(8)`; with
-:key:`SshPrivateKey=` in :key:`[VM]`, stopping the machine first runs
-``systemctl poweroff`` in the guest over vsock, and presses the power
-button only if that fails.
-
-Each :key:`[virtiofsd]` section runs one `virtiofsd`_ daemon for one shared
-directory. Its keys are the long options of ``virtiofsd --help`` without
-the dashes. The generator runs the daemon from its own socket unit and
-adds the QEMU lines that connect to it. ``sandbox=``, ``uid-map=`` and
-``gid-map=`` let it run without root, with the guest's root mapped to
-you.
+``nic=`` forwards a local port to the guest's SSH over QEMU's
+`user-mode network`_, and the vsock device gives the guest the context id
+:ref:`host-ssh` names. :key:`SshPrivateKey=` has a stop power the guest
+off over SSH first (:ref:`SSH poweroff <host-poweroff>`), and each
+:key:`[virtiofsd]` section shares one directory without root
+(:ref:`host-virtiofsd`).
 
 The initrd and ``init=`` name one build of the closure, and every
 ``nix build`` makes a new one, so they go in a drop-in: the files in
@@ -235,27 +218,11 @@ it from ``boot.json``, and knix wants ``root=tmpfs`` on the command line:
        ~/bootstrap/knix/guest/result/boot.json \
        > ~/.config/qemu/systemd/bootstrap.qemu.d/10-closure.conf
 
-.. include:: _start.rst
+Regenerate and start it as :ref:`host-start` shows; the journal has the
+serial console.
 
-Give the machine a ``Host`` block, so ``ssh bootstrap`` reaches it over
-vsock through the ``Include`` in your ``~/.ssh/config``:
-
-.. code-block:: text
-   :caption: ~/bootstrap/ssh/config.d/bootstrap.conf
-
-   Host bootstrap
-       HostName vsock/42
-       ProxyCommand /usr/lib/systemd/systemd-ssh-proxy %h %p
-       ProxyUseFdpass yes
-       IdentityFile ~/bootstrap/ssh/id_ed25519
-       IdentitiesOnly yes
-       User root
-       StrictHostKeyChecking accept-new
-       UserKnownHostsFile /dev/null
-
-.. include:: _ssh_host.rst
-
-Log in and look at the shares:
+:ref:`host-ssh` already names the machine by its context id. Log in and
+look at the shares:
 
 .. code-block:: console
    :class: cmd-host
@@ -312,6 +279,4 @@ The guest boots in about 9 seconds and stops in 2.
 .. _kernel build documentation: https://docs.kernel.org/admin-guide/README.html
 .. _QEMU build system: https://www.qemu.org/docs/master/devel/build-system.html
 .. _virtiofs: https://virtio-fs.gitlab.io
-.. _virtiofsd: https://gitlab.com/virtio-fs/virtiofsd
-.. _specifiers: https://www.freedesktop.org/software/systemd/man/latest/systemd.unit.html#Specifiers
 .. _user-mode network: https://www.qemu.org/docs/master/system/devices/net.html#using-the-user-mode-network-stack
