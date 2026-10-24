@@ -1,0 +1,260 @@
+From 9bfaa1db40b489dd5dd655d81bee93665ca2d501 Mon Sep 17 00:00:00 2001
+From: Daniel Gomez <da.gomez@kernel.org>
+Date: Tue, 20 Oct 2026 23:10:48 +0200
+Subject: [PATCH] Copy each step's output to an optional tap
+
+Something that shows a step's output as it runs, such as the terminal
+display of dagu start, could only read the step's log file, which
+reaches the disk through a buffer flushed every 500 ms. An OutputTap in
+the run context gets the output as the step writes it and leaves the
+log files as they are.
+
+Signed-off-by: Daniel Gomez <da.gomez@kernel.org>
+---
+ internal/runctx/context.go             | 24 ++++++++++
+ internal/runtime/context.go            |  5 ++
+ internal/runtime/output.go             | 48 +++++++++++++++++++
+ internal/runtime/step_executor_test.go | 64 ++++++++++++++++++++++++++
+ 4 files changed, 141 insertions(+)
+
+diff --git a/internal/runctx/context.go b/internal/runctx/context.go
+index 1124c0b9a..761c96c05 100644
+--- a/internal/runctx/context.go
++++ b/internal/runctx/context.go
+@@ -52,6 +52,7 @@ type Context struct {
+ 	Shell                string               // Default shell for this DAG (from DAG.Shell)
+ 	LogEncodingCharset   string               // Character encoding for log files (e.g., "utf-8", "shift_jis", "euc-jp")
+ 	LogWriterFactory     LogWriterFactory     // For remote log streaming (nil = use local files)
++	OutputTap            OutputTap            // Receives a copy of each step's output (nil = none)
+ 	DefaultExecMode      config.ExecutionMode // Server-level default execution mode (local or distributed)
+ 	NoReuse              bool
+ }
+@@ -66,6 +67,13 @@ type LogWriterFactory interface {
+ 	NewStepWriter(ctx context.Context, stepName string, streamType int) io.WriteCloser
+ }
+ 
++// OutputTap receives a copy of a step's stdout and stderr as the step writes
++// them, after secrets are masked, such as the terminal display of dagu start.
++type OutputTap interface {
++	// StepOutput returns the writer for the output of the named step.
++	StepOutput(stepName string) io.Writer
++}
++
+ // Stream type constants for LogWriterFactory.NewStepWriter
+ const (
+ 	// StreamTypeStdout indicates stdout stream
+@@ -322,6 +330,13 @@ func WithLogWriterFactory(factory LogWriterFactory) ContextOption {
+ 	}
+ }
+ 
++// WithOutputTap sets the tap that receives a copy of each step's output.
++func WithOutputTap(tap OutputTap) ContextOption {
++	return func(o *contextOptions) {
++		o.OutputTap = tap
++	}
++}
++
+ // WithDefaultExecMode sets the server-level default execution mode.
+ func WithDefaultExecMode(mode config.ExecutionMode) ContextOption {
+ 	return func(o *contextOptions) {
+@@ -634,6 +649,15 @@ func GetContext(ctx context.Context) Context {
+ 	return execEnv
+ }
+ 
++// OutputTapFrom returns the output tap of the run in ctx, or nil when ctx
++// holds no run.
++func OutputTapFrom(ctx context.Context) OutputTap {
++	if c, ok := ctx.Value(dagCtxKey{}).(Context); ok {
++		return c.OutputTap
++	}
++	return nil
++}
++
+ // MustContext returns the DAGContext from the context and panics when one is
+ // not present. Use it where a fully initialized dag-run context is a caller
+ // invariant; use LookupContext where absence is valid.
+diff --git a/internal/runtime/context.go b/internal/runtime/context.go
+index 6844dfaaa..15313ed36 100644
+--- a/internal/runtime/context.go
++++ b/internal/runtime/context.go
+@@ -78,6 +78,8 @@ var (
+ 	WithLogEncoding = runctx.WithLogEncoding
+ 	// WithLogWriterFactory sets the log writer factory for remote log streaming.
+ 	WithLogWriterFactory = runctx.WithLogWriterFactory
++	// WithOutputTap sets the tap that receives a copy of each step's output.
++	WithOutputTap = runctx.WithOutputTap
+ 	// WithDefaultExecMode sets the server-level default execution mode.
+ 	WithDefaultExecMode = runctx.WithDefaultExecMode
+ 	// WithRunStateStore sets the execution-state store.
+@@ -105,6 +107,9 @@ var (
+ // LogWriterFactory is re-exported from execution package
+ type LogWriterFactory = runctx.LogWriterFactory
+ 
++// OutputTap is re-exported from execution package
++type OutputTap = runctx.OutputTap
++
+ // GetDAGContext retrieves the DAGContext from the context.
+ // This is a convenience wrapper for execution.GetContext.
+ func GetDAGContext(ctx context.Context) Context {
+diff --git a/internal/runtime/output.go b/internal/runtime/output.go
+index a35b9fb8c..08b4ecf8c 100644
+--- a/internal/runtime/output.go
++++ b/internal/runtime/output.go
+@@ -39,6 +39,11 @@ type OutputCoordinator struct {
+ 	StderrRedirectFile   *os.File
+ 	stderrRedirectWriter io.Writer
+ 
++	// The writers to the run's output tap, kept to flush a line the
++	// masking writer holds back when the attempt ends.
++	stdoutTapWriter io.Writer
++	stderrTapWriter io.Writer
++
+ 	// Output capture with size limits to prevent OOM
+ 	outputWriter         *os.File
+ 	outputReader         *os.File
+@@ -148,6 +153,15 @@ func (oc *OutputCoordinator) setupExecutorIO(ctx context.Context, cmd executor.E
+ 	if oc.stdoutRedirectWriter != nil {
+ 		stdout = newFlushableMultiWriter(oc.stdoutWriter, oc.stdoutRedirectWriter)
+ 	}
++	tap := GetDAGContext(ctx).OutputTap
++	if tap != nil {
++		// A retry starts with new writers; the last line of the attempt
++		// before goes out first.
++		_ = oc.flushTapWriters()
++		oc.stdoutTapWriter = oc.tapWriter(tap, data.Step.Name)
++		oc.stderrTapWriter = oc.tapWriter(tap, data.Step.Name)
++		stdout = newFlushableMultiWriter(stdout, oc.stdoutTapWriter)
++	}
+ 
+ 	needStdoutCapture := data.Step.Output != "" ||
+ 		data.Step.HasOutputSchema() ||
+@@ -189,6 +203,9 @@ func (oc *OutputCoordinator) setupExecutorIO(ctx context.Context, cmd executor.E
+ 	if oc.stderrRedirectWriter != nil {
+ 		stderr = newFlushableMultiWriter(oc.stderrWriter, oc.stderrRedirectWriter)
+ 	}
++	if tap != nil {
++		stderr = newFlushableMultiWriter(stderr, oc.stderrTapWriter)
++	}
+ 	needStderrCapture := data.Step.UsesStructuredOutputSource("stderr")
+ 	if needStderrCapture && oc.stderrOutputReader == nil {
+ 		var err error
+@@ -250,6 +267,27 @@ func (oc *OutputCoordinator) flushWritersWithMode(ifDue bool) error {
+ 			}
+ 		}
+ 	}
++	// A periodic flush leaves a partial line in the masking writer, as it
++	// does for the log, so a secret split across writes stays masked.
++	if !ifDue {
++		if err := oc.flushTapWriters(); err != nil {
++			lastErr = err
++		}
++	}
++	return lastErr
++}
++
++// flushTapWriters writes through what the tap writers hold back. The caller
++// holds oc.mu.
++func (oc *OutputCoordinator) flushTapWriters() error {
++	var lastErr error
++	for _, w := range []io.Writer{oc.stdoutTapWriter, oc.stderrTapWriter} {
++		if f, ok := w.(interface{ Flush() error }); ok {
++			if err := f.Flush(); err != nil {
++				lastErr = err
++			}
++		}
++	}
+ 	return lastErr
+ }
+ 
+@@ -381,6 +419,16 @@ func (oc *OutputCoordinator) setupStderrRedirect(ctx context.Context, data NodeD
+ 	return nil
+ }
+ 
++// tapWriter returns a writer that copies a step's output to tap, masking
++// secrets as the log files do.
++func (oc *OutputCoordinator) tapWriter(tap OutputTap, stepName string) io.Writer {
++	w := tap.StepOutput(stepName)
++	if oc.masker != nil {
++		w = masking.NewMaskingWriter(w, oc.masker)
++	}
++	return w
++}
++
+ // newRedirectWriter returns a buffered writer for a redirect file, masking
+ // secrets when a masker is available. A redirect that is not a regular file
+ // is written through, so a terminal or a pipe gets each line as the step
+diff --git a/internal/runtime/step_executor_test.go b/internal/runtime/step_executor_test.go
+index 8ec607cf1..6e69d1fee 100644
+--- a/internal/runtime/step_executor_test.go
++++ b/internal/runtime/step_executor_test.go
+@@ -305,3 +305,67 @@ func TestStepExecutorScopesPushBackInputs(t *testing.T) {
+ 		require.Equal(t, 1, fakeExec.pushBackIteration)
+ 	}
+ }
++
++const tapOutputExecutorType = "test-step-executor-tap-output"
++
++type tapOutputExecutor struct {
++	stdout, stderr io.Writer
++}
++
++func (e *tapOutputExecutor) SetStdout(out io.Writer) { e.stdout = out }
++func (e *tapOutputExecutor) SetStderr(out io.Writer) { e.stderr = out }
++func (e *tapOutputExecutor) Kill(os.Signal) error    { return nil }
++func (e *tapOutputExecutor) Run(context.Context) error {
++	if _, err := io.WriteString(e.stdout, "to stdout\n"); err != nil {
++		return err
++	}
++	if _, err := io.WriteString(e.stderr, "to stderr\n"); err != nil {
++		return err
++	}
++	_, err := io.WriteString(e.stdout, "token s3cr3t")
++	return err
++}
++
++type recordingTap struct {
++	mu   sync.Mutex
++	got  map[string]*bytes.Buffer
++	step string
++}
++
++func (r *recordingTap) StepOutput(stepName string) io.Writer {
++	r.mu.Lock()
++	defer r.mu.Unlock()
++	r.step = stepName
++	return r
++}
++
++func (r *recordingTap) Write(p []byte) (int, error) {
++	r.mu.Lock()
++	defer r.mu.Unlock()
++	if r.got[r.step] == nil {
++		r.got[r.step] = &bytes.Buffer{}
++	}
++	return r.got[r.step].Write(p)
++}
++
++func TestStepExecutorCopiesOutputToTap(t *testing.T) {
++	runtimeexec.RegisterExecutor(tapOutputExecutorType, func(context.Context, ir.Step) (runtimeexec.Executor, error) {
++		return &tapOutputExecutor{}, nil
++	}, nil, registry.ExecutorCapabilities{})
++	t.Cleanup(func() { runtimeexec.UnregisterExecutor(tapOutputExecutorType) })
++
++	tap := &recordingTap{got: map[string]*bytes.Buffer{}}
++	ctx := runtime.NewContext(context.Background(), &ir.DAG{Name: "tap-dag"}, "run-1", "dag.log",
++		runtime.WithOutputTap(tap), runtime.WithSecrets([]string{"TOKEN=s3cr3t"}))
++	node := runtime.NewNode(ir.Step{
++		Name:           "tap-step",
++		ExecutorConfig: ir.ExecutorConfig{Type: tapOutputExecutorType},
++	}, runtime.NodeState{})
++	require.NoError(t, node.Prepare(ctx, t.TempDir(), "run-1"))
++	defer func() { require.NoError(t, node.Teardown()) }()
++
++	require.NoError(t, runtime.NewStepExecutor().Execute(ctx, node))
++	require.Contains(t, tap.got, "tap-step")
++	// The last line has no newline: the tap gets it masked when the step ends.
++	require.Equal(t, "to stdout\nto stderr\ntoken *******", tap.got["tap-step"].String())
++}
+-- 
+2.53.0
+

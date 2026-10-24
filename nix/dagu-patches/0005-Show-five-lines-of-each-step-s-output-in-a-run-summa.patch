@@ -1,0 +1,381 @@
+From 2f603fa4874638c62758125829cca80782b1d06c Mon Sep 17 00:00:00 2001
+From: Daniel Gomez <da.gomez@kernel.org>
+Date: Tue, 20 Oct 2026 23:37:17 +0200
+Subject: [PATCH] Show five lines of each step's output in a run summary
+
+The summary dagu start and dagu status print after a run repeated the
+last 50 lines of every step's stdout and stderr, which on a build
+buried the result under make's output already shown while it ran.
+Default to 5 and let summary_lines (DAGU_SUMMARY_LINES) set it.
+
+Signed-off-by: Daniel Gomez <da.gomez@kernel.org>
+---
+ README.md                              |  1 +
+ internal/cmd/dry.go                    |  1 +
+ internal/cmd/progress_remote.go        |  7 +++++--
+ internal/cmd/remote_commands.go        |  2 +-
+ internal/cmd/restart.go                |  1 +
+ internal/cmd/retry.go                  |  1 +
+ internal/cmd/start.go                  |  3 ++-
+ internal/cmd/status.go                 |  5 +++--
+ internal/cmn/config/config.go          | 11 +++++++++++
+ internal/cmn/config/config_test.go     |  9 +++++++++
+ internal/cmn/config/definition.go      |  3 ++-
+ internal/cmn/config/loader.go          |  3 +++
+ internal/cmn/config/loader_test.go     |  4 ++++
+ internal/cmn/schema/config.schema.json |  6 ++++++
+ internal/output/tree.go                |  2 +-
+ internal/runtime/agent/agent.go        |  9 +++++++++
+ 16 files changed, 60 insertions(+), 8 deletions(-)
+
+diff --git a/README.md b/README.md
+index 85a745c65..b9b039568 100644
+--- a/README.md
++++ b/README.md
+@@ -877,6 +877,7 @@ The table lists the most common commands. The binary ships 36 in total, includin
+ | `DAGU_HEADLESS` | `false` | Run without web UI |
+ | `DAGU_TZ` | - | Timezone (e.g., `Asia/Tokyo`) |
+ | `DAGU_LOG_FORMAT` | `text` | `text` or `json` |
++| `DAGU_SUMMARY_LINES` | `5` | Lines of each step's output in the summary `dagu start` and `dagu status` print; `0` for all |
+ | `DAGU_CERT_FILE` | - | TLS certificate |
+ | `DAGU_KEY_FILE` | - | TLS private key |
+ | `DAGU_CORS_ALLOWED_ORIGINS` | - | Comma-separated list of allowed CORS origins (e.g. `https://app.example.com`). When unset, cross-origin browser access is disabled. Exact origins enable credentials. An explicit `*` allows every origin without credentials and emits a security warning. |
+diff --git a/internal/cmd/dry.go b/internal/cmd/dry.go
+index 29dbfef70..8ebc710b0 100644
+--- a/internal/cmd/dry.go
++++ b/internal/cmd/dry.go
+@@ -102,6 +102,7 @@ func runDry(ctx *Context, args []string) error {
+ 		dagRepository,
+ 		agent.Options{
+ 			Dry:                      true,
++			SummaryLines:             ctx.Config.Core.SummaryLines,
+ 			RunStateStore:            persis.NewRunStateStore(ctx.Persistence.DAGRunRepository, nil),
+ 			StateStore:               ctx.Persistence.StateStore,
+ 			MaterializationStore:     as.MaterializationStore,
+diff --git a/internal/cmd/progress_remote.go b/internal/cmd/progress_remote.go
+index 008191ac4..9246b033b 100644
+--- a/internal/cmd/progress_remote.go
++++ b/internal/cmd/progress_remote.go
+@@ -19,6 +19,8 @@ import (
+ // It polls the coordinator for status updates and renders a progress display
+ // similar to the local SimpleProgressDisplay.
+ type RemoteProgressDisplay struct {
++	// summaryLines is how many lines of each step's output the summary shows.
++	summaryLines int
+ 	dag          *ir.DAG
+ 	dagRunID     string
+ 	startTime    time.Time
+@@ -39,7 +41,7 @@ type RemoteProgressDisplay struct {
+ }
+ 
+ // NewRemoteProgressDisplay creates a new remote progress display.
+-func NewRemoteProgressDisplay(dag *ir.DAG, dagRunID string) *RemoteProgressDisplay {
++func NewRemoteProgressDisplay(dag *ir.DAG, dagRunID string, summaryLines int) *RemoteProgressDisplay {
+ 	total := 0
+ 	if dag != nil {
+ 		total = len(dag.Steps)
+@@ -52,6 +54,7 @@ func NewRemoteProgressDisplay(dag *ir.DAG, dagRunID string) *RemoteProgressDispl
+ 		}
+ 	}
+ 	return &RemoteProgressDisplay{
++		summaryLines: summaryLines,
+ 		dag:          dag,
+ 		dagRunID:     dagRunID,
+ 		total:        total,
+@@ -172,7 +175,7 @@ func (p *RemoteProgressDisplay) PrintSummary() {
+ 	// Create renderer config - logs are synced from remote workers
+ 	config := output.DefaultConfig()
+ 	config.ColorEnabled = term.IsTerminal(int(os.Stdout.Fd()))
+-	config.MaxOutputLines = 10
++	config.MaxOutputLines = p.summaryLines
+ 
+ 	renderer := output.NewRenderer(config)
+ 	summary := renderer.RenderDAGStatus(dag, status)
+diff --git a/internal/cmd/remote_commands.go b/internal/cmd/remote_commands.go
+index 000919361..31952e9e3 100644
+--- a/internal/cmd/remote_commands.go
++++ b/internal/cmd/remote_commands.go
+@@ -387,7 +387,7 @@ func remoteRunStatus(ctx *Context, args []string) error {
+ 	if err != nil {
+ 		return err
+ 	}
+-	displayTreeStatus(coreDAG, status)
++	displayTreeStatus(coreDAG, status, ctx.Config.Core.SummaryLines)
+ 	return nil
+ }
+ 
+diff --git a/internal/cmd/restart.go b/internal/cmd/restart.go
+index fc803c0e1..4671aa1d4 100644
+--- a/internal/cmd/restart.go
++++ b/internal/cmd/restart.go
+@@ -193,6 +193,7 @@ func executeDAGWithRunID(
+ 		dr,
+ 		agent.Options{
+ 			Dry:                      false,
++			SummaryLines:             ctx.Config.Core.SummaryLines,
+ 			ExtraEnvs:                extraEnvs,
+ 			AttemptID:                agentAttemptID("", preparedAttempt),
+ 			RunStateStore:            persis.NewRunStateStore(ctx.Persistence.DAGRunRepository, preparedAttempt),
+diff --git a/internal/cmd/retry.go b/internal/cmd/retry.go
+index 814e66f04..1596e4de9 100644
+--- a/internal/cmd/retry.go
++++ b/internal/cmd/retry.go
+@@ -734,6 +734,7 @@ func executeRetry(ctx *Context, dag *ir.DAG, status *ir.DAGRunStatus, opts runOp
+ 			RetryTarget:              status,
+ 			ParentDAGRun:             status.Parent,
+ 			ProgressDisplay:          shouldEnableProgress(ctx),
++			SummaryLines:             ctx.Config.Core.SummaryLines,
+ 			ExtraEnvs:                extraEnvs,
+ 			StepRetry:                opts.step,
+ 			IncludeDownstream:        opts.includeDownstream,
+diff --git a/internal/cmd/start.go b/internal/cmd/start.go
+index 173533f29..f0a3f03a9 100644
+--- a/internal/cmd/start.go
++++ b/internal/cmd/start.go
+@@ -670,6 +670,7 @@ func executeDAGRun(ctx *Context, d *ir.DAG, dagRunID string, opts runOptions) er
+ 		agent.Options{
+ 			ParentDAGRun:             opts.parent,
+ 			ProgressDisplay:          shouldEnableProgress(ctx),
++			SummaryLines:             ctx.Config.Core.SummaryLines,
+ 			ExtraEnvs:                extraEnvs,
+ 			WorkerID:                 opts.workerID,
+ 			AttemptID:                agentAttemptID(opts.attemptID, opts.preparedAttempt),
+@@ -709,7 +710,7 @@ func dispatchToCoordinatorAndWait(ctx *Context, d *ir.DAG, dagRunID string, opts
+ 	showProgress := shouldEnableProgress(ctx)
+ 	var progress *RemoteProgressDisplay
+ 	if showProgress {
+-		progress = NewRemoteProgressDisplay(d, dagRunID)
++		progress = NewRemoteProgressDisplay(d, dagRunID, ctx.Config.Core.SummaryLines)
+ 		progress.Start()
+ 	}
+ 
+diff --git a/internal/cmd/status.go b/internal/cmd/status.go
+index f4865e4df..f667191ac 100644
+--- a/internal/cmd/status.go
++++ b/internal/cmd/status.go
+@@ -103,14 +103,15 @@ func runStatus(ctx *Context, args []string) error {
+ 		}
+ 	}
+ 
+-	displayTreeStatus(dag, dagStatus)
++	displayTreeStatus(dag, dagStatus, ctx.Config.Core.SummaryLines)
+ 
+ 	return nil
+ }
+ 
+-func displayTreeStatus(dag *ir.DAG, dagStatus *ir.DAGRunStatus) {
++func displayTreeStatus(dag *ir.DAG, dagStatus *ir.DAGRunStatus, outputLines int) {
+ 	config := output.DefaultConfig()
+ 	config.ColorEnabled = term.IsTerminal(int(os.Stdout.Fd()))
++	config.MaxOutputLines = outputLines
+ 
+ 	renderer := output.NewRenderer(config)
+ 	fmt.Print(renderer.RenderDAGStatus(dag, dagStatus))
+diff --git a/internal/cmn/config/config.go b/internal/cmn/config/config.go
+index f026ff2a7..e33cbfb2b 100644
+--- a/internal/cmn/config/config.go
++++ b/internal/cmn/config/config.go
+@@ -263,6 +263,7 @@ type MonitoringConfig struct {
+ type Core struct {
+ 	Debug                  bool
+ 	LogFormat              string // "json" or "text"
++	SummaryLines           int    // Lines of each step's output in a run summary (0 = all)
+ 	TZ                     string // e.g., "UTC", "UTC+9", "America/New_York"
+ 	TzOffsetInSec          int
+ 	Location               *time.Location
+@@ -748,6 +749,9 @@ type Peer struct {
+ // Validate performs basic validation on the configuration to ensure required fields are set
+ // and that numerical values fall within acceptable ranges.
+ func (c *Config) Validate() error {
++	if err := c.validateCore(); err != nil {
++		return err
++	}
+ 	if err := c.validateOpenCode(); err != nil {
+ 		return err
+ 	}
+@@ -857,6 +861,13 @@ func (c *Config) validateEventStore() error {
+ 	return nil
+ }
+ 
++func (c *Config) validateCore() error {
++	if c.Core.SummaryLines < 0 {
++		return fmt.Errorf("summary_lines must be >= 0, got %d", c.Core.SummaryLines)
++	}
++	return nil
++}
++
+ func (c *Config) validateWebhooks() error {
+ 	if c.Webhooks.MaxPayloadSize <= 0 {
+ 		return fmt.Errorf("webhooks.max_payload_size must be > 0")
+diff --git a/internal/cmn/config/config_test.go b/internal/cmn/config/config_test.go
+index 2b9e73869..5fab16ce7 100644
+--- a/internal/cmn/config/config_test.go
++++ b/internal/cmn/config/config_test.go
+@@ -44,6 +44,15 @@ func TestConfig_Validate(t *testing.T) {
+ 		require.NoError(t, err)
+ 	})
+ 
++	t.Run("NegativeSummaryLines", func(t *testing.T) {
++		t.Parallel()
++		cfg := validBaseConfig()
++		cfg.Core.SummaryLines = -1
++		err := cfg.Validate()
++		require.Error(t, err)
++		assert.Contains(t, err.Error(), "summary_lines must be >= 0")
++	})
++
+ 	t.Run("InvalidWebhookMaxPayloadSize", func(t *testing.T) {
+ 		t.Parallel()
+ 		cfg := validBaseConfig()
+diff --git a/internal/cmn/config/definition.go b/internal/cmn/config/definition.go
+index af36e4d3d..01d6c6960 100644
+--- a/internal/cmn/config/definition.go
++++ b/internal/cmn/config/definition.go
+@@ -23,7 +23,8 @@ type Definition struct {
+ 	// Core settings
+ 	Debug                  bool         `mapstructure:"debug"`
+ 	DefaultShell           string       `mapstructure:"default_shell"`
+-	LogFormat              string       `mapstructure:"log_format"`      // "json" or "text"
++	LogFormat              string       `mapstructure:"log_format"` // "json" or "text"
++	SummaryLines           *int         `mapstructure:"summary_lines"`
+ 	AccessLog              *string      `mapstructure:"access_log_mode"` // "all", "non-public", or "none" (default)
+ 	TZ                     string       `mapstructure:"tz"`
+ 	EnvPassthrough         []string     `mapstructure:"env_passthrough"`
+diff --git a/internal/cmn/config/loader.go b/internal/cmn/config/loader.go
+index 01c482182..5377f89c3 100644
+--- a/internal/cmn/config/loader.go
++++ b/internal/cmn/config/loader.go
+@@ -405,6 +405,7 @@ func (l *ConfigLoader) loadCoreConfig(cfg *Config, def Definition) error {
+ 	cfg.Core = Core{
+ 		Debug:                  def.Debug,
+ 		LogFormat:              def.LogFormat,
++		SummaryLines:           l.v.GetInt("summary_lines"),
+ 		TZ:                     def.TZ,
+ 		DefaultShell:           def.DefaultShell,
+ 		SkipExamples:           l.v.GetBool("skip_examples"),
+@@ -2143,6 +2144,7 @@ func (l *ConfigLoader) setViperDefaultValues(paths Paths) {
+ 	l.v.SetDefault("metrics", "private")
+ 	l.v.SetDefault("cache", "normal")
+ 	l.v.SetDefault("log_format", "text")
++	l.v.SetDefault("summary_lines", 5)
+ 	l.v.SetDefault("access_log_mode", "none")
+ 
+ 	// Coordinator
+@@ -2219,6 +2221,7 @@ type envBinding struct {
+ var envBindings = []envBinding{
+ 	// Server
+ 	{key: "log_format", env: "LOG_FORMAT"},
++	{key: "summary_lines", env: "SUMMARY_LINES"},
+ 	{key: "access_log_mode", env: "ACCESS_LOG_MODE"},
+ 	{key: "public_url", env: "PUBLIC_URL"},
+ 	{key: "base_path", env: "BASE_PATH"},
+diff --git a/internal/cmn/config/loader_test.go b/internal/cmn/config/loader_test.go
+index 2b999c89d..796af3354 100644
+--- a/internal/cmn/config/loader_test.go
++++ b/internal/cmn/config/loader_test.go
+@@ -116,6 +116,7 @@ func TestLoad_Env(t *testing.T) {
+ 
+ 	testEnvs := map[string]string{
+ 		"DAGU_LOG_FORMAT":    "json",
++		"DAGU_SUMMARY_LINES": "20",
+ 		"DAGU_BASE_PATH":     "/test/base",
+ 		"DAGU_API_BASE_URL":  "/test/api",
+ 		"DAGU_TZ":            "Europe/Berlin",
+@@ -220,6 +221,7 @@ func TestLoad_Env(t *testing.T) {
+ 		Core: Core{
+ 			Debug:                  true,
+ 			LogFormat:              "json",
++			SummaryLines:           20,
+ 			TZ:                     "Europe/Berlin",
+ 			TzOffsetInSec:          berlinOffset,
+ 			Location:               berlinLoc,
+@@ -824,6 +826,7 @@ base_path: "/dagu"
+ api_base_path: "/api/v1"
+ tz: "UTC"
+ log_format: "json"
++summary_lines: 0
+ headless: true
+ check_updates: false
+ latest_status_today: true
+@@ -913,6 +916,7 @@ scheduler:
+ 		Core: Core{
+ 			Debug:                  true,
+ 			LogFormat:              "json",
++			SummaryLines:           0,
+ 			TZ:                     "UTC",
+ 			TzOffsetInSec:          0,
+ 			Location:               utcLoc,
+diff --git a/internal/cmn/schema/config.schema.json b/internal/cmn/schema/config.schema.json
+index cc7be525a..53dfa2412 100644
+--- a/internal/cmn/schema/config.schema.json
++++ b/internal/cmn/schema/config.schema.json
+@@ -74,6 +74,12 @@
+       "description": "Log output format.",
+       "enum": ["json", "text"]
+     },
++    "summary_lines": {
++      "type": "integer",
++      "description": "Lines of each step's output that dagu start and dagu status show in a run's summary; 0 shows all of them.",
++      "minimum": 0,
++      "default": 5
++    },
+     "tz": {
+       "type": "string",
+       "description": "Timezone for scheduling and display (e.g., 'America/New_York')."
+diff --git a/internal/output/tree.go b/internal/output/tree.go
+index 1d45dbd7c..e23c1c118 100644
+--- a/internal/output/tree.go
++++ b/internal/output/tree.go
+@@ -24,7 +24,7 @@ const (
+ 
+ const (
+ 	// DefaultMaxOutputLines is the default number of lines to show for stdout/stderr.
+-	DefaultMaxOutputLines = 50
++	DefaultMaxOutputLines = 5
+ 	// DefaultMaxWidth is the maximum line width before wrapping.
+ 	DefaultMaxWidth = 80
+ )
+diff --git a/internal/runtime/agent/agent.go b/internal/runtime/agent/agent.go
+index 0dd2238d1..29c9acccb 100644
+--- a/internal/runtime/agent/agent.go
++++ b/internal/runtime/agent/agent.go
+@@ -188,6 +188,9 @@ type Agent struct {
+ 	// progressDisplay is the progress display for showing real-time execution progress.
+ 	progressDisplay ProgressReporter
+ 
++	// summaryLines is how many lines of each step's output PrintSummary shows.
++	summaryLines int
++
+ 	// stepRetry is the name of the step to retry, if specified.
+ 	stepRetry string
+ 	// includeDownstream resets reachable descendants of stepRetry.
+@@ -323,6 +326,9 @@ type Options struct {
+ 	// ProgressDisplay indicates if the progress display should be shown.
+ 	// This is typically enabled for CLI execution in a TTY environment.
+ 	ProgressDisplay bool
++	// SummaryLines is how many lines of each step's output PrintSummary
++	// shows (0 = all).
++	SummaryLines int
+ 	// ExtraEnvs are additional execution-scoped env vars injected into the DAG run context.
+ 	ExtraEnvs []string
+ 	// InheritedEnvs are env entries an in-process child run inherits from the
+@@ -482,6 +488,8 @@ func New(
+ 		a.socketServerFactory = defaultSocketServerFactory
+ 	}
+ 
++	a.summaryLines = opts.SummaryLines
++
+ 	// Initialize progress display if enabled
+ 	if opts.ProgressDisplay {
+ 		a.progressDisplay = createProgressReporter(dag, dagRunID, dag.Params)
+@@ -1543,6 +1551,7 @@ func (a *Agent) PrintSummary(ctx context.Context) {
+ 	// Enable colors if stdout is a terminal
+ 	config := output.DefaultConfig()
+ 	config.ColorEnabled = term.IsTerminal(int(os.Stdout.Fd()))
++	config.MaxOutputLines = a.summaryLines
+ 
+ 	renderer := output.NewRenderer(config)
+ 	summary := renderer.RenderDAGStatus(dag, &status)
+-- 
+2.53.0
+

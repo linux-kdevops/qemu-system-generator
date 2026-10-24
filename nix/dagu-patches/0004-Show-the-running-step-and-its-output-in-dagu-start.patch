@@ -1,0 +1,1585 @@
+From 78ba1fc6d3dd17881480ee9b51a34aa5ad671d78 Mon Sep 17 00:00:00 2001
+From: Daniel Gomez <da.gomez@kernel.org>
+Date: Tue, 20 Oct 2026 23:10:48 +0200
+Subject: [PATCH] Show the running step and its output in dagu start
+
+On a terminal, dagu start showed only a spinner and a step count, so a
+step's output reached the terminal only through a stdout: /dev/stdout
+redirect, which scrolled through the spinner with no step named.
+
+The region takes the output from the output tap rather than the log
+files, so it shows each line as the step writes it. A sub-DAG run in
+the same process reports to the region of the run that started it,
+since that is where fstests-style DAGs do their work. A DAG whose steps
+redirect to the terminal keeps the old display, which their output
+would otherwise scroll through. Reading keys keeps the terminal's
+signals so Ctrl-C still stops the run, and is skipped for a background
+job, which SIGTTOU would stop.
+
+Signed-off-by: Daniel Gomez <da.gomez@kernel.org>
+---
+ go.mod                                        |   6 +-
+ internal/runtime/agent/agent.go               |  17 +-
+ internal/runtime/agent/agent_progress.go      |   7 +-
+ .../runtime/agent/progress_agent_dag_test.go  |   5 +
+ internal/runtime/agent/progress_interface.go  |  12 +-
+ internal/runtime/agent/progress_keys_bsd.go   |  13 +
+ internal/runtime/agent/progress_keys_linux.go |  11 +
+ internal/runtime/agent/progress_keys_other.go |  11 +
+ internal/runtime/agent/progress_keys_unix.go  |  89 ++
+ internal/runtime/agent/progress_region.go     | 836 ++++++++++++++++++
+ .../runtime/agent/progress_region_test.go     | 405 +++++++++
+ 11 files changed, 1405 insertions(+), 7 deletions(-)
+ create mode 100644 internal/runtime/agent/progress_keys_bsd.go
+ create mode 100644 internal/runtime/agent/progress_keys_linux.go
+ create mode 100644 internal/runtime/agent/progress_keys_other.go
+ create mode 100644 internal/runtime/agent/progress_keys_unix.go
+ create mode 100644 internal/runtime/agent/progress_region.go
+ create mode 100644 internal/runtime/agent/progress_region_test.go
+
+diff --git a/go.mod b/go.mod
+index 6d8ce0a31..9a1253b59 100644
+--- a/go.mod
++++ b/go.mod
+@@ -3,6 +3,7 @@ module github.com/dagucloud/dagu/v2
+ go 1.27.2
+ 
+ require (
++	charm.land/lipgloss/v2 v2.0.6
+ 	cloud.google.com/go/secretmanager v1.20.0
+ 	dario.cat/mergo v1.0.2
+ 	github.com/Azure/azure-sdk-for-go/sdk/azcore v1.23.1
+@@ -23,6 +24,7 @@ require (
+ 	github.com/aws/aws-sdk-go-v2/service/secretsmanager v1.41.9
+ 	github.com/bmatcuk/doublestar/v4 v4.8.1
+ 	github.com/browserbase/stagehand/packages/sdk-go/v4 v4.1.0
++	github.com/charmbracelet/colorprofile v0.4.3
+ 	github.com/coder/websocket v1.8.15
+ 	github.com/containerd/errdefs v1.0.0
+ 	github.com/containerd/platforms v1.0.0-rc.5
+@@ -55,6 +57,7 @@ require (
+ 	github.com/jackc/pgx/v5 v5.9.2
+ 	github.com/jedib0t/go-pretty/v6 v6.6.9
+ 	github.com/joho/godotenv v1.5.1
++	github.com/mattn/go-runewidth v0.0.24
+ 	github.com/mholt/archives v0.1.5
+ 	github.com/moby/moby/api v1.54.2
+ 	github.com/moby/moby/client v0.3.0
+@@ -112,7 +115,6 @@ require (
+ require (
+ 	4d63.com/gocheckcompilerdirectives v1.4.0 // indirect
+ 	4d63.com/gochecknoglobals v0.2.2 // indirect
+-	charm.land/lipgloss/v2 v2.0.6 // indirect
+ 	cloud.google.com/go/auth v0.21.0 // indirect
+ 	cloud.google.com/go/auth/oauth2adapt v0.2.8 // indirect
+ 	cloud.google.com/go/compute/metadata v0.9.0 // indirect
+@@ -204,7 +206,6 @@ require (
+ 	github.com/cenkalti/backoff/v5 v5.0.3 // indirect
+ 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
+ 	github.com/charithe/durationcheck v0.0.11 // indirect
+-	github.com/charmbracelet/colorprofile v0.4.3 // indirect
+ 	github.com/charmbracelet/ultraviolet v0.0.0-20260811164956-006e29f97886 // indirect
+ 	github.com/charmbracelet/x/ansi v0.11.8 // indirect
+ 	github.com/charmbracelet/x/term v0.2.2 // indirect
+@@ -381,7 +382,6 @@ require (
+ 	github.com/matoous/godox v1.1.0 // indirect
+ 	github.com/mattn/go-colorable v0.1.15 // indirect
+ 	github.com/mattn/go-isatty v0.0.22 // indirect
+-	github.com/mattn/go-runewidth v0.0.24 // indirect
+ 	github.com/mdlayher/netlink v1.7.3-0.20250113171957-fbb4dce95f42 // indirect
+ 	github.com/mdlayher/socket v0.5.0 // indirect
+ 	github.com/mgechev/revive v1.15.0 // indirect
+diff --git a/internal/runtime/agent/agent.go b/internal/runtime/agent/agent.go
+index 1e40b0fd0..0dd2238d1 100644
+--- a/internal/runtime/agent/agent.go
++++ b/internal/runtime/agent/agent.go
+@@ -795,6 +795,16 @@ func (a *Agent) Run(ctx context.Context) (runErr error) {
+ 	if a.logWriterFactory != nil {
+ 		contextOpts = append(contextOpts, runtime.WithLogWriterFactory(a.logWriterFactory))
+ 	}
++	if a.progressDisplay == nil {
++		// A sub-DAG run in this process reports to the display of the run
++		// that started it.
++		if parent, ok := runctx.OutputTapFrom(ctx).(subRunReporter); ok {
++			a.progressDisplay = parent.SubRunProgress(a.dagRunID)
++		}
++	}
++	if tap, ok := a.progressDisplay.(runtime.OutputTap); ok {
++		contextOpts = append(contextOpts, runtime.WithOutputTap(tap))
++	}
+ 	ctx = runtime.NewContext(ctx, a.dag, a.dagRunID, a.logFile, contextOpts...)
+ 	ctx = runtimeexec.WithSubWorkflowRunner(ctx, subWorkflowRunner)
+ 	if a.workspaceSeed != nil {
+@@ -1101,8 +1111,11 @@ func (a *Agent) Run(ctx context.Context) (runErr error) {
+ 			<-progressDone
+ 		}
+ 		if a.progressDisplay != nil {
+-			// Give a small delay to ensure final render
+-			time.Sleep(100 * time.Millisecond)
++			// Give a small delay to ensure final render. A sub-DAG run's
++			// reporter draws nothing of its own.
++			if _, sub := a.progressDisplay.(*regionSubRunReporter); !sub {
++				time.Sleep(100 * time.Millisecond)
++			}
+ 			a.progressDisplay.Stop()
+ 		}
+ 	}()
+diff --git a/internal/runtime/agent/agent_progress.go b/internal/runtime/agent/agent_progress.go
+index 6581f7a0a..ba6f3b560 100644
+--- a/internal/runtime/agent/agent_progress.go
++++ b/internal/runtime/agent/agent_progress.go
+@@ -16,7 +16,12 @@ func createProgressReporter(dag *ir.DAG, dagRunID string, params []string) Progr
+ 		display.SetDAGRunInfo(dagRunID, strings.Join(params, " "))
+ 		return display
+ 	}
+-	display := NewSimpleProgressDisplay(dag)
++	if redirectsToTerminal(dag) {
++		display := NewSimpleProgressDisplay(dag)
++		display.SetDAGRunInfo(dagRunID, strings.Join(params, " "))
++		return display
++	}
++	display := NewRegionProgressDisplay(dag)
+ 	display.SetDAGRunInfo(dagRunID, strings.Join(params, " "))
+ 	return display
+ }
+diff --git a/internal/runtime/agent/progress_agent_dag_test.go b/internal/runtime/agent/progress_agent_dag_test.go
+index 49d1e5af9..db7ceb47b 100644
+--- a/internal/runtime/agent/progress_agent_dag_test.go
++++ b/internal/runtime/agent/progress_agent_dag_test.go
+@@ -31,6 +31,11 @@ func TestCreateProgressReporter_AgentDAG(t *testing.T) {
+ 
+ 	graphDAG := &ir.DAG{Name: "etl"}
+ 	reporter = createProgressReporter(graphDAG, "run-2", nil)
++	assert.IsType(t, &RegionProgressDisplay{}, reporter)
++
++	// A step writing to the terminal would scroll through the region.
++	redirectDAG := &ir.DAG{Name: "etl", Steps: []ir.Step{{Name: "load", Stdout: "/dev/stdout"}}}
++	reporter = createProgressReporter(redirectDAG, "run-3", nil)
+ 	assert.IsType(t, &SimpleProgressDisplay{}, reporter)
+ }
+ 
+diff --git a/internal/runtime/agent/progress_interface.go b/internal/runtime/agent/progress_interface.go
+index dc7c076f7..b36e7c009 100644
+--- a/internal/runtime/agent/progress_interface.go
++++ b/internal/runtime/agent/progress_interface.go
+@@ -25,5 +25,15 @@ type ProgressReporter interface {
+ 	SetDAGRunInfo(dagRunID, params string)
+ }
+ 
++// subRunReporter is a display that also shows the sub-DAG runs a step
++// starts in the same process.
++type subRunReporter interface {
++	SubRunProgress(dagRunID string) ProgressReporter
++}
++
+ // Ensure implementation satisfies the interface
+-var _ ProgressReporter = (*SimpleProgressDisplay)(nil)
++var (
++	_ ProgressReporter = (*SimpleProgressDisplay)(nil)
++	_ ProgressReporter = (*RegionProgressDisplay)(nil)
++	_ ProgressReporter = (*regionSubRunReporter)(nil)
++)
+diff --git a/internal/runtime/agent/progress_keys_bsd.go b/internal/runtime/agent/progress_keys_bsd.go
+new file mode 100644
+index 000000000..39c38ace2
+--- /dev/null
++++ b/internal/runtime/agent/progress_keys_bsd.go
+@@ -0,0 +1,13 @@
++// Copyright (C) 2026 Yota Hamada
++// SPDX-License-Identifier: GPL-3.0-or-later
++
++//go:build darwin || dragonfly || freebsd || netbsd || openbsd
++
++package agent
++
++import "golang.org/x/sys/unix"
++
++const (
++	ioctlGetTermios = unix.TIOCGETA
++	ioctlSetTermios = unix.TIOCSETA
++)
+diff --git a/internal/runtime/agent/progress_keys_linux.go b/internal/runtime/agent/progress_keys_linux.go
+new file mode 100644
+index 000000000..57fe3d71b
+--- /dev/null
++++ b/internal/runtime/agent/progress_keys_linux.go
+@@ -0,0 +1,11 @@
++// Copyright (C) 2026 Yota Hamada
++// SPDX-License-Identifier: GPL-3.0-or-later
++
++package agent
++
++import "golang.org/x/sys/unix"
++
++const (
++	ioctlGetTermios = unix.TCGETS
++	ioctlSetTermios = unix.TCSETS
++)
+diff --git a/internal/runtime/agent/progress_keys_other.go b/internal/runtime/agent/progress_keys_other.go
+new file mode 100644
+index 000000000..367dc1422
+--- /dev/null
++++ b/internal/runtime/agent/progress_keys_other.go
+@@ -0,0 +1,11 @@
++// Copyright (C) 2026 Yota Hamada
++// SPDX-License-Identifier: GPL-3.0-or-later
++
++//go:build !(linux || darwin || dragonfly || freebsd || netbsd || openbsd)
++
++package agent
++
++// readKeys reads no keys where the terminal mode is not set through termios.
++func readKeys(func(byte)) (restore func()) {
++	return func() {}
++}
+diff --git a/internal/runtime/agent/progress_keys_unix.go b/internal/runtime/agent/progress_keys_unix.go
+new file mode 100644
+index 000000000..b0eaad5fd
+--- /dev/null
++++ b/internal/runtime/agent/progress_keys_unix.go
+@@ -0,0 +1,89 @@
++// Copyright (C) 2026 Yota Hamada
++// SPDX-License-Identifier: GPL-3.0-or-later
++
++//go:build linux || darwin || dragonfly || freebsd || netbsd || openbsd
++
++package agent
++
++import (
++	"errors"
++	"os"
++	"os/signal"
++	"syscall"
++
++	"golang.org/x/sys/unix"
++)
++
++// readKeys passes each key pressed on the terminal at stdin to key, until
++// the returned function stops reading and puts the terminal back as it was.
++// The terminal stops waiting for a whole line and echoing it, but keeps its
++// signals, so Ctrl-C still interrupts the run; keys other than the ones key
++// acts on are dropped while it reads. It does nothing when stdin is not a
++// terminal or the run is not its foreground job, where changing the mode
++// would stop the process with SIGTTOU.
++func readKeys(key func(byte)) (restore func()) {
++	fd := int(os.Stdin.Fd())
++	if pgrp, err := unix.IoctlGetInt(fd, unix.TIOCGPGRP); err != nil || pgrp != unix.Getpgrp() {
++		return func() {}
++	}
++	old, err := unix.IoctlGetTermios(fd, ioctlGetTermios)
++	if err != nil {
++		return func() {}
++	}
++	stop, wake, err := os.Pipe()
++	if err != nil {
++		return func() {}
++	}
++	keys := *old
++	keys.Lflag &^= unix.ICANON | unix.ECHO
++	keys.Cc[unix.VMIN] = 1
++	keys.Cc[unix.VTIME] = 0
++	if err := unix.IoctlSetTermios(fd, ioctlSetTermios, &keys); err != nil {
++		_ = stop.Close()
++		_ = wake.Close()
++		return func() {}
++	}
++
++	done := make(chan struct{})
++	go func() {
++		defer close(done)
++		stopFd := int(stop.Fd())
++		buf := make([]byte, 16)
++		for {
++			// select rather than poll: macOS poll does not take a terminal.
++			var set unix.FdSet
++			set.Set(fd)
++			set.Set(stopFd)
++			if _, err := unix.Select(max(fd, stopFd)+1, &set, nil, nil, nil); err != nil {
++				if errors.Is(err, unix.EINTR) {
++					continue
++				}
++				return
++			}
++			if set.IsSet(stopFd) {
++				return
++			}
++			n, err := unix.Read(fd, buf)
++			if errors.Is(err, unix.EINTR) || errors.Is(err, unix.EAGAIN) {
++				continue
++			}
++			if err != nil || n == 0 {
++				return
++			}
++			for _, b := range buf[:n] {
++				key(b)
++			}
++		}
++	}()
++
++	return func() {
++		_ = wake.Close()
++		<-done
++		_ = stop.Close()
++		// Moved to the background since, the process would stop on the
++		// restore; ignoring SIGTTOU lets it through.
++		signal.Ignore(syscall.SIGTTOU)
++		_ = unix.IoctlSetTermios(fd, ioctlSetTermios, old)
++		signal.Reset(syscall.SIGTTOU)
++	}
++}
+diff --git a/internal/runtime/agent/progress_region.go b/internal/runtime/agent/progress_region.go
+new file mode 100644
+index 000000000..c2bf23977
+--- /dev/null
++++ b/internal/runtime/agent/progress_region.go
+@@ -0,0 +1,836 @@
++// Copyright (C) 2026 Yota Hamada
++// SPDX-License-Identifier: GPL-3.0-or-later
++
++package agent
++
++import (
++	"bytes"
++	"fmt"
++	"image/color"
++	"io"
++	"os"
++	"slices"
++	"strings"
++	"sync"
++	"sync/atomic"
++	"time"
++
++	"charm.land/lipgloss/v2"
++	"github.com/charmbracelet/colorprofile"
++	"github.com/dagucloud/dagu/v2/internal/cmn/stringutil"
++	"github.com/dagucloud/dagu/v2/internal/ir"
++	"github.com/mattn/go-runewidth"
++	"golang.org/x/term"
++)
++
++const (
++	// regionWindowLines is how many lines of the focused step's output the
++	// region shows.
++	regionWindowLines = 10
++	// regionFixedRows counts the region's rows besides the output lines and
++	// the log path: the header, the bar, the step and the pane's two borders.
++	regionFixedRows = 5
++	// regionMarginRows keeps the region off the terminal's top row and leaves
++	// the row the cursor rests on below it.
++	regionMarginRows = 2
++	// regionKeptLines is how many lines of each step's output are kept, and
++	// regionLineBytes how much of each line.
++	regionKeptLines = 200
++	regionLineBytes = 4096
++	// regionFrame is the shortest time between two frames.
++	regionFrame = 16 * time.Millisecond
++	// regionTick redraws a quiet region, for the clock and the spinner.
++	regionTick = 100 * time.Millisecond
++)
++
++// RegionProgressDisplay keeps a fixed region at the bottom of the terminal
++// and redraws it in place: a bar with a segment per step, the running step
++// with its status and elapsed time, and a pane with the step's last lines of
++// output. The output comes from the runner as the step writes it, through
++// StepOutput, so a step needs no redirect to reach the terminal and never
++// interleaves with the region.
++type RegionProgressDisplay struct {
++	progressWriter
++
++	dag      *ir.DAG
++	dagRunID string
++	params   string
++	profile  colorprofile.Profile
++
++	mu sync.Mutex
++	// steps are the DAG's steps in order: the bar's segments and the counts.
++	steps []string
++	// nodes holds every step seen, the DAG's own under their name and those
++	// of a sub-DAG run under subRunKey.
++	nodes map[string]*regionNode
++	// subRuns maps a sub-DAG run to the step that started it.
++	subRuns   map[string]regionSubRun
++	focus     string
++	status    ir.Status
++	startTime time.Time
++
++	// changed wakes the drawing goroutine when output or a status arrives.
++	changed chan struct{}
++
++	// keys is whether the region reads keys from the terminal, and
++	// maximized whether the pane fills the terminal instead of
++	// regionWindowLines rows; w switches between the two.
++	keys        bool
++	maximized   atomic.Bool
++	restoreKeys func()
++	restoreOnce sync.Once
++
++	// Owned by the drawing goroutine.
++	drawn     []int
++	drawnCols int
++	drawnRows int
++	spinner   int
++	size      func() (cols, rows int)
++
++	stopOnce sync.Once
++	stopCh   chan struct{}
++	done     chan struct{}
++}
++
++type regionNode struct {
++	name     string
++	runID    string
++	status   ir.NodeStatus
++	started  time.Time
++	finished time.Time
++	log      string
++	lines    []string
++	partial  string
++}
++
++// regionState is what one frame shows, copied under the lock so that
++// writing the terminal never holds up the runner or a step's output.
++type regionState struct {
++	statuses []ir.NodeStatus
++	focus    string
++	label    string
++	node     regionNode
++	status   ir.Status
++	elapsed  time.Duration
++}
++
++// NewRegionProgressDisplay creates a region display for dag.
++func NewRegionProgressDisplay(dag *ir.DAG) *RegionProgressDisplay {
++	p := &RegionProgressDisplay{
++		progressWriter: newProgressWriter(),
++		dag:            dag,
++		profile:        colorprofile.Detect(os.Stderr, os.Environ()),
++		nodes:          make(map[string]*regionNode),
++		subRuns:        make(map[string]regionSubRun),
++		changed:        make(chan struct{}, 1),
++		keys:           term.IsTerminal(int(os.Stdin.Fd())) && term.IsTerminal(int(os.Stderr.Fd())),
++		size:           stderrSize,
++		stopCh:         make(chan struct{}),
++		done:           make(chan struct{}),
++	}
++	if dag != nil {
++		for _, step := range dag.Steps {
++			p.steps = append(p.steps, step.Name)
++			p.nodes[step.Name] = &regionNode{name: step.Name}
++		}
++	}
++	return p
++}
++
++// redirectsToTerminal reports whether a step of dag writes to the terminal
++// itself, which would scroll through a region drawn there.
++func redirectsToTerminal(dag *ir.DAG) bool {
++	if dag == nil {
++		return false
++	}
++	for _, step := range dag.Steps {
++		for _, path := range []string{step.Stdout, step.Stderr} {
++			switch path {
++			case "/dev/stdout", "/dev/stderr", "/dev/tty", "/dev/fd/1", "/dev/fd/2":
++				return true
++			}
++		}
++	}
++	return false
++}
++
++func stderrSize() (int, int) {
++	cols, rows, err := term.GetSize(int(os.Stderr.Fd()))
++	if err != nil {
++		return 100, 40
++	}
++	return cols, rows
++}
++
++// Start begins the progress display.
++func (p *RegionProgressDisplay) Start() {
++	p.restoreKeys = func() {}
++	if p.keys {
++		p.restoreKeys = readKeys(p.key)
++	}
++	go p.run()
++}
++
++// Stop stops the progress display and gives the terminal its mode back.
++// Safe to call multiple times.
++func (p *RegionProgressDisplay) Stop() {
++	p.stopOnce.Do(func() {
++		close(p.stopCh)
++	})
++	<-p.done
++	p.restoreOnce.Do(func() {
++		if p.restoreKeys != nil {
++			p.restoreKeys()
++		}
++	})
++}
++
++// key acts on a key pressed while the region is shown.
++func (p *RegionProgressDisplay) key(b byte) {
++	if b == 'w' || b == 'W' {
++		p.maximized.Store(!p.maximized.Load())
++		p.wake()
++	}
++}
++
++// StepOutput returns a writer for the output of the named step. Each call
++// returns its own writer, so stdout and stderr keep their own partial line.
++func (p *RegionProgressDisplay) StepOutput(stepName string) io.Writer {
++	return &regionOutput{p: p, key: stepName, name: stepName}
++}
++
++// regionOutput splits a step's output into lines for the region.
++type regionOutput struct {
++	p       *RegionProgressDisplay
++	key     string
++	runID   string
++	name    string
++	partial []byte
++}
++
++func (w *regionOutput) Write(b []byte) (int, error) {
++	w.partial = append(w.partial, b...)
++	var complete []string
++	for {
++		i := bytes.IndexByte(w.partial, '\n')
++		if i < 0 {
++			break
++		}
++		complete = append(complete, cleanLine(string(w.partial[:min(i, regionLineBytes)])))
++		w.partial = w.partial[i+1:]
++	}
++	if len(w.partial) > regionLineBytes {
++		complete = append(complete, cleanLine(string(w.partial)))
++		w.partial = w.partial[:0]
++	}
++
++	p := w.p
++	p.mu.Lock()
++	n := p.node(w.key, w.runID, w.name)
++	n.lines = append(n.lines, complete...)
++	if extra := len(n.lines) - regionKeptLines; extra > 0 {
++		n.lines = slices.Delete(n.lines, 0, extra)
++	}
++	n.partial = cleanLine(string(w.partial))
++	p.mu.Unlock()
++	p.wake()
++	return len(b), nil
++}
++
++func (p *RegionProgressDisplay) wake() {
++	select {
++	case p.changed <- struct{}{}:
++	default:
++	}
++}
++
++// node returns the record of the step under key, adding one for a handler
++// such as onExit or a sub-DAG's step, which are shown while they run but are
++// not among the bar's steps.
++func (p *RegionProgressDisplay) node(key, runID, name string) *regionNode {
++	n, ok := p.nodes[key]
++	if !ok {
++		n = &regionNode{name: name, runID: runID}
++		p.nodes[key] = n
++	}
++	return n
++}
++
++// regionSubRun is a sub-DAG run: the step that started it and, for a
++// parallel step, the item it runs.
++type regionSubRun struct {
++	parent string
++	item   string
++	dag    string
++}
++
++// subRunKey is the key of a sub-DAG run's step in nodes.
++func subRunKey(runID, stepName string) string {
++	return runID + "\x00" + stepName
++}
++
++// SubRunProgress returns the reporter of a sub-DAG run started by a step
++// of this run or of one of its sub-DAG runs, which runs in this process and
++// shows its steps and their output in this region.
++func (p *RegionProgressDisplay) SubRunProgress(dagRunID string) ProgressReporter {
++	return &regionSubRunReporter{p: p, runID: dagRunID}
++}
++
++// UpdateNode records a step's status, times and log file.
++func (p *RegionProgressDisplay) UpdateNode(node *ir.Node) {
++	p.update(node.Step.Name, "", node)
++}
++
++func (p *RegionProgressDisplay) update(key, runID string, node *ir.Node) {
++	p.mu.Lock()
++	n := p.node(key, runID, node.Step.Name)
++	for _, sub := range node.SubRuns {
++		p.subRuns[sub.DAGRunID] = regionSubRun{
++			parent: key,
++			item:   strings.Trim(sub.ParallelItem, `"`),
++			dag:    sub.DAGName,
++		}
++	}
++	now := time.Now()
++	if isRunning(node.Status) && !isRunning(n.status) {
++		// A first start, a retry or the next round of a repeat.
++		n.started = now
++		n.finished = time.Time{}
++		p.focus = key
++		p.dropFinishedOutput(key)
++	}
++	if node.Status.IsDone() && !n.status.IsDone() {
++		n.finished = parseTimeOr(node.FinishedAt, now)
++		if n.started.IsZero() {
++			n.started = parseTimeOr(node.StartedAt, n.finished)
++		}
++	}
++	n.status = node.Status
++	if node.Stdout != "" {
++		n.log = node.Stdout
++	}
++	p.mu.Unlock()
++	p.wake()
++}
++
++// dropFinishedOutput forgets the output of the sub-DAG runs' steps that
++// succeeded, other than keep, so a run with hundreds of sub-DAG runs holds
++// the output of the few it can still show.
++func (p *RegionProgressDisplay) dropFinishedOutput(keep string) {
++	for key, n := range p.nodes {
++		if key != keep && n.runID != "" && n.status.IsSuccess() && n.lines != nil {
++			n.lines, n.partial = nil, ""
++		}
++	}
++}
++
++// regionSubRunReporter passes a sub-DAG run's steps and output to the
++// region of the run that started it; the region is that run's to start and
++// stop.
++type regionSubRunReporter struct {
++	p     *RegionProgressDisplay
++	runID string
++}
++
++func (c *regionSubRunReporter) Start()                        {}
++func (c *regionSubRunReporter) Stop()                         {}
++func (c *regionSubRunReporter) UpdateStatus(*ir.DAGRunStatus) {}
++func (c *regionSubRunReporter) SetDAGRunInfo(string, string)  {}
++
++func (c *regionSubRunReporter) UpdateNode(node *ir.Node) {
++	c.p.update(subRunKey(c.runID, node.Step.Name), c.runID, node)
++}
++
++// StepOutput returns a writer for the output of the sub-DAG run's step.
++func (c *regionSubRunReporter) StepOutput(stepName string) io.Writer {
++	return &regionOutput{p: c.p, key: subRunKey(c.runID, stepName), runID: c.runID, name: stepName}
++}
++
++// SubRunProgress returns the reporter of a sub-DAG run this one starts.
++func (c *regionSubRunReporter) SubRunProgress(dagRunID string) ProgressReporter {
++	return c.p.SubRunProgress(dagRunID)
++}
++
++// label names the step under key by its path from the run's own steps,
++// such as sections › xfs_bs4k_ss4k › start.
++func (p *RegionProgressDisplay) label(key string) string {
++	var parts []string
++	for range 16 {
++		n, ok := p.nodes[key]
++		if !ok {
++			break
++		}
++		parts = append(parts, printable(stringutil.StripANSI(n.name)))
++		if n.runID == "" {
++			break
++		}
++		sub, ok := p.subRuns[n.runID]
++		if !ok {
++			break
++		}
++		if sub.item != "" {
++			parts = append(parts, printable(stringutil.StripANSI(sub.item)))
++		}
++		key = sub.parent
++	}
++	slices.Reverse(parts)
++	return strings.Join(parts, " › ")
++}
++
++func isRunning(s ir.NodeStatus) bool {
++	return s == ir.NodeRunning || s == ir.NodeRetrying
++}
++
++func parseTimeOr(value string, fallback time.Time) time.Time {
++	if t, err := stringutil.ParseTime(value); err == nil && !t.IsZero() {
++		return t
++	}
++	return fallback
++}
++
++// UpdateStatus updates the overall DAG status.
++func (p *RegionProgressDisplay) UpdateStatus(status *ir.DAGRunStatus) {
++	p.mu.Lock()
++	p.status = status.Status
++	p.mu.Unlock()
++	p.wake()
++}
++
++// SetDAGRunInfo sets the DAG run ID and parameters.
++func (p *RegionProgressDisplay) SetDAGRunInfo(dagRunID, params string) {
++	p.mu.Lock()
++	defer p.mu.Unlock()
++	p.dagRunID = dagRunID
++	p.params = params
++}
++
++// run draws a frame when something changed, at most one per regionFrame,
++// and otherwise every regionTick.
++func (p *RegionProgressDisplay) run() {
++	defer close(p.done)
++
++	p.mu.Lock()
++	p.startTime = time.Now()
++	p.mu.Unlock()
++
++	tick := time.NewTicker(regionTick)
++	defer tick.Stop()
++	var last time.Time
++	for {
++		select {
++		case <-p.stopCh:
++			p.printFinal()
++			return
++		case <-tick.C:
++			p.spinner++
++		case <-p.changed:
++			if wait := regionFrame - time.Since(last); wait > 0 {
++				select {
++				case <-p.stopCh:
++					p.printFinal()
++					return
++				case <-time.After(wait):
++				}
++			}
++		}
++		p.redraw()
++		last = time.Now()
++	}
++}
++
++// state copies what a frame shows. The focus stays on the step that started
++// last while it runs, which is the deepest one when a sub-DAG runs, then
++// moves to the running step that started last, and otherwise stays on the
++// last step that ran.
++func (p *RegionProgressDisplay) state(now time.Time) regionState {
++	p.mu.Lock()
++	defer p.mu.Unlock()
++
++	s := regionState{status: p.status, elapsed: now.Sub(p.startTime)}
++	for _, name := range p.steps {
++		s.statuses = append(s.statuses, p.nodes[name].status)
++	}
++	if n, ok := p.nodes[p.focus]; !ok || !isRunning(n.status) {
++		var latest time.Time
++		for key, n := range p.nodes {
++			if isRunning(n.status) && n.started.After(latest) {
++				p.focus, latest = key, n.started
++			}
++		}
++	}
++	if n, ok := p.nodes[p.focus]; ok {
++		s.focus = p.focus
++		s.label = p.label(p.focus)
++		s.node = *n
++		s.node.lines = slices.Clone(n.lines)
++	}
++	return s
++}
++
++func (p *RegionProgressDisplay) redraw() {
++	now := time.Now()
++	s := p.state(now)
++	cols, rows := p.size()
++	p.draw(p.region(s, now, cols, rows), cols, rows)
++}
++
++// draw replaces the region on screen with lines in one write. Each line
++// overwrites the one drawn before it and erases only what is left of it, so
++// the region never shows blank between frames. After the terminal changed
++// size, the region is drawn again on a cleared screen: a terminal that
++// re-wraps its lines and one that cuts them leave the old region over a
++// different number of rows, and only a clear screen is the same on both.
++func (p *RegionProgressDisplay) draw(lines []string, cols, rows int) {
++	var buf strings.Builder
++	if len(p.drawn) > 0 && (cols != p.drawnCols || rows != p.drawnRows) {
++		buf.WriteString("\x1b[0m\x1b[H\x1b[2J")
++		p.drawn = p.drawn[:0]
++	}
++	p.drawnCols, p.drawnRows = cols, rows
++	buf.WriteString(p.home(cols, rows))
++	for _, line := range lines {
++		buf.WriteString(line)
++		buf.WriteString("\x1b[K\n")
++	}
++	buf.WriteString("\x1b[J")
++	_, _ = io.WriteString(p.out, buf.String())
++	p.drawn = p.drawn[:0]
++	for _, line := range lines {
++		p.drawn = append(p.drawn, lipgloss.Width(line))
++	}
++}
++
++// home returns the sequence that moves the cursor to the start of the
++// region's first row. A terminal that got narrower has re-wrapped the drawn
++// lines, so the rows are counted at the width now, and never past the top of
++// the screen.
++func (p *RegionProgressDisplay) home(cols, rows int) string {
++	if len(p.drawn) == 0 {
++		return ""
++	}
++	cols = max(cols, 1)
++	n := 0
++	for _, w := range p.drawn {
++		n += max(1, (w+cols-1)/cols)
++	}
++	n = min(n, max(rows-1, 1))
++	return fmt.Sprintf("\x1b[0m\r\x1b[%dA", n)
++}
++
++// region returns the frame's lines, each fitted to cols - 1 columns, and no
++// more of them than the terminal has rows to spare.
++func (p *RegionProgressDisplay) region(s regionState, now time.Time, cols, rows int) []string {
++	width := max(cols-1, 20)
++	log := p.logLines(s.node.log, width)
++	window := max(1, rows-regionFixedRows-len(log)-regionMarginRows)
++	if !p.maximized.Load() {
++		window = min(window, regionWindowLines)
++	}
++	lines := []string{p.header(s, width), p.barLine(s.statuses, width), p.stepLine(s, now, width)}
++	lines = append(lines, p.pane(s.node, window, width, p.keys)...)
++	lines = append(lines, log...)
++	if limit := max(rows-regionMarginRows, 1); len(lines) > limit {
++		lines = lines[:limit]
++	}
++	return lines
++}
++
++// header names the DAG, the run and its parameters, with the time the run
++// has taken at the right edge.
++func (p *RegionProgressDisplay) header(s regionState, width int) string {
++	p.mu.Lock()
++	name, runID, params := "unknown", p.dagRunID, p.params
++	if p.dag != nil {
++		name = p.dag.Name
++	}
++	p.mu.Unlock()
++	name, runID, params = cleanLine(name), cleanLine(runID), cleanLine(params)
++	elapsed := stringutil.FormatDuration(s.elapsed.Truncate(100 * time.Millisecond))
++	room := max(width-runewidth.StringWidth(elapsed)-1, 1)
++	name = fit(name, room)
++	rest := fit(strings.TrimRight("  "+runID+"  "+params, " "), room-runewidth.StringWidth(name))
++	gap := max(room-runewidth.StringWidth(name)-runewidth.StringWidth(rest), 0)
++	if p.profile > colorprofile.Ascii {
++		name = lipgloss.NewStyle().Bold(true).Render(name)
++	}
++	return name + p.paint(colorFaint, rest) + strings.Repeat(" ", gap+1) + p.paint(colorText, elapsed)
++}
++
++// Colors of the region, converted to what the terminal can show.
++var (
++	colorDone    = lipgloss.Color("#3FB950")
++	colorStart   = lipgloss.Color("#2DD4BF")
++	colorRun     = lipgloss.Color("#38BDF8")
++	colorFail    = lipgloss.Color("#F85149")
++	colorWait    = lipgloss.Color("#D29922")
++	colorFaint   = lipgloss.Color("#6E7681")
++	colorText    = lipgloss.Color("#E6EDF3")
++	colorPillInk = lipgloss.Color("#0D1117")
++)
++
++// paint renders text in c, or leaves it plain on a terminal without colors.
++func (p *RegionProgressDisplay) paint(c color.Color, text string) string {
++	if p.profile <= colorprofile.Ascii {
++		return text
++	}
++	return lipgloss.NewStyle().Foreground(p.profile.Convert(c)).Render(text)
++}
++
++// barLine is a full-width bar with a segment per step, colored by the
++// step's status, followed by the number of finished steps.
++func (p *RegionProgressDisplay) barLine(statuses []ir.NodeStatus, width int) string {
++	finished := 0
++	for _, s := range statuses {
++		if s.IsDone() {
++			finished++
++		}
++	}
++	count := fmt.Sprintf(" %d/%d", finished, len(statuses))
++	cells := max(width-runewidth.StringWidth(count), 1)
++	if len(statuses) == 0 {
++		return p.paint(colorFaint, strings.Repeat("─", cells)+count)
++	}
++	gradient := lipgloss.Blend1D(cells, colorStart, colorDone)
++	var b strings.Builder
++	for c := range cells {
++		lo := c * len(statuses) / cells
++		hi := max((c+1)*len(statuses)/cells, lo+1)
++		status := statuses[lo]
++		for _, r := range barRank {
++			if slices.Contains(statuses[lo:hi], r) {
++				status = r
++				break
++			}
++		}
++		switch {
++		case status == ir.NodeNotStarted:
++			b.WriteString(p.paint(colorFaint, "─"))
++		case status == ir.NodeSkipped:
++			b.WriteString(p.paint(colorFaint, "━"))
++		case status.IsSuccess():
++			b.WriteString(p.paint(gradient[c], "━"))
++		default:
++			b.WriteString(p.paint(statusColor(status), "━"))
++		}
++	}
++	return b.String() + p.paint(colorText, count)
++}
++
++// barRank orders statuses by how much they matter when steps share a cell.
++var barRank = []ir.NodeStatus{
++	ir.NodeFailed, ir.NodeAborted, ir.NodeRejected, ir.NodeRunning,
++	ir.NodeRetrying, ir.NodeWaiting, ir.NodeNotStarted, ir.NodePartiallySucceeded,
++	ir.NodeSucceeded, ir.NodeSkipped,
++}
++
++func statusColor(s ir.NodeStatus) color.Color {
++	switch {
++	case isRunning(s):
++		return colorRun
++	case s == ir.NodeWaiting:
++		return colorWait
++	case s == ir.NodeSkipped || s == ir.NodeNotStarted:
++		return colorFaint
++	case s.IsSuccess():
++		return colorDone
++	default:
++		return colorFail
++	}
++}
++
++func statusLabel(s ir.NodeStatus) string {
++	switch {
++	case isRunning(s):
++		return "RUNNING"
++	case s == ir.NodeWaiting:
++		return "WAITING"
++	case s == ir.NodeSkipped:
++		return "SKIPPED"
++	case s == ir.NodeNotStarted:
++		return "PENDING"
++	case s.IsSuccess():
++		return "DONE"
++	default:
++		return "FAILED"
++	}
++}
++
++// pill renders a status as a colored label, or in brackets without colors.
++func (p *RegionProgressDisplay) pill(s ir.NodeStatus) string {
++	label := statusLabel(s)
++	if p.profile <= colorprofile.Ascii {
++		return "[" + label + "]"
++	}
++	return lipgloss.NewStyle().Bold(true).Padding(0, 1).
++		Foreground(p.profile.Convert(colorPillInk)).
++		Background(p.profile.Convert(statusColor(s))).
++		Render(label)
++}
++
++// stepLine is the focused step: a spinner while it runs, its status, name
++// and place in the DAG, and its elapsed time at the right edge.
++func (p *RegionProgressDisplay) stepLine(s regionState, now time.Time, width int) string {
++	if s.focus == "" {
++		return p.paint(colorFaint, fit(" waiting for the first step", width))
++	}
++	n := s.node
++	mark, end := " ", now
++	if isRunning(n.status) {
++		mark = p.paint(colorRun, stringutil.SpinnerFrames[p.spinner%len(stringutil.SpinnerFrames)])
++	}
++	if n.status.IsDone() {
++		end = n.finished
++	}
++	elapsed := stringutil.FormatDuration(end.Sub(n.started).Truncate(100 * time.Millisecond))
++	left := mark + " " + p.pill(n.status) + " "
++	room := max(width-lipgloss.Width(left)-runewidth.StringWidth(elapsed)-1, 1)
++	name := fit(s.label, room)
++	gap := max(room-runewidth.StringWidth(name), 0)
++
++	if p.profile > colorprofile.Ascii {
++		name = lipgloss.NewStyle().Bold(true).Render(name)
++	}
++	return left + name + strings.Repeat(" ", gap+1) + p.paint(colorFaint, elapsed)
++}
++
++// pane boxes the last window lines of the step's output, naming the key
++// that maximizes it when keys are read.
++func (p *RegionProgressDisplay) pane(n regionNode, window, width int, keys bool) []string {
++	inner := width - 4
++	title, hint := "─ output ", ""
++	if keys {
++		hint = " w maximize ─"
++		if p.maximized.Load() {
++			hint = " w restore ─"
++		}
++	}
++	fill := max(width-2-runewidth.StringWidth(title)-runewidth.StringWidth(hint), 0)
++	lines := []string{p.paint(colorFaint, "╭"+title+strings.Repeat("─", fill)+hint+"╮")}
++	out := n.lines
++	if n.partial != "" {
++		out = append(slices.Clone(out), n.partial)
++	}
++	if len(out) > window {
++		out = out[len(out)-window:]
++	}
++	for i := range window {
++		text := ""
++		if i < len(out) {
++			text = fit(out[i], inner)
++		}
++		pad := strings.Repeat(" ", max(inner-runewidth.StringWidth(text), 0))
++		lines = append(lines, p.paint(colorFaint, "│")+" "+text+pad+" "+p.paint(colorFaint, "│"))
++	}
++	lines = append(lines, p.paint(colorFaint, "╰"+strings.Repeat("─", max(width-2, 0))+"╯"))
++	return lines
++}
++
++// logLines is the path of the step's log, whole, folded over as many lines
++// as it needs to fit width.
++func (p *RegionProgressDisplay) logLines(path string, width int) []string {
++	if path == "" {
++		return nil
++	}
++	const label, indent = " log ", "     "
++	var lines []string
++	rest := []rune(path)
++	for prefix := label; len(rest) > 0; prefix = indent {
++		room := max(width-runewidth.StringWidth(prefix), 1)
++		n, w := 0, 0
++		for n < len(rest) && w+runewidth.RuneWidth(rest[n]) <= room {
++			w += runewidth.RuneWidth(rest[n])
++			n++
++		}
++		n = max(n, 1)
++		lines = append(lines, p.paint(colorFaint, prefix)+string(rest[:n]))
++		rest = rest[n:]
++	}
++	return lines
++}
++
++// printFinal replaces the region with the final bar and a summary line. A
++// run that did not succeed keeps the focused step and its pane, which say
++// why.
++func (p *RegionProgressDisplay) printFinal() {
++	now := time.Now()
++	s := p.state(now)
++	cols, rows := p.size()
++	width := max(cols-1, 20)
++
++	finished := 0
++	for _, st := range s.statuses {
++		if st.IsDone() {
++			finished++
++		}
++	}
++	summary := fmt.Sprintf("%s %d/%d steps in %s", statusIcon(s.status), finished, len(s.statuses),
++		stringutil.FormatDuration(s.elapsed.Truncate(100*time.Millisecond)))
++	lines := []string{
++		p.header(s, width), p.barLine(s.statuses, width),
++		p.paint(statusColorOf(s.status), fit(summary, width)),
++	}
++	if !s.status.IsSuccess() && s.focus != "" {
++		lines = append(lines, p.stepLine(s, now, width))
++		lines = append(lines, p.pane(s.node, regionWindowLines, width, false)...)
++		lines = append(lines, p.logLines(s.node.log, width)...)
++	}
++	p.draw(lines, cols, rows)
++	p.drawn = nil
++}
++
++func statusColorOf(s ir.Status) color.Color {
++	switch s {
++	case ir.Succeeded, ir.PartiallySucceeded:
++		return colorDone
++	case ir.Failed, ir.Aborted:
++		return colorFail
++	default:
++		return colorText
++	}
++}
++
++// cleanLine returns a line of output as text safe to print: no escape
++// sequences or control characters, only what follows its last carriage
++// return, and tabs expanded.
++func cleanLine(line string) string {
++	line = strings.TrimRight(line, "\r")
++	if j := strings.LastIndexByte(line, '\r'); j >= 0 {
++		line = line[j+1:]
++	}
++	return printable(expandTabs(stringutil.StripANSI(line)))
++}
++
++// printable drops what would move the cursor or change the terminal's state
++// rather than print: control characters and invalid UTF-8.
++func printable(s string) string {
++	return strings.Map(func(r rune) rune {
++		if r < 0x20 || (r >= 0x7f && r <= 0x9f) {
++			return -1
++		}
++		return r
++	}, strings.ToValidUTF8(s, "�"))
++}
++
++func expandTabs(s string) string {
++	if !strings.Contains(s, "\t") {
++		return s
++	}
++	var b strings.Builder
++	col := 0
++	for _, r := range s {
++		if r == '\t' {
++			spaces := 8 - col%8
++			b.WriteString(strings.Repeat(" ", spaces))
++			col += spaces
++			continue
++		}
++		b.WriteRune(r)
++		col += runewidth.RuneWidth(r)
++	}
++	return b.String()
++}
++
++// fit cuts plain text s to width columns, marking a cut with an ellipsis.
++func fit(s string, width int) string {
++	return runewidth.Truncate(s, max(width, 0), "…")
++}
+diff --git a/internal/runtime/agent/progress_region_test.go b/internal/runtime/agent/progress_region_test.go
+new file mode 100644
+index 000000000..11e77ca66
+--- /dev/null
++++ b/internal/runtime/agent/progress_region_test.go
+@@ -0,0 +1,405 @@
++// Copyright (C) 2026 Yota Hamada
++// SPDX-License-Identifier: GPL-3.0-or-later
++
++package agent
++
++import (
++	"bytes"
++	"fmt"
++	"io"
++	"strings"
++	"sync"
++	"testing"
++	"time"
++
++	"charm.land/lipgloss/v2"
++	"github.com/charmbracelet/colorprofile"
++	"github.com/dagucloud/dagu/v2/internal/ir"
++	"github.com/stretchr/testify/assert"
++	"github.com/stretchr/testify/require"
++)
++
++// syncBuffer is a bytes.Buffer safe to read while the display writes to it.
++type syncBuffer struct {
++	mu  sync.Mutex
++	buf bytes.Buffer
++}
++
++func (b *syncBuffer) Write(p []byte) (int, error) {
++	b.mu.Lock()
++	defer b.mu.Unlock()
++	return b.buf.Write(p)
++}
++
++func (b *syncBuffer) String() string {
++	b.mu.Lock()
++	defer b.mu.Unlock()
++	return b.buf.String()
++}
++
++func newTestRegion(t *testing.T, names ...string) (*RegionProgressDisplay, *syncBuffer) {
++	t.Helper()
++	dag := &ir.DAG{Name: "test"}
++	for _, name := range names {
++		dag.Steps = append(dag.Steps, ir.Step{Name: name})
++	}
++	p := NewRegionProgressDisplay(dag)
++	out := &syncBuffer{}
++	p.out = out
++	p.tty = false
++	p.keys = false
++	p.profile = colorprofile.Ascii
++	p.size = func() (int, int) { return 50, 20 }
++	p.startTime = time.Now()
++	return p, out
++}
++
++func frame(p *RegionProgressDisplay, cols, rows int) []string {
++	now := time.Now()
++	return p.region(p.state(now), now, cols, rows)
++}
++
++func write(t *testing.T, p *RegionProgressDisplay, step, text string) {
++	t.Helper()
++	_, err := p.StepOutput(step).Write([]byte(text))
++	require.NoError(t, err)
++}
++
++func TestRegionProgressDisplay_Region(t *testing.T) {
++	t.Parallel()
++
++	p, _ := newTestRegion(t, "configure", "build", "boot")
++	p.UpdateNode(&ir.Node{Step: ir.Step{Name: "configure"}, Status: ir.NodeSucceeded})
++	p.UpdateNode(&ir.Node{Step: ir.Step{Name: "build"}, Status: ir.NodeRunning, Stdout: "/logs/build.out"})
++	write(t, p, "build", "  CC init/main.o\n  CC\tkernel/fork.o\n  LD vmli")
++
++	p.SetDAGRunInfo("034jOFuV", "src=/linux")
++	lines := frame(p, 50, 20)
++	require.Len(t, lines, regionFixedRows+regionWindowLines+1)
++	assert.True(t, strings.HasPrefix(lines[0], "test  034jOFuV  src=/linux "), lines[0])
++	assert.Equal(t, strings.Repeat("━", 30)+strings.Repeat("─", 15)+" 1/3", lines[1])
++	assert.Contains(t, lines[2], "[RUNNING] build ")
++	assert.True(t, strings.HasPrefix(lines[3], "╭─ output ─"), lines[3])
++	assert.Equal(t, "│   CC init/main.o", strings.TrimRight(lines[4], " │"))
++	assert.Equal(t, "│   CC    kernel/fork.o", strings.TrimRight(lines[5], " │"))
++	assert.Equal(t, "│   LD vmli", strings.TrimRight(lines[6], " │"))
++	assert.Equal(t, "╰"+strings.Repeat("─", 47)+"╯", lines[len(lines)-2])
++	assert.Equal(t, " log /logs/build.out", lines[len(lines)-1])
++	for _, line := range lines[:len(lines)-1] {
++		assert.Equal(t, 49, lipgloss.Width(line), line)
++	}
++}
++
++func TestRegionProgressDisplay_LogPathIsWhole(t *testing.T) {
++	t.Parallel()
++
++	p, _ := newTestRegion(t)
++	path := "/home/user/.local/state/dagu/logs/kernel/dag-run_20261020/build.20261020.234346.704.034jPaFO.log"
++	lines := p.logLines(path, 40)
++	require.Len(t, lines, 3)
++	assert.Equal(t, " log "+path[:35], lines[0])
++	assert.Equal(t, "     "+path[35:70], lines[1])
++	assert.Equal(t, path, strings.TrimPrefix(lines[0], " log ")+strings.TrimSpace(lines[1])+strings.TrimSpace(lines[2]))
++	for _, line := range lines {
++		assert.LessOrEqual(t, lipgloss.Width(line), 40)
++	}
++}
++
++func TestRegionProgressDisplay_MaximizeKey(t *testing.T) {
++	t.Parallel()
++
++	p, _ := newTestRegion(t, "build")
++	p.keys = true
++	p.UpdateNode(&ir.Node{Step: ir.Step{Name: "build"}, Status: ir.NodeRunning, Stdout: "/logs/build.out"})
++
++	lines := frame(p, 50, 40)
++	assert.Len(t, lines, regionFixedRows+regionWindowLines+1)
++	assert.Contains(t, lines[3], " w maximize ─╮")
++
++	p.key('w')
++	lines = frame(p, 50, 40)
++	assert.Len(t, lines, 40-regionMarginRows)
++	assert.Contains(t, lines[3], " w restore ─╮")
++
++	p.key('x')
++	assert.Len(t, frame(p, 50, 40), 40-regionMarginRows)
++	p.key('w')
++	assert.Len(t, frame(p, 50, 40), regionFixedRows+regionWindowLines+1)
++}
++
++func TestRegionProgressDisplay_StopRestoresTerminalOnce(t *testing.T) {
++	t.Parallel()
++
++	p, _ := newTestRegion(t, "build")
++	p.Start()
++	restored := 0
++	p.restoreKeys = func() { restored++ }
++	p.Stop()
++	p.Stop()
++	assert.Equal(t, 1, restored)
++}
++
++func TestRegionProgressDisplay_LinesFitInColors(t *testing.T) {
++	t.Parallel()
++
++	p, _ := newTestRegion(t, "a", "b")
++	p.profile = colorprofile.TrueColor
++	p.UpdateNode(&ir.Node{Step: ir.Step{Name: "a"}, Status: ir.NodeRunning, Stdout: strings.Repeat("/x", 40)})
++	write(t, p, "a", strings.Repeat("日本語", 20)+"\n")
++
++	lines := frame(p, 40, 20)
++	assert.Contains(t, lines[2], "\x1b[")
++	for _, line := range lines {
++		assert.LessOrEqual(t, lipgloss.Width(line), 39, line)
++	}
++}
++
++func TestRegionProgressDisplay_OutputIsCleanedAndKept(t *testing.T) {
++	t.Parallel()
++
++	p, _ := newTestRegion(t, "build")
++	stdout, stderr := p.StepOutput("build"), p.StepOutput("build")
++	_, _ = stdout.Write([]byte("\x1b[32mgr"))
++	_, _ = stderr.Write([]byte("+ make\n"))
++	_, _ = stdout.Write([]byte("een\x1b[0m\x0e\b\n10%\r50%\r100%\nbad \xff byte\n"))
++	assert.Equal(t, []string{"+ make", "green", "100%", "bad � byte"}, p.nodes["build"].lines)
++
++	for i := range regionKeptLines {
++		_, _ = stderr.Write(fmt.Appendf(nil, "line %d\n", i))
++	}
++	n := p.nodes["build"]
++	assert.Len(t, n.lines, regionKeptLines)
++	assert.Equal(t, "line 0", n.lines[0])
++}
++
++func TestRegionProgressDisplay_LongLinesAreCut(t *testing.T) {
++	t.Parallel()
++
++	p, _ := newTestRegion(t, "build")
++	write(t, p, "build", strings.Repeat("x", 3*regionLineBytes)+"\n")
++	write(t, p, "build", strings.Repeat("y", 3*regionLineBytes))
++	n := p.nodes["build"]
++	require.Len(t, n.lines, 2)
++	assert.Len(t, n.lines[0], regionLineBytes)
++	assert.LessOrEqual(t, len(n.partial), regionLineBytes)
++}
++
++func TestRegionProgressDisplay_NamesAreCleaned(t *testing.T) {
++	t.Parallel()
++
++	p, _ := newTestRegion(t, "sections")
++	p.SetDAGRunInfo("run\x1b[2J", "a=1\nb=2")
++	p.UpdateNode(&ir.Node{Step: ir.Step{Name: "sections"}, Status: ir.NodeRunning, SubRuns: []ir.SubDAGRun{
++		{DAGRunID: "child-1", ParallelItem: "x\x1b]0;title\x07y"},
++	}})
++	p.SubRunProgress("child-1").UpdateNode(&ir.Node{Step: ir.Step{Name: "st\nart"}, Status: ir.NodeRunning})
++
++	lines := frame(p, 80, 20)
++	assert.Contains(t, lines[0], "run  a=1b=2")
++	assert.Contains(t, lines[2], "sections › xy › start")
++	for _, line := range lines {
++		assert.NotContains(t, line, "\x1b")
++		assert.NotContains(t, line, "\n")
++	}
++}
++
++func TestRegionProgressDisplay_DropsFinishedSubRunOutput(t *testing.T) {
++	t.Parallel()
++
++	p, _ := newTestRegion(t, "sections")
++	p.UpdateNode(&ir.Node{Step: ir.Step{Name: "sections"}, Status: ir.NodeRunning})
++	first, second := p.SubRunProgress("child-1"), p.SubRunProgress("child-2")
++	first.UpdateNode(&ir.Node{Step: ir.Step{Name: "start"}, Status: ir.NodeRunning})
++	_, _ = first.(runtimeOutputTap).StepOutput("start").Write([]byte("passed\n"))
++	first.UpdateNode(&ir.Node{Step: ir.Step{Name: "start"}, Status: ir.NodeSucceeded})
++	second.UpdateNode(&ir.Node{Step: ir.Step{Name: "fail"}, Status: ir.NodeRunning})
++	_, _ = second.(runtimeOutputTap).StepOutput("fail").Write([]byte("error\n"))
++	second.UpdateNode(&ir.Node{Step: ir.Step{Name: "fail"}, Status: ir.NodeFailed})
++	first.UpdateNode(&ir.Node{Step: ir.Step{Name: "next"}, Status: ir.NodeRunning})
++
++	assert.Nil(t, p.nodes[subRunKey("child-1", "start")].lines)
++	assert.Equal(t, []string{"error"}, p.nodes[subRunKey("child-2", "fail")].lines)
++}
++
++// runtimeOutputTap is the part of runtime.OutputTap the tests call.
++type runtimeOutputTap interface {
++	StepOutput(stepName string) io.Writer
++}
++
++func TestRegionProgressDisplay_FocusStaysOnLastStep(t *testing.T) {
++	t.Parallel()
++
++	p, _ := newTestRegion(t, "configure", "build")
++	p.UpdateNode(&ir.Node{Step: ir.Step{Name: "configure"}, Status: ir.NodeRunning})
++	p.UpdateNode(&ir.Node{Step: ir.Step{Name: "configure"}, Status: ir.NodeFailed})
++
++	assert.Contains(t, frame(p, 50, 20)[2], "[FAILED] configure ")
++}
++
++func TestRegionProgressDisplay_RepeatRestartsClock(t *testing.T) {
++	t.Parallel()
++
++	p, _ := newTestRegion(t, "poll")
++	p.UpdateNode(&ir.Node{Step: ir.Step{Name: "poll"}, Status: ir.NodeRunning})
++	p.UpdateNode(&ir.Node{Step: ir.Step{Name: "poll"}, Status: ir.NodeSucceeded})
++	first := p.nodes["poll"].started
++	time.Sleep(time.Millisecond)
++	p.UpdateNode(&ir.Node{Step: ir.Step{Name: "poll"}, Status: ir.NodeRunning})
++
++	n := p.nodes["poll"]
++	assert.True(t, n.started.After(first))
++	assert.True(t, n.finished.IsZero())
++}
++
++func TestRegionProgressDisplay_HandlersStayOutOfCounts(t *testing.T) {
++	t.Parallel()
++
++	p, _ := newTestRegion(t, "build")
++	p.UpdateNode(&ir.Node{Step: ir.Step{Name: "build"}, Status: ir.NodeSucceeded})
++	p.UpdateNode(&ir.Node{Step: ir.Step{Name: "onExit"}, Status: ir.NodeRunning})
++
++	lines := frame(p, 50, 20)
++	assert.True(t, strings.HasSuffix(lines[1], " 1/1"), lines[1])
++	assert.Contains(t, lines[2], "[RUNNING] onExit")
++	assert.NotContains(t, lines[2], "/1")
++}
++
++func TestRegionProgressDisplay_RegionFitsTerminal(t *testing.T) {
++	t.Parallel()
++
++	p, _ := newTestRegion(t, "build")
++	assert.Len(t, frame(p, 50, 8), 8-regionMarginRows)
++	assert.Len(t, frame(p, 50, 3), 3-regionMarginRows)
++}
++
++func TestRegionProgressDisplay_HomeCountsWrappedRows(t *testing.T) {
++	t.Parallel()
++
++	p, _ := newTestRegion(t, "build")
++	assert.Empty(t, p.home(40, 20))
++	p.drawn = []int{39, 10}
++	assert.Equal(t, "\x1b[0m\r\x1b[2A", p.home(40, 20))
++	// The same lines after the terminal shrank to 20 columns.
++	assert.Equal(t, "\x1b[0m\r\x1b[3A", p.home(20, 20))
++	// Never above the top of the screen.
++	assert.Equal(t, "\x1b[0m\r\x1b[1A", p.home(20, 2))
++}
++
++func TestRegionProgressDisplay_StartStop(t *testing.T) {
++	t.Parallel()
++
++	p, out := newTestRegion(t, "build")
++	p.Start()
++	p.UpdateNode(&ir.Node{Step: ir.Step{Name: "build"}, Status: ir.NodeRunning})
++	write(t, p, "build", "compiling\n")
++	require.Eventually(t, func() bool { return strings.Contains(out.String(), "compiling") },
++		time.Second, time.Millisecond)
++	write(t, p, "build", "linking\n")
++	require.Eventually(t, func() bool { return strings.Contains(out.String(), "linking") },
++		time.Second, time.Millisecond)
++	p.UpdateNode(&ir.Node{Step: ir.Step{Name: "build"}, Status: ir.NodeSucceeded})
++	p.UpdateStatus(&ir.DAGRunStatus{Status: ir.Succeeded})
++	p.Stop()
++	p.Stop()
++
++	got := out.String()
++	assert.Contains(t, got, "\x1b[0m\r\x1b[15A")
++	final := got[strings.LastIndex(got, "\x1b[15A"):]
++	assert.Contains(t, final, "✓ 1/1 steps in")
++	assert.NotContains(t, final, "output")
++}
++
++func TestRegionProgressDisplay_FailureKeepsPane(t *testing.T) {
++	t.Parallel()
++
++	p, out := newTestRegion(t, "build")
++	p.UpdateNode(&ir.Node{Step: ir.Step{Name: "build"}, Status: ir.NodeRunning})
++	write(t, p, "build", "error: no space left\n")
++	p.UpdateNode(&ir.Node{Step: ir.Step{Name: "build"}, Status: ir.NodeFailed})
++	p.UpdateStatus(&ir.DAGRunStatus{Status: ir.Failed})
++	p.printFinal()
++
++	assert.Contains(t, out.String(), "✗ 1/1 steps in")
++	assert.Contains(t, out.String(), "[FAILED] build")
++	assert.Contains(t, out.String(), "│ error: no space left")
++}
++
++func TestRegionProgressDisplay_SubRuns(t *testing.T) {
++	t.Parallel()
++
++	p, _ := newTestRegion(t, "boot", "sections")
++	p.UpdateNode(&ir.Node{Step: ir.Step{Name: "boot"}, Status: ir.NodeSucceeded})
++	p.UpdateNode(&ir.Node{Step: ir.Step{Name: "sections"}, Status: ir.NodeRunning, SubRuns: []ir.SubDAGRun{
++		{DAGRunID: "child-1", ParallelItem: `"xfs_bs4k_ss4k"`, DAGName: "section"},
++	}})
++	child := p.SubRunProgress("child-1")
++	child.UpdateNode(&ir.Node{Step: ir.Step{Name: "start"}, Status: ir.NodeRunning})
++	_, err := child.(interface{ StepOutput(string) io.Writer }).StepOutput("start").Write([]byte("generic/001 3s\n"))
++	require.NoError(t, err)
++
++	lines := frame(p, 60, 20)
++	assert.True(t, strings.HasSuffix(lines[1], " 1/2"), lines[1])
++	assert.Contains(t, lines[2], "[RUNNING] sections › xfs_bs4k_ss4k › start")
++	assert.NotContains(t, lines[2], "2/2")
++	assert.Equal(t, "│ generic/001 3s", strings.TrimRight(lines[4], " │"))
++
++	// A sub-DAG run of the sub-DAG run nests one level further.
++	child.UpdateNode(&ir.Node{Step: ir.Step{Name: "start"}, Status: ir.NodeRunning, SubRuns: []ir.SubDAGRun{
++		{DAGRunID: "grandchild-1", DAGName: "check"},
++	}})
++	grandchild := child.(subRunReporter).SubRunProgress("grandchild-1")
++	grandchild.UpdateNode(&ir.Node{Step: ir.Step{Name: "collect"}, Status: ir.NodeRunning})
++	assert.Contains(t, frame(p, 80, 20)[2], "sections › xfs_bs4k_ss4k › start › collect")
++
++	// When the sub-DAG's step ends, the focus stays on it.
++	grandchild.UpdateNode(&ir.Node{Step: ir.Step{Name: "collect"}, Status: ir.NodeSucceeded})
++	assert.Contains(t, frame(p, 80, 20)[2], "› start")
++}
++
++func TestRegionProgressDisplay_ResizeClearsScreen(t *testing.T) {
++	t.Parallel()
++
++	p, out := newTestRegion(t, "build")
++	p.redraw()
++	assert.NotContains(t, out.String(), "\x1b[2J")
++	p.redraw()
++	assert.NotContains(t, out.String(), "\x1b[2J")
++
++	p.size = func() (int, int) { return 30, 20 }
++	before := len(out.String())
++	p.redraw()
++	resized := out.String()[before:]
++	assert.True(t, strings.HasPrefix(resized, "\x1b[0m\x1b[H\x1b[2J"), resized)
++	assert.NotRegexp(t, `\x1b\[\d+A`, resized)
++}
++
++func TestRegionProgressDisplay_BarSharesCells(t *testing.T) {
++	t.Parallel()
++
++	p, _ := newTestRegion(t)
++	statuses := []ir.NodeStatus{
++		ir.NodeSucceeded, ir.NodeNotStarted,
++		ir.NodeSucceeded, ir.NodeSkipped,
++		ir.NodeSucceeded, ir.NodeFailed,
++	}
++	// Three cells for six steps: each pair shares a cell, which shows the
++	// status that matters most.
++	assert.Equal(t, "─━━ 5/6", p.barLine(statuses, 7))
++	assert.Equal(t, "━━──━━━━━━━━ 5/6", p.barLine(statuses, 16))
++}
++
++func TestRedirectsToTerminal(t *testing.T) {
++	t.Parallel()
++
++	assert.False(t, redirectsToTerminal(nil))
++	assert.False(t, redirectsToTerminal(&ir.DAG{Steps: []ir.Step{{Stdout: "out.log"}}}))
++	assert.True(t, redirectsToTerminal(&ir.DAG{Steps: []ir.Step{{Stderr: "/dev/stderr"}}}))
++}
++
++func TestFit(t *testing.T) {
++	t.Parallel()
++
++	assert.Equal(t, "abc", fit("abc", 3))
++	assert.Equal(t, "ab…", fit("abcd", 3))
++	assert.Equal(t, "日…", fit("日本語", 4))
++}
+-- 
+2.53.0
+

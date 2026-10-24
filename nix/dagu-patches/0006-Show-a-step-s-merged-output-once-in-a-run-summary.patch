@@ -1,0 +1,75 @@
+From 3adf1fa5a2a17524fb3206598c43e47a41230c3f Mon Sep 17 00:00:00 2001
+From: Daniel Gomez <da.gomez@kernel.org>
+Date: Wed, 21 Oct 2026 08:43:43 +0200
+Subject: [PATCH] Show a step's merged output once in a run summary
+
+With log_output: merged, stdout and stderr name the same file, and the
+summary printed its tail twice, once under each label. The block is now
+labelled "output" when the two paths match.
+
+Signed-off-by: Daniel Gomez <da.gomez@kernel.org>
+---
+ internal/output/tree.go      |  4 ++++
+ internal/output/tree_test.go | 31 +++++++++++++++++++++++++++++++
+ 2 files changed, 35 insertions(+)
+
+diff --git a/internal/output/tree.go b/internal/output/tree.go
+index e23c1c118..2cb888a2b 100644
+--- a/internal/output/tree.go
++++ b/internal/output/tree.go
+@@ -505,6 +505,10 @@ func (r *Renderer) renderOutputs(node *ir.Node, isLast bool, prefix string) stri
+ 	hasStdoutContent := r.config.ShowStdout && r.hasLogContent(node.Stdout)
+ 	hasStderrContent := r.config.ShowStderr && r.hasLogContent(node.Stderr)
+ 
++	// A step with merged output writes both streams to one file.
++	if hasStdoutContent && hasStderrContent && node.Stdout == node.Stderr {
++		return r.renderOutput("output", node.Stdout, isLast, prefix)
++	}
+ 	if hasStdoutContent {
+ 		buf.WriteString(r.renderOutput("stdout", node.Stdout, isLast && !hasStderrContent, prefix))
+ 	}
+diff --git a/internal/output/tree_test.go b/internal/output/tree_test.go
+index 40ca156e6..1f1b6f20f 100644
+--- a/internal/output/tree_test.go
++++ b/internal/output/tree_test.go
+@@ -1235,6 +1235,37 @@ func TestRenderDAGStatus_ShowsLogFilePaths(t *testing.T) {
+ 	require.Contains(t, output, "Warning message")
+ }
+ 
++func TestRenderDAGStatus_ShowsMergedOutputOnce(t *testing.T) {
++	t.Parallel()
++
++	logPath, cleanup := createTempLogFile(t, "step-*.log", "Hello from stdout\nWarning message\n")
++	defer cleanup()
++
++	dag := &ir.DAG{Name: "test-dag"}
++	status := &ir.DAGRunStatus{
++		Status:     ir.Succeeded,
++		StartedAt:  "2024-01-15 10:00:00",
++		FinishedAt: "2024-01-15 10:00:30",
++		Nodes: []*ir.Node{
++			{
++				Step:       ir.Step{Name: "step1", Command: "echo"},
++				Status:     ir.NodeSucceeded,
++				StartedAt:  "2024-01-15 10:00:00",
++				FinishedAt: "2024-01-15 10:00:30",
++				Stdout:     logPath,
++				Stderr:     logPath,
++			},
++		},
++	}
++
++	output := newTestRenderer().RenderDAGStatus(dag, status)
++
++	require.Contains(t, output, "output: "+logPath)
++	require.NotContains(t, output, "stdout:")
++	require.NotContains(t, output, "stderr:")
++	require.Equal(t, 1, strings.Count(output, "Warning message"))
++}
++
+ func TestRenderDAGStatus_ShowsSchedulerLog(t *testing.T) {
+ 	t.Parallel()
+ 	dag := &ir.DAG{Name: "test-dag"}
+-- 
+2.53.0
+

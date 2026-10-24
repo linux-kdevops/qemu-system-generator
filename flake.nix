@@ -47,6 +47,7 @@
       packages = forAllSystems (pkgs: rec {
         qemu-system-generator = pkgs.callPackage ./nix/package.nix { };
         default = qemu-system-generator;
+        dagu = pkgs.callPackage ./nix/dagu.nix { };
       });
 
       apps = forSystems docsSystems (
@@ -143,6 +144,39 @@
           ];
           env.RUST_SRC_PATH = "${pkgs.rustPlatform.rustLibSrc}";
         };
+
+        # What steps/ runs under nix develop --ignore-env, which keeps only
+        # HOME and XDG_RUNTIME_DIR: nix itself, git without the user's or the
+        # system's configuration, and a pinned CA bundle. nix develop never
+        # takes SSL_CERT_FILE from a shell, so the hook exports it.
+        steps =
+          let
+            cacert = "${pkgs.cacert}/etc/ssl/certs/ca-bundle.crt";
+          in
+          pkgs.mkShell {
+            packages = [
+              self.packages.${pkgs.stdenv.hostPlatform.system}.dagu
+              pkgs.cpio
+              pkgs.curl
+              pkgs.git
+              pkgs.jq
+              pkgs.nix
+              pkgs.openssh
+              pkgs.procps
+              pkgs.python3
+              pkgs.socat
+              pkgs.systemd
+              pkgs.util-linux
+            ];
+            env = {
+              GIT_CONFIG_GLOBAL = "/dev/null";
+              GIT_CONFIG_NOSYSTEM = "1";
+              NIX_SSL_CERT_FILE = cacert;
+            };
+            shellHook = ''
+              export SSL_CERT_FILE=${cacert}
+            '';
+          };
       });
 
       checks = forAllSystems (

@@ -1,0 +1,229 @@
+From dbaa69bcbb4512984f34eff0029199cdd2509c22 Mon Sep 17 00:00:00 2001
+From: Daniel Gomez <da.gomez@kernel.org>
+Date: Tue, 20 Oct 2026 22:37:03 +0200
+Subject: [PATCH] Write a step redirect through when it is not a regular file
+
+A step with stdout sent to /dev/stdout prints in bursts on a terminal:
+the redirect sits behind a 4 KiB bufio.Writer that is flushed only when
+full or by the 500 ms flusher. Flush each write when the redirect is not
+a regular file. Dropping the buffer instead would leave a masking writer
+without FlushIfDue, and the flusher would then write out a partial line
+before its secret was masked.
+
+Signed-off-by: Daniel Gomez <da.gomez@kernel.org>
+---
+ internal/runtime/output.go      | 19 ++++++---
+ internal/runtime/output_test.go | 75 +++++++++++++++++++++++++++++++++
+ internal/runtime/writer.go      | 14 ++++--
+ internal/runtime/writer_test.go |  2 +-
+ 4 files changed, 101 insertions(+), 9 deletions(-)
+
+diff --git a/internal/runtime/output.go b/internal/runtime/output.go
+index bbb9ded28..a35b9fb8c 100644
+--- a/internal/runtime/output.go
++++ b/internal/runtime/output.go
+@@ -330,12 +330,19 @@ func (oc *OutputCoordinator) closeResources() error {
+ // syncRegularFile syncs f when it is a regular file. A pipe, terminal or
+ // device such as /dev/null has nothing to persist, and fsync on it fails.
+ func syncRegularFile(f *os.File) error {
+-	if info, err := f.Stat(); err == nil && !info.Mode().IsRegular() {
++	if !isRegularFile(f) {
+ 		return nil
+ 	}
+ 	return f.Sync()
+ }
+ 
++// isRegularFile reports whether f is a regular file, taking a file it cannot
++// stat as one.
++func isRegularFile(f *os.File) bool {
++	info, err := f.Stat()
++	return err != nil || info.Mode().IsRegular()
++}
++
+ func (oc *OutputCoordinator) setupStdoutRedirect(ctx context.Context, data NodeData) error {
+ 	oc.mu.Lock()
+ 	defer oc.mu.Unlock()
+@@ -375,13 +382,15 @@ func (oc *OutputCoordinator) setupStderrRedirect(ctx context.Context, data NodeD
+ }
+ 
+ // newRedirectWriter returns a buffered writer for a redirect file, masking
+-// secrets when a masker is available.
++// secrets when a masker is available. A redirect that is not a regular file
++// is written through, so a terminal or a pipe gets each line as the step
++// writes it.
+ func (oc *OutputCoordinator) newRedirectWriter(file *os.File) io.Writer {
+ 	var writer io.Writer = file
+ 	if oc.masker != nil {
+ 		writer = masking.NewMaskingWriter(file, oc.masker)
+ 	}
+-	return newSafeBufferedWriter(writer)
++	return newSafeBufferedWriter(writer, !isRegularFile(file))
+ }
+ 
+ // resetArtifactRedirects empties artifact redirects so that an artifact holds
+@@ -487,7 +496,7 @@ func (oc *OutputCoordinator) setupLocalWriters(_ context.Context, data NodeData)
+ 	if oc.masker != nil {
+ 		stdoutWriter = masking.NewMaskingWriter(oc.stdoutFile, oc.masker)
+ 	}
+-	oc.stdoutWriter = newSafeBufferedWriter(stdoutWriter)
++	oc.stdoutWriter = newSafeBufferedWriter(stdoutWriter, false)
+ 	oc.stdoutFileName = data.State.Stdout
+ 
+ 	// stderr - if merged, reuse the same file and writer
+@@ -507,7 +516,7 @@ func (oc *OutputCoordinator) setupLocalWriters(_ context.Context, data NodeData)
+ 		if oc.masker != nil {
+ 			stderrWriter = masking.NewMaskingWriter(oc.stderrFile, oc.masker)
+ 		}
+-		oc.stderrWriter = newSafeBufferedWriter(stderrWriter)
++		oc.stderrWriter = newSafeBufferedWriter(stderrWriter, false)
+ 		oc.stderrFileName = data.State.Stderr
+ 	}
+ 
+diff --git a/internal/runtime/output_test.go b/internal/runtime/output_test.go
+index 97b54c1a9..0add60b69 100644
+--- a/internal/runtime/output_test.go
++++ b/internal/runtime/output_test.go
+@@ -9,12 +9,14 @@ import (
+ 	"fmt"
+ 	"io"
+ 	"os"
++	"path/filepath"
+ 	goruntime "runtime"
+ 	"strings"
+ 	"sync/atomic"
+ 	"testing"
+ 	"time"
+ 
++	"github.com/dagucloud/dagu/v2/internal/cmn/masking"
+ 	"github.com/dagucloud/dagu/v2/internal/executor/registry"
+ 	"github.com/dagucloud/dagu/v2/internal/runctx"
+ 
+@@ -555,6 +557,79 @@ func TestOutputCoordinator_CloseResources(t *testing.T) {
+ 	})
+ }
+ 
++func TestOutputCoordinator_RedirectWriter(t *testing.T) {
++	t.Parallel()
++
++	t.Run("PipeGetsEachWrite", func(t *testing.T) {
++		t.Parallel()
++
++		reader, writer, err := os.Pipe()
++		require.NoError(t, err)
++		t.Cleanup(func() { _ = reader.Close(); _ = writer.Close() })
++		w := (&OutputCoordinator{}).newRedirectWriter(writer)
++
++		_, err = w.Write([]byte("line\n"))
++		require.NoError(t, err)
++
++		require.NoError(t, reader.SetReadDeadline(time.Now().Add(time.Second)))
++		buf := make([]byte, 16)
++		n, err := reader.Read(buf)
++		require.NoError(t, err)
++		assert.Equal(t, "line\n", string(buf[:n]))
++	})
++
++	t.Run("RegularFileBuffers", func(t *testing.T) {
++		t.Parallel()
++
++		file, err := os.Create(filepath.Join(t.TempDir(), "out"))
++		require.NoError(t, err)
++		t.Cleanup(func() { _ = file.Close() })
++		w := (&OutputCoordinator{}).newRedirectWriter(file)
++
++		_, err = w.Write([]byte("line\n"))
++		require.NoError(t, err)
++
++		data, err := os.ReadFile(file.Name())
++		require.NoError(t, err)
++		assert.Empty(t, data)
++
++		require.NoError(t, w.(*safeBufferedWriter).Flush())
++		data, err = os.ReadFile(file.Name())
++		require.NoError(t, err)
++		assert.Equal(t, "line\n", string(data))
++	})
++
++	t.Run("PipeMasksEachLine", func(t *testing.T) {
++		t.Parallel()
++
++		reader, writer, err := os.Pipe()
++		require.NoError(t, err)
++		t.Cleanup(func() { _ = reader.Close(); _ = writer.Close() })
++		masker := masking.NewMasker(masking.SourcedEnvVars{Secrets: []string{"TOKEN=s3cr3t"}})
++		w := (&OutputCoordinator{masker: masker}).newRedirectWriter(writer).(*safeBufferedWriter)
++		read := func() string {
++			require.NoError(t, reader.SetReadDeadline(time.Now().Add(100*time.Millisecond)))
++			buf := make([]byte, 64)
++			n, _ := reader.Read(buf)
++			return string(buf[:n])
++		}
++
++		_, err = w.Write([]byte("x s3cr3t\n"))
++		require.NoError(t, err)
++		assert.Equal(t, "x *******\n", read())
++
++		_, err = w.Write([]byte("s3c"))
++		require.NoError(t, err)
++		require.NoError(t, w.FlushIfDue())
++		assert.Empty(t, read())
++
++		_, err = w.Write([]byte("r3t"))
++		require.NoError(t, err)
++		require.NoError(t, w.Flush())
++		assert.Equal(t, "*******", read())
++	})
++}
++
+ func TestCaptureRetryAfterLimit(t *testing.T) {
+ 	t.Parallel()
+ 	for _, source := range []string{"stdout", "stderr"} {
+diff --git a/internal/runtime/writer.go b/internal/runtime/writer.go
+index f6edffa74..cfd4f577e 100644
+--- a/internal/runtime/writer.go
++++ b/internal/runtime/writer.go
+@@ -63,17 +63,25 @@ type safeBufferedWriter struct {
+ 	mu sync.Mutex
+ 	w  io.Writer
+ 	bw *bufio.Writer
++	// writeThrough flushes every write, for a reader that follows the
++	// output as it comes, such as a terminal or a pipe. A masking writer
++	// below still holds a partial line until its newline arrives.
++	writeThrough bool
+ }
+ 
+ // newSafeBufferedWriter creates a thread-safe buffered writer
+-func newSafeBufferedWriter(w io.Writer) *safeBufferedWriter {
+-	return &safeBufferedWriter{w: w, bw: bufio.NewWriter(w)}
++func newSafeBufferedWriter(w io.Writer, writeThrough bool) *safeBufferedWriter {
++	return &safeBufferedWriter{w: w, bw: bufio.NewWriter(w), writeThrough: writeThrough}
+ }
+ 
+ func (s *safeBufferedWriter) Write(p []byte) (int, error) {
+ 	s.mu.Lock()
+ 	defer s.mu.Unlock()
+-	return s.bw.Write(p)
++	n, err := s.bw.Write(p)
++	if err == nil && s.writeThrough {
++		err = s.bw.Flush()
++	}
++	return n, err
+ }
+ 
+ // FlushIfDue writes buffered output through. A partial line the wrapped
+diff --git a/internal/runtime/writer_test.go b/internal/runtime/writer_test.go
+index 4b7f8d7e9..d996bd420 100644
+--- a/internal/runtime/writer_test.go
++++ b/internal/runtime/writer_test.go
+@@ -251,7 +251,7 @@ func TestFlushableMultiWriter_Integration(t *testing.T) {
+ func TestSafeBufferedWriter_MaskedPartialLine(t *testing.T) {
+ 	var out bytes.Buffer
+ 	masker := masking.NewMasker(masking.SourcedEnvVars{Secrets: []string{"TOKEN=s3cr3t"}})
+-	w := newSafeBufferedWriter(masking.NewMaskingWriter(&out, masker))
++	w := newSafeBufferedWriter(masking.NewMaskingWriter(&out, masker), false)
+ 
+ 	_, err := w.Write([]byte("s3c"))
+ 	require.NoError(t, err)
+-- 
+2.53.0
+

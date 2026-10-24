@@ -1,0 +1,73 @@
+From 26d6ef9d15fd5b3e37312946eda7a162717b3b58 Mon Sep 17 00:00:00 2001
+From: Daniel Gomez <da.gomez@kernel.org>
+Date: Tue, 20 Oct 2026 16:27:07 +0200
+Subject: [PATCH] Skip fsync for a step redirect that is not a regular file
+
+A step with stdout or stderr sent to /dev/null, /dev/stdout or
+/dev/stderr exits 0 and is still marked failed: closeResources fsyncs
+the redirect and gets "sync /dev/stderr: invalid argument".
+
+Dropping the Sync is not an option, since artifact redirects are opened
+without O_SYNC and rely on it. Checking the file mode at close is less
+bookkeeping than remembering O_SYNC per file.
+
+Signed-off-by: Daniel Gomez <da.gomez@kernel.org>
+---
+ internal/runtime/output.go      | 11 ++++++++++-
+ internal/runtime/output_test.go | 11 +++++++++++
+ 2 files changed, 21 insertions(+), 1 deletion(-)
+
+diff --git a/internal/runtime/output.go b/internal/runtime/output.go
+index c58535925..bbb9ded28 100644
+--- a/internal/runtime/output.go
++++ b/internal/runtime/output.go
+@@ -312,7 +312,7 @@ func (oc *OutputCoordinator) closeResources() error {
+ 		oc.StderrRedirectFile,
+ 	} {
+ 		if f != nil {
+-			if err := f.Sync(); err != nil {
++			if err := syncRegularFile(f); err != nil {
+ 				lastErr = err
+ 			}
+ 			_ = f.Close()
+@@ -327,6 +327,15 @@ func (oc *OutputCoordinator) closeResources() error {
+ 	return lastErr
+ }
+ 
++// syncRegularFile syncs f when it is a regular file. A pipe, terminal or
++// device such as /dev/null has nothing to persist, and fsync on it fails.
++func syncRegularFile(f *os.File) error {
++	if info, err := f.Stat(); err == nil && !info.Mode().IsRegular() {
++		return nil
++	}
++	return f.Sync()
++}
++
+ func (oc *OutputCoordinator) setupStdoutRedirect(ctx context.Context, data NodeData) error {
+ 	oc.mu.Lock()
+ 	defer oc.mu.Unlock()
+diff --git a/internal/runtime/output_test.go b/internal/runtime/output_test.go
+index f55d5d0b3..97b54c1a9 100644
+--- a/internal/runtime/output_test.go
++++ b/internal/runtime/output_test.go
+@@ -542,6 +542,17 @@ func TestOutputCoordinator_CloseResources(t *testing.T) {
+ 		_ = oc.closeResources()
+ 		assert.True(t, oc.closed)
+ 	})
++
++	t.Run("NoSyncErrorOnPipe", func(t *testing.T) {
++		t.Parallel()
++
++		reader, writer, err := os.Pipe()
++		require.NoError(t, err)
++		t.Cleanup(func() { _ = reader.Close() })
++		oc := &OutputCoordinator{stdoutRedirectFile: writer}
++
++		assert.NoError(t, oc.closeResources())
++	})
+ }
+ 
+ func TestCaptureRetryAfterLimit(t *testing.T) {
+-- 
+2.53.0
+
