@@ -1,0 +1,64 @@
+.. SPDX-License-Identifier: copyleft-next-0.3.1
+
+==============
+Using machines
+==============
+
+Each machine the generator writes is an ordinary systemd service,
+registered with machined and given its own QMP socket. The tools that
+ship with systemd and QEMU drive it, and this project adds none. These
+pages show which command does what for a machine of your user manager,
+with a link to each command's upstream manual. The examples use the
+bootstrap guides' machine, ``bootstrap``.
+
+.. list-table::
+   :header-rows: 1
+   :widths: 30 45 25
+
+   * - To
+     - Run
+     - See
+   * - list the running machines
+     - ``machinectl --user list``
+     - :ref:`usage-list`
+   * - see one's state, memory and last lines
+     - ``systemctl --user status qemu-system@bootstrap.service``
+     - :ref:`usage-list`
+   * - start, stop, restart
+     - ``systemctl --user start qemu-system@bootstrap.service``
+     - :ref:`usage-start`
+   * - stop a guest that does not answer
+     - ``systemctl --user kill qemu-system@bootstrap.service``
+     - :ref:`usage-start`
+   * - start machines at boot
+     - ``loginctl enable-linger``
+     - :ref:`usage-boot`
+   * - pause and resume
+     - ``systemctl --user freeze qemu-system@bootstrap.service``
+     - :ref:`usage-pause`
+   * - read the serial console
+     - ``journalctl --user-unit=qemu-system@bootstrap.service``
+     - :ref:`usage-console-log`
+   * - read the guest's journal
+     - ``ssh bootstrap journalctl --boot``
+     - :ref:`usage-guest-journal`
+   * - keep every guest's journal on the host
+     - ``journalctl --directory ~/bootstrap/journal``
+     - :ref:`usage-forward`
+   * - log in
+     - ``ssh machine/bootstrap``
+     - :ref:`usage-ssh`
+   * - ask machined about a machine
+     - ``varlinkctl call ... io.systemd.Machine.List``
+     - :ref:`usage-varlink`
+   * - talk to QEMU itself
+     - ``socat - UNIX-CONNECT:$XDG_RUNTIME_DIR/qemu-system/bootstrap/qmp.sock``
+     - :ref:`usage-qmp`
+
+.. toctree::
+   :maxdepth: 1
+
+   lifecycle
+   journal
+   machined
+   qmp

@@ -1,0 +1,143 @@
+.. SPDX-License-Identifier: copyleft-next-0.3.1
+
+=========
+Lifecycle
+=========
+
+Every machine is the service ``qemu-system@name.service`` of your user
+manager, so :cmd:`systemctl` ``--user`` starts, stops and inspects it as
+it does any other service. The unit's lines are in
+:key:`qemu-system@.service`.
+
+.. _usage-list:
+
+Listing and inspecting
+======================
+
+Two commands list the machines, systemd's view and machined's:
+
+.. code-block:: console
+   :class: cmd-host
+
+   $ systemctl --user list-units 'qemu-system@*'
+   $ machinectl --user list
+
+The first lists the units, failed ones included; the second the machines
+that registered, with their class and service (:doc:`machined`).
+
+``status`` shows a machine's state, its memory and CPU time, the QEMU
+command line in its cgroup, and the last ten lines of its journal, which
+are the end of the serial console:
+
+.. code-block:: console
+   :class: cmd-host
+
+   $ systemctl --user status qemu-system@bootstrap.service
+
+``systemctl --user cat`` prints the unit the generator wrote,
+``systemctl --user show`` every property, and ``--property=`` one of
+them, such as ``MainPID`` for QEMU's process id.
+
+.. _usage-start:
+
+Starting and stopping
+=====================
+
+.. code-block:: console
+   :class: cmd-host
+
+   $ systemctl --user start qemu-system@bootstrap.service
+   $ systemctl --user stop qemu-system@bootstrap.service
+   $ systemctl --user restart qemu-system@bootstrap.service
+
+A start returns as soon as QEMU runs; the guest boots after that. A stop
+asks the guest to power off, first over SSH, then with the power button,
+and waits for QEMU to exit (:ref:`SSH poweroff <host-poweroff>`). A
+restart is a stop and a start; the machine's virtiofsd daemons exit
+with the old QEMU and start again when the new one connects. Every
+command takes several names, or a pattern such as ``'qemu-system@*'``.
+Stopping :cmd:`machines.target` stops every machine at once; starting it
+starts each one whose file names it in ``WantedBy=``
+(:ref:`kernel-settings`).
+
+A guest that cannot answer yet takes the full stop timeout, two minutes.
+``kill`` ends it at once (:ref:`kill <host-kill>`). It sends
+``SIGTERM``, on which QEMU exits cleanly. A signal QEMU does not handle,
+such as ``--signal=SIGKILL``, leaves the service ``failed`` until the
+next start, or until you clear it:
+
+.. code-block:: console
+   :class: cmd-host
+
+   $ systemctl --user kill qemu-system@bootstrap.service
+   $ systemctl --user kill --signal=SIGKILL qemu-system@bootstrap.service
+   $ systemctl --user reset-failed qemu-system@bootstrap.service
+
+Stop a machine with ``systemctl``. ``machinectl poweroff`` kills QEMU
+outright (:ref:`machined-verbs`).
+
+Rebooting
+=========
+
+A reboot inside the guest resets the machine and leaves QEMU running,
+so the service stays active with the same process:
+
+.. code-block:: console
+   :class: cmd-host
+
+   $ ssh bootstrap systemctl reboot
+
+QMP resets a hung guest from the host, as the reset button would
+(:ref:`usage-qmp`). A machine whose file has ``no-reboot=`` in
+:key:`[QEMU]` exits instead of rebooting, and its service stops.
+
+.. _usage-pause:
+
+Pausing
+========
+
+``freeze`` suspends every process in the service's cgroup, QEMU
+included, until ``thaw``:
+
+.. code-block:: console
+   :class: cmd-host
+
+   $ systemctl --user freeze qemu-system@bootstrap.service
+   $ systemctl --user thaw qemu-system@bootstrap.service
+
+While frozen, nothing answers: not the guest, not SSH, not the QMP
+socket. A stop or restart thaws the unit first. To pause only the guest's
+processors and keep QEMU answering, send QMP's ``stop`` and ``cont``
+instead (:ref:`usage-qmp`).
+
+.. _usage-boot:
+
+At login and at boot
+====================
+
+A machine whose file has ``WantedBy=machines.target`` in ``[Install]``
+starts with :cmd:`machines.target`. systemd's presets enable that target
+for the system manager but not for yours, so enable it once. Its own
+``[Install]`` hooks it to ``default.target``, which your user manager
+reaches at login:
+
+.. code-block:: console
+   :class: cmd-host
+
+   $ systemctl --user enable machines.target
+
+A user manager runs only while you are logged in, and stops every
+machine when you log out. Lingering, set with :cmd:`loginctl`, keeps it
+running from boot to shutdown, logged in or not, so the machines start
+at boot. The default policy lets you enable it for yourself without
+root:
+
+.. code-block:: console
+   :class: cmd-host
+
+   $ loginctl enable-linger
+   $ loginctl show-user "$USER" --property=Linger
+   Linger=yes
+
+The machines then stop when the host shuts down, each as
+``systemctl --user stop`` would stop it.

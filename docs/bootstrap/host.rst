@@ -181,6 +181,9 @@ hand before starting a machine; the start waits until the reload is done.
 "Regenerate and restart" in a guide means the first line, then
 ``systemctl --user restart``.
 
+:doc:`/usage/index` shows what else ``systemctl``, ``journalctl``,
+``machinectl`` and QMP do with a running machine.
+
 .. _host-poweroff:
 
 :key:`[VM]` holds what is not a QEMU option. With
@@ -206,7 +209,8 @@ Registration
 
 The generated unit registers each machine with your user's
 :cmd:`systemd-machined.service(8)`. With a vsock device it records the
-context id, and ``machinectl --user list`` lists the machine.
+context id, and ``machinectl --user list`` lists the machine;
+:doc:`/usage/machined` has the rest.
 
 .. _host-virtiofsd:
 

@@ -22,7 +22,8 @@ one to one.
 
 The format is specified in :doc:`man/qemu-systemd.unit.5` and the program
 in :doc:`man/qemu-system-generator.8`. :doc:`bootstrap/index` boots a
-first guest without root, in five ways, one feature per step.
+first guest without root, in five ways, one feature per step, and
+:doc:`usage/index` shows the commands that drive it once it runs.
 
 Community
 =========
@@ -48,6 +49,12 @@ These are linked from the icons in the top navigation bar too.
    :caption: Walk-throughs
 
    bootstrap/index
+
+.. toctree::
+   :maxdepth: 1
+   :caption: Using machines
+
+   usage/index
 
 .. toctree::
    :maxdepth: 1
