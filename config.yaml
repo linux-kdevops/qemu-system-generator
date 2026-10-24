@@ -1,0 +1,18 @@
+# SPDX-License-Identifier: copyleft-next-0.3.1
+# Dagu's configuration. Run dagu from this checkout:
+#   dagu --config config.yaml <command>
+# Relative paths resolve from the working directory.
+host: 127.0.0.1
+port: 8087
+auth:
+  mode: none
+skip_examples: true
+paths:
+  dags_dir: dags
+  data_dir: ~/.local/state/qemu-system-generator/dagu/data
+  log_dir: ~/.local/state/qemu-system-generator/dagu/logs
+  admin_logs_dir: ~/.local/state/qemu-system-generator/dagu/logs/admin
+  # Neither follows admin_logs_dir: Dagu keeps its event store under
+  # ~/.local/share/dagu and creates ~/.config/dagu for the base config.
+  event_store_dir: ~/.local/state/qemu-system-generator/dagu/logs/admin/events
+  base_config: ~/.local/state/qemu-system-generator/dagu/base.yaml
