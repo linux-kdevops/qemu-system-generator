@@ -1,0 +1,42 @@
+#!/usr/bin/env bash
+# SPDX-License-Identifier: copyleft-next-0.3.1
+## Usage: steps/machine/run --config FILE --name VM [--expect REGEX]
+##            [--connect-timeout SEC] -- COMMAND...
+##
+## Run COMMAND in the guest VM through the Host block the guides write,
+## ssh -F FILE VM, without asking for anything (BatchMode) and without
+## touching ~/.ssh. Print COMMAND's output, end with its status, and with
+## --expect fail unless the output matches the extended regular expression
+## REGEX:
+##
+##   nix develop .#steps --ignore-env --keep-env-var HOME \
+##       --command steps/machine/run --config ~/bootstrap/ssh/config \
+##       --name bootstrap --expect '^7\.' -- uname -r
+set -o errexit -o nounset -o pipefail
+
+expect=
+connect_timeout=10
+while [ $# -gt 0 ]; do
+	case $1 in
+	--config | --name | --expect | --connect-timeout)
+		opt=${1#--}
+		declare "${opt//-/_}=$2"
+		shift 2
+		;;
+	--)
+		shift
+		break
+		;;
+	*) sed --quiet 's/^## \{0,1\}//p' "$0" >&2 && exit 2 ;;
+	esac
+done
+: "${config:?} ${name:?}"
+[ $# -gt 0 ] || { sed --quiet 's/^## \{0,1\}//p' "$0" >&2 && exit 2; }
+
+set -o xtrace
+status=0
+out=$(ssh -F "$config" -o BatchMode=yes -o "ConnectTimeout=$connect_timeout" \
+	-o LogLevel=ERROR "$name" "$@") || status=$?
+printf '%s\n' "$out"
+[ "$status" -eq 0 ] || exit "$status"
+[ -z "$expect" ] || grep --extended-regexp --quiet -- "$expect" <<<"$out"

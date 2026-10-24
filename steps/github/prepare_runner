@@ -1,0 +1,42 @@
+#!/usr/bin/env bash
+# SPDX-License-Identifier: copyleft-next-0.3.1
+## Usage: steps/github/prepare_runner --output FILE
+##
+## The one step that runs as root, and only on a throwaway GitHub-hosted
+## runner: the one-time setup docs/bootstrap/_prepare.rst leaves to a host's
+## owner. It opens /dev/kvm and /dev/vhost-vsock to the runner user, lets
+## virtiofsd's namespace sandbox map that user to root (Ubuntu's AppArmor
+## refuses unprivileged user namespaces by default), and starts a lingering
+## user manager. Append xdg_runtime_dir=<its runtime directory> to FILE.
+## Never run it on a host of your own:
+##
+##   steps/github/prepare_runner --output "$GITHUB_OUTPUT"
+set -o errexit -o nounset -o pipefail
+
+while [ $# -gt 0 ]; do
+	case $1 in
+	--output) declare "${1#--}=$2" ;;
+	*) sed --quiet 's/^## \{0,1\}//p' "$0" >&2 && exit 2 ;;
+	esac
+	shift 2
+done
+: "${output:?}"
+
+if [ "${GITHUB_ACTIONS:-}" != true ]; then
+	echo "steps/github/prepare_runner runs only on a GitHub-hosted runner" >&2
+	exit 1
+fi
+
+set -o xtrace
+sudo modprobe vhost_vsock
+printf '%s\n' \
+	'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' \
+	'KERNEL=="vhost-vsock", GROUP="kvm", MODE="0666", OPTIONS+="static_node=vhost-vsock"' |
+	sudo tee /etc/udev/rules.d/99-kvm.rules
+sudo udevadm control --reload-rules
+sudo udevadm trigger --name-match=kvm --name-match=vhost-vsock
+ls --format=long /dev/kvm /dev/vhost-vsock
+sudo sysctl kernel.apparmor_restrict_unprivileged_userns=0
+sudo loginctl enable-linger "$USER"
+sudo systemctl start "user@$(id --user).service"
+echo "xdg_runtime_dir=/run/user/$(id --user)" >>"$output"

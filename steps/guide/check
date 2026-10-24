@@ -1,0 +1,63 @@
+#!/usr/bin/env python3
+# SPDX-License-Identifier: copyleft-next-0.3.1
+"""Usage: steps/guide/check --guide FILE --config FILE --output FILE
+
+Run every ssh command that a host console block of the guide FILE shows,
+in document order, against the machines the guide leaves running, and fail
+unless each one succeeds. A guide reaches its machines through the Include
+it asks you to add to ~/.ssh/config; here each command reads the guides' SSH
+configuration, --config, instead, without asking for anything and without
+keeping host keys, which a person answers once by hand. Append checks=<count>
+to --output:
+
+  nix develop .#steps --ignore-env --keep-env-var HOME \\
+      --command steps/guide/check --guide docs/bootstrap/kernel.rst \\
+      --config ~/bootstrap/ssh/config --output /dev/stdout
+"""
+
+import importlib.machinery
+import importlib.util
+import os
+import shlex
+import subprocess
+import sys
+
+OPTIONS = (
+    "-o BatchMode=yes -o ConnectTimeout=10 -o LogLevel=ERROR"
+    " -o StrictHostKeyChecking=accept-new -o UserKnownHostsFile=/dev/null"
+)
+
+
+def guide_module():
+    path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "run")
+    loader = importlib.machinery.SourceFileLoader("guide_run", path)
+    spec = importlib.util.spec_from_loader("guide_run", loader)
+    module = importlib.util.module_from_spec(spec)
+    loader.exec_module(module)
+    return module
+
+
+def main(argv):
+    opts = dict(zip(argv[::2], argv[1::2]))
+    if len(argv) % 2 or set(opts) != {"--guide", "--config", "--output"}:
+        sys.stderr.write(__doc__)
+        sys.exit(2)
+    guide = guide_module()
+    config = os.path.expanduser(opts["--config"])
+    checks = []
+    for _, options, body in guide.blocks(guide.lines_of(opts["--guide"])):
+        if options.get("class") == "cmd-host":
+            checks += [c for c in guide.commands(body) if c.startswith("ssh ")]
+    for command in checks:
+        command = f"ssh -F {shlex.quote(config)} {OPTIONS} {command[4:]}"
+        print(f"+ {command}", file=sys.stderr, flush=True)
+        subprocess.run(["bash", "-c", command], check=True)
+    with open(opts["--output"], "a") as f:
+        f.write(f"checks={len(checks)}\n")
+
+
+if __name__ == "__main__":
+    try:
+        main(sys.argv[1:])
+    except subprocess.CalledProcessError as e:
+        sys.exit(e.returncode)

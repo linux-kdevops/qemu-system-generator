@@ -1,0 +1,189 @@
+#!/usr/bin/env python3
+# SPDX-License-Identifier: copyleft-next-0.3.1
+"""Usage: steps/guide/run --guide FILE --key FILE --script FILE --output FILE
+
+Write the guide FILE (a docs/bootstrap/ page, its includes followed) as one
+shell script and run it, so that the host ends up as the guide leaves it.
+In document order the script writes every code block captioned with a ~/
+path (a diff block patches that file through steps/guide/patch), runs every
+shell block, and runs every $ command of a host console block except the
+one-time root setup (sudo) and those that drive a machine, which the machine
+steps run: systemctl, journalctl, ssh, ssh-keygen, socat, machinectl,
+qemu-system-generator and nix profile.
+~/.ssh/config is left alone, as the guides ask. The public key of the
+private key FILE replaces the guides' "ssh-ed25519 AAAA... bootstrap", and
+when the host has no /usr/lib/systemd/systemd-ssh-proxy, the one beside
+this shell's systemctl replaces it. The script is written to --script
+before it runs, with xtrace on, and script=<path> is appended to --output:
+
+  nix develop .#steps --ignore-env --keep-env-var HOME \\
+      --command steps/guide/run --guide docs/bootstrap/kernel.rst \\
+      --key ~/bootstrap/ssh/id_ed25519 \\
+      --script ~/bootstrap/kernel.sh --output /dev/stdout
+"""
+
+import os
+import re
+import shlex
+import shutil
+import subprocess
+import sys
+
+PLACEHOLDER_KEY = "ssh-ed25519 AAAA... bootstrap"
+SSH_PROXY = "/usr/lib/systemd/systemd-ssh-proxy"
+# Commands that start, inspect or stop a machine, or that a step of its own
+# runs; matched against the start of the command line.
+MACHINE_COMMANDS = (
+    "systemctl ",
+    "journalctl ",
+    "ssh ",
+    "ssh-keygen ",
+    "socat ",
+    "machinectl ",
+    "qemu-system-generator ",
+    "nix profile ",
+    "readlink /proc/",
+    "time ",
+)
+
+
+def usage():
+    sys.stderr.write(__doc__.split("\n", 1)[0] + "\n\n" + __doc__.split("\n", 2)[2])
+    sys.exit(2)
+
+
+def parse_args(argv):
+    opts = {}
+    while argv:
+        if len(argv) < 2 or argv[0] not in ("--guide", "--key", "--script", "--output"):
+            usage()
+        opts[argv[0][2:]] = argv[1]
+        argv = argv[2:]
+    if set(opts) != {"guide", "key", "script", "output"}:
+        usage()
+    return opts
+
+
+def lines_of(path):
+    """The page's lines with every include replaced by the included lines."""
+    out = []
+    with open(path) as f:
+        for line in f.read().split("\n"):
+            m = re.match(r"\.\. include:: (\S+)$", line)
+            if m:
+                out.extend(lines_of(os.path.join(os.path.dirname(path), m.group(1))))
+            else:
+                out.append(line)
+    return out
+
+
+def blocks(lines):
+    """Each code block as (language, options, body), in document order."""
+    i = 0
+    while i < len(lines):
+        m = re.match(r"\.\. code-block:: (\S+)$", lines[i])
+        if not m:
+            i += 1
+            continue
+        options = {}
+        i += 1
+        while i < len(lines) and re.match(r"   :\w+:", lines[i]):
+            key, _, value = lines[i].strip()[1:].partition(":")
+            options[key] = value.strip()
+            i += 1
+        body = []
+        while i < len(lines) and (lines[i].startswith("   ") or lines[i] == ""):
+            body.append(lines[i][3:])
+            i += 1
+        while body and body[-1] == "":
+            body.pop()
+        while body and body[0] == "":
+            body.pop(0)
+        yield m.group(1), options, body
+
+
+def commands(body):
+    """The $ commands of a console block, a continued line joined to its next."""
+    out = []
+    continued = False
+    for line in body:
+        if continued:
+            out[-1] += "\n" + line
+        elif line.startswith("$ "):
+            out.append(line[2:])
+        else:
+            continue
+        continued = line.endswith("\\")
+    return out
+
+
+def heredoc(text):
+    marker = "EOF"
+    while marker in text.split("\n"):
+        marker += "_"
+    return marker, text
+
+
+def script_of(lines, steps, pubkey, proxy):
+    def substitute(text):
+        text = text.replace(PLACEHOLDER_KEY, pubkey)
+        return text.replace(SSH_PROXY, proxy)
+
+    out = ["cd ~"]
+    for language, options, body in blocks(lines):
+        caption = options.get("caption", "")
+        text = substitute("\n".join(body))
+        if caption.startswith("~/") and caption != "~/.ssh/config":
+            marker, text = heredoc(text)
+            if language == "diff":
+                patch = f"{steps}/guide/patch --file {caption}"
+                out.append(f"{patch} <<'{marker}'\n{text}\n{marker}")
+            else:
+                out.append(f"mkdir --parents {os.path.dirname(caption)}")
+                out.append(f"cat >{caption} <<'{marker}'\n{text}\n{marker}")
+        elif options.get("class") != "cmd-host":
+            continue
+        elif language == "shell":
+            out.append(text)
+        elif language == "console":
+            out.extend(
+                c
+                for c in commands(text.split("\n"))
+                if not c.startswith(MACHINE_COMMANDS) and not re.search(r"\bsudo\b", c)
+            )
+    return "\n".join(out) + "\n"
+
+
+def main():
+    opts = parse_args(sys.argv[1:])
+    steps = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
+    with open(os.path.expanduser(opts["key"]) + ".pub") as f:
+        pubkey = f.read().strip()
+    proxy = SSH_PROXY
+    if not os.access(SSH_PROXY, os.X_OK):
+        systemctl = os.path.realpath(shutil.which("systemctl"))
+        proxy = os.path.join(
+            os.path.dirname(os.path.dirname(systemctl)), "lib/systemd/systemd-ssh-proxy"
+        )
+    script = os.path.expanduser(opts["script"])
+    os.makedirs(os.path.dirname(script), exist_ok=True)
+    with open(script, "w") as f:
+        f.write("# Generated by steps/guide/run from " + opts["guide"] + "\n")
+        f.write(script_of(lines_of(opts["guide"]), steps, pubkey, proxy))
+    print(
+        f"+ bash -o errexit -o pipefail -o xtrace {shlex.quote(script)}",
+        file=sys.stderr,
+        flush=True,
+    )
+    subprocess.run(
+        ["bash", "-o", "errexit", "-o", "pipefail", "-o", "xtrace", script], check=True
+    )
+    with open(opts["output"], "a") as f:
+        f.write(f"script={script}\n")
+
+
+if __name__ == "__main__":
+    try:
+        main()
+    except subprocess.CalledProcessError as e:
+        sys.exit(e.returncode)

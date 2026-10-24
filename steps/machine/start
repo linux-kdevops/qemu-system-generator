@@ -1,0 +1,50 @@
+#!/usr/bin/env bash
+# SPDX-License-Identifier: copyleft-next-0.3.1
+## Usage: steps/machine/start --config FILE --name "VM..." [--timeout SEC]
+##
+## Regenerate the units and restart qemu-system@VM.service of each machine
+## in the space-separated list, as each guide's steps do, then wait until
+## every guest's systemd has finished starting up, asked over SSH through
+## the Host block in FILE (see steps/machine/run). A guest that comes up
+## degraded counts as up. Fail when a service stops, or after SEC seconds
+## (default 300) without an answer from every guest:
+##
+##   nix develop .#steps --ignore-env --keep-env-var HOME \
+##       --keep-env-var XDG_RUNTIME_DIR \
+##       --command steps/machine/start --config ~/bootstrap/ssh/config \
+##       --name bootstrap
+set -o errexit -o nounset -o pipefail
+
+timeout=300
+while [ $# -gt 0 ]; do
+	case $1 in
+	--config | --name | --timeout) declare "${1#--}=$2" ;;
+	*) sed --quiet 's/^## \{0,1\}//p' "$0" >&2 && exit 2 ;;
+	esac
+	shift 2
+done
+: "${config:?} ${name:?}"
+
+set -o xtrace
+systemctl --user start qemu-system-generator.service
+for vm in $name; do
+	systemctl --user restart "qemu-system@$vm.service"
+done
+
+# QEMU does not tell systemd when the guest is up, so ask the guest until
+# its sshd answers; is-system-running --wait then blocks until startup has
+# finished.
+deadline=$((SECONDS + timeout))
+for vm in $name; do
+	ssh=("$(dirname "$0")/run" --config "$config" --name "$vm" --connect-timeout 5 --)
+	until state=$(timeout "$((deadline > SECONDS ? deadline - SECONDS : 1))" \
+		"${ssh[@]}" systemctl is-system-running --wait); do
+		case $state in
+		degraded) break ;;
+		esac
+		systemctl --user is-active --quiet "qemu-system@$vm.service"
+		[ "$SECONDS" -lt "$deadline" ]
+		sleep 5
+	done
+	echo "$vm: $state"
+done
