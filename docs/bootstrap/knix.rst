@@ -415,16 +415,15 @@ A smaller kernel
 ----------------
 
 ``defconfig`` builds drivers for hardware this machine does not have and
-makes a 15 MB image for the firmware to load. `linux-config-fragments`_
-holds fragments to merge onto an empty configuration, with a
-``builtin/`` set that turns a feature from a module into part of the
-kernel. Fetch them:
+makes a 15 MB image for the firmware to load. `kfragments`_ holds
+fragments to merge onto an empty configuration, with a ``builtin/`` set
+that turns a feature from a module into part of the kernel. Fetch them:
 
 .. code-block:: console
    :class: cmd-host
 
-   $ git clone --depth 1 https://github.com/linux-kdevops/linux-config-fragments.git \
-       ~/bootstrap/knix/linux-config-fragments
+   $ git clone --depth 1 https://github.com/linux-kdevops/kfragments.git \
+       ~/bootstrap/knix/kfragments
 
 What this machine needs beyond them goes in a fragment of your own:
 
@@ -459,7 +458,7 @@ Merge it with the fragments for a systemd guest with virtiofs, virtio-net
 and vsock built in, into a build directory of its own so that ``peer``
 keeps the first kernel. ``merge_config.sh -n`` starts from
 ``allnoconfig``, and ``-y`` keeps a ``=y`` from a ``builtin/`` fragment
-over a ``=m`` (`linux-config-fragments`_ has the rules):
+over a ``=m`` (`kfragments`_ has the rules):
 
 .. code-block:: console
    :class: cmd-host
@@ -467,7 +466,7 @@ over a ``=m`` (`linux-config-fragments`_ has the rules):
    $ cd ~/bootstrap/knix/linux
    $ K="nix develop github:linux-kdevops/knix#build-kernel --command"
    $ B=$HOME/bootstrap/knix/linux-fast-build
-   $ F=$HOME/bootstrap/knix/linux-config-fragments/kernel/configs
+   $ F=$HOME/bootstrap/knix/kfragments/kernel/configs
    $ $K make O=$B allnoconfig
    $ $K scripts/kconfig/merge_config.sh -y -n -O $B $B/.config \
        $F/core/64bit.config $F/core/core.config $F/core/modules.config \
@@ -711,5 +710,5 @@ guest's userspace.
 .. _QEMU build system: https://www.qemu.org/docs/master/devel/build-system.html
 .. _virtiofs: https://virtio-fs.gitlab.io
 .. _user-mode network: https://www.qemu.org/docs/master/system/devices/net.html#using-the-user-mode-network-stack
-.. _linux-config-fragments: https://github.com/linux-kdevops/linux-config-fragments
+.. _kfragments: https://github.com/linux-kdevops/kfragments
 .. _qboot: https://github.com/bonzini/qboot
