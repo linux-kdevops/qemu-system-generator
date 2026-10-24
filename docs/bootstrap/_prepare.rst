@@ -55,6 +55,10 @@ them:
 
    Include ~/bootstrap/ssh/config.d/*.conf
 
+ssh refuses a configuration file that anyone but you can write, and
+names it as having "Bad owner or permissions". With a ``umask`` of
+``002``, run ``chmod go-w`` on each file you create here.
+
 These guides never edit your ``~/.ssh/config``. Add one ``Include`` of
 theirs near its top yourself, before any ``Host`` or ``Match`` line, which
 would make the ``Include`` conditional (:cmd:`ssh_config(5)`). Use the
