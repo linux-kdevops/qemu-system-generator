@@ -21,4 +21,4 @@ done
 . "$(dirname "$0")/../base"
 
 set -o xtrace
-ssh -F "$SSH_DIR/config" bootstrap uname -r
+ssh -F "$SSH_DIR/config" bootstrap uname --kernel-release

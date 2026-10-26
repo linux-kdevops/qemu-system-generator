@@ -229,7 +229,7 @@ look at the shares:
    :class: cmd-host
 
    $ ssh bootstrap \
-       'uname -r; findmnt --noheadings --output=TARGET,SOURCE,FSTYPE --types=virtiofs'
+       'uname --kernel-release; findmnt --noheadings --output=TARGET,SOURCE,FSTYPE --types=virtiofs'
    Warning: Permanently added 'vsock/42' (ED25519) to the list of known hosts.
    7.3.0
    /lib/modules modules virtiofs

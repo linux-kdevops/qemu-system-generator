@@ -24,6 +24,6 @@ done
 
 set -o xtrace
 rm --force -- "$SYSTEM_DIR/share/from-guest"
-ssh -F "$SSH_DIR/config" bootstrap uname -r
+ssh -F "$SSH_DIR/config" bootstrap uname --kernel-release
 ssh -F "$SSH_DIR/config" bootstrap 'cat /mnt/host/hello.txt; touch /mnt/host/from-guest'
 ls --format=long "$SYSTEM_DIR/share/from-guest"

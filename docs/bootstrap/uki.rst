@@ -249,10 +249,11 @@ forwarded port takes the key on the command line:
 .. code-block:: console
    :class: cmd-host
 
-   $ ssh bootstrap uname -r
+   $ ssh bootstrap uname --kernel-release
    Warning: Permanently added 'vsock/42' (ED25519) to the list of known hosts.
    6.18.57
-   $ ssh -i ~/bootstrap/system/ssh/id_ed25519 -p 10022 root@127.0.0.1 uname -r
+   $ ssh -i ~/bootstrap/system/ssh/id_ed25519 -p 10022 root@127.0.0.1 \
+       uname --kernel-release
    6.18.57
 
 .. _uki-share:

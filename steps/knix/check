@@ -24,6 +24,6 @@ done
 
 set -o xtrace
 ssh -F "$SSH_DIR/config" bootstrap \
-	'uname -r; findmnt --noheadings --output=TARGET,SOURCE,FSTYPE --types=virtiofs'
+	'uname --kernel-release; findmnt --noheadings --output=TARGET,SOURCE,FSTYPE --types=virtiofs'
 ssh -F "$SSH_DIR/config" peer 'hostname; ping -c 1 10.0.100.42'
 ssh -F "$SSH_DIR/config" bootstrap ping -c 1 10.0.100.46

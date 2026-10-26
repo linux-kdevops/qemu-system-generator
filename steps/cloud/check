@@ -23,7 +23,7 @@ done
 
 set -o xtrace
 for vm in cloud-debian cloud-fedora cloud-ubuntu; do
-	ssh -F "$SSH_DIR/config" "$vm" 'hostname; uname -r'
+	ssh -F "$SSH_DIR/config" "$vm" 'hostname; uname --kernel-release'
 done
 ssh -F "$SSH_DIR/config" cloud-debian ping -c 1 10.0.100.44
 ssh -F "$SSH_DIR/config" cloud-fedora ping -c 1 10.0.100.43

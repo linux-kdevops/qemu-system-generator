@@ -238,7 +238,8 @@ Regenerate, restart with ``systemctl --user restart``, and log in with
 .. code-block:: console
    :class: cmd-host
 
-   $ ssh -i ~/bootstrap/system/ssh/id_ed25519 -p 10022 root@127.0.0.1 uname -r
+   $ ssh -i ~/bootstrap/system/ssh/id_ed25519 -p 10022 root@127.0.0.1 \
+       uname --kernel-release
    6.18.57
 
 .. _kernel-vsock:
@@ -332,7 +333,7 @@ as root with no password, and leave with Ctrl-O:
    $ socat -,rawer,escape=0x0f UNIX-CONNECT:$XDG_RUNTIME_DIR/qemu-system/bootstrap/console.sock
 
    bootstrap login: root
-   [root@bootstrap:~]# uname -r
+   [root@bootstrap:~]# uname --kernel-release
    6.18.57
 
 .. _kernel-drop-in:
@@ -579,7 +580,7 @@ Regenerate, restart and log in:
 
    $ systemctl --user start qemu-system-generator.service
    $ systemctl --user restart qemu-system@bootstrap.service
-   $ ssh bootstrap uname -r
+   $ ssh bootstrap uname --kernel-release
    Warning: Permanently added 'vsock/42' (ED25519) to the list of known hosts.
    7.3.0
 

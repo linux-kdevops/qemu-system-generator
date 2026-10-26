@@ -175,7 +175,7 @@ is an :cmd:`ssh` alias:
 .. code-block:: console
    :class: cmd-host
 
-   $ ssh cloud-debian 'hostname; uname -r'
+   $ ssh cloud-debian 'hostname; uname --kernel-release'
    Warning: Permanently added 'vsock/43' (ED25519) to the list of known hosts.
    cloud-debian
    7.2.11+deb14-cloud-amd64
@@ -208,7 +208,7 @@ which :ref:`host-ssh` already names:
 
    $ systemctl --user start qemu-system-generator.service
    $ systemctl --user start qemu-system@cloud-fedora.service
-   $ ssh cloud-fedora 'hostname; uname -r'
+   $ ssh cloud-fedora 'hostname; uname --kernel-release'
    Warning: Permanently added 'vsock/44' (ED25519) to the list of known hosts.
    cloud-fedora
    6.19.10-300.fc44.x86_64
@@ -230,7 +230,7 @@ which :ref:`host-ssh` already names:
 
    $ systemctl --user start qemu-system-generator.service
    $ systemctl --user start qemu-system@cloud-ubuntu.service
-   $ ssh cloud-ubuntu 'hostname; uname -r'
+   $ ssh cloud-ubuntu 'hostname; uname --kernel-release'
    Warning: Permanently added 'vsock/45' (ED25519) to the list of known hosts.
    cloud-ubuntu
    7.3.0-9-generic
