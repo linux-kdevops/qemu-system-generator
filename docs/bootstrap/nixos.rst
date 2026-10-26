@@ -18,9 +18,9 @@ The configuration
 ``configuration.nix`` imports nixpkgs' :cmd:`qemu-guest.nix` profile,
 which puts the virtio and virtiofs drivers in the `initrd`_. It
 names the machine ``bootstrap``, enables sshd, and lets root in with the
-key from ``~/bootstrap/ssh/id_ed25519.pub``, pasted in where the guides
-show ``ssh-ed25519 AAAA... bootstrap``. The empty root password is for
-logging in on a console.
+key from ``~/bootstrap/system/ssh/id_ed25519.pub``, pasted in where the
+guides show ``ssh-ed25519 AAAA... bootstrap``. The empty root password is
+for logging in on a console.
 
 .. _nixos-kernel:
 

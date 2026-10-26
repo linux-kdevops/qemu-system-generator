@@ -251,7 +251,7 @@ forwarded port takes the key on the command line:
    $ ssh bootstrap uname -r
    Warning: Permanently added 'vsock/42' (ED25519) to the list of known hosts.
    6.18.57
-   $ ssh -i ~/bootstrap/ssh/id_ed25519 -p 10022 root@127.0.0.1 uname -r
+   $ ssh -i ~/bootstrap/system/ssh/id_ed25519 -p 10022 root@127.0.0.1 uname -r
    6.18.57
 
 Every change to the guest means a new image with the whole system in

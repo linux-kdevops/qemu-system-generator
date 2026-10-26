@@ -68,8 +68,8 @@ The seeds
 
 cloud-init's `NoCloud`_ source reads its configuration from a file system
 labelled ``cidata``. ``~/bootstrap/cloud/user-data`` holds what every
-machine gets, with the public key from ``~/bootstrap/ssh/id_ed25519.pub``
-pasted in:
+machine gets, with the public key from
+``~/bootstrap/system/ssh/id_ed25519.pub`` pasted in:
 
 .. code-block:: yaml
    :caption: ~/bootstrap/cloud/user-data
@@ -109,7 +109,7 @@ the part of the name up to a dash, ``cloud-.qemu.d/``, applies to every
    :caption: ~/.config/qemu/systemd/cloud-.qemu.d/10-cloud.conf
 
    [VM]
-   SshPrivateKey=%h/bootstrap/ssh/id_ed25519
+   SshPrivateKey=%h/bootstrap/system/ssh/id_ed25519
 
    [QEMU]
    machine=q35

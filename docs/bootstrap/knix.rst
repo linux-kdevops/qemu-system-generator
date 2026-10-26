@@ -99,7 +99,8 @@ knix upstream:
    +    knix.url = "github:linux-kdevops/knix";
 
 Name the guest, mount a share of your own at ``/mnt/host``, and paste the
-public key from ``~/bootstrap/ssh/id_ed25519.pub`` into ``default.nix``:
+public key from ``~/bootstrap/system/ssh/id_ed25519.pub`` into
+``default.nix``:
 
 .. code-block:: diff
    :caption: ~/bootstrap/knix/guest/default.nix
@@ -151,8 +152,8 @@ Make a directory for the guest to share, and put a file in it:
 .. code-block:: console
    :class: cmd-host
 
-   $ mkdir --parents ~/bootstrap/share
-   $ echo "hello from the host" > ~/bootstrap/share/hello.txt
+   $ mkdir --parents ~/bootstrap/system/share
+   $ echo "hello from the host" > ~/bootstrap/system/share/hello.txt
 
 Create ``~/.config/qemu/systemd/bootstrap.qemu``. The kernel comes from
 your build, and three shares bring the store, ``/lib/modules`` and the
@@ -162,7 +163,7 @@ directory above:
    :caption: ~/.config/qemu/systemd/bootstrap.qemu
 
    [VM]
-   SshPrivateKey=%h/bootstrap/ssh/id_ed25519
+   SshPrivateKey=%h/bootstrap/system/ssh/id_ed25519
 
    [QEMU]
    machine=q35
@@ -191,7 +192,7 @@ directory above:
    gid-map=:0:%G:1:
 
    [virtiofsd]
-   shared-dir=%h/bootstrap/share
+   shared-dir=%h/bootstrap/system/share
    tag=host
    sandbox=namespace
    uid-map=:0:%U:1:
@@ -254,7 +255,7 @@ home directory:
 
     [VM]
    +QemuBinary=%h/bootstrap/knix/qemu-install/bin/qemu-system-x86_64
-    SshPrivateKey=%h/bootstrap/ssh/id_ed25519
+    SshPrivateKey=%h/bootstrap/system/ssh/id_ed25519
 
 Regenerate and restart, then check which binary runs:
 
@@ -328,7 +329,7 @@ own and no forwarded port, since ``bootstrap`` holds 10022:
 
    [VM]
    QemuBinary=%h/bootstrap/knix/qemu-install/bin/qemu-system-x86_64
-   SshPrivateKey=%h/bootstrap/ssh/id_ed25519
+   SshPrivateKey=%h/bootstrap/system/ssh/id_ed25519
 
    [QEMU]
    machine=q35
@@ -359,7 +360,7 @@ own and no forwarded port, since ``bootstrap`` holds 10022:
    gid-map=:0:%G:1:
 
    [virtiofsd]
-   shared-dir=%h/bootstrap/share
+   shared-dir=%h/bootstrap/system/share
    tag=host
    sandbox=namespace
    uid-map=:0:%U:1:

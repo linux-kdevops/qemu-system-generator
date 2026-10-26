@@ -238,7 +238,7 @@ Regenerate, restart with ``systemctl --user restart``, and log in with
 .. code-block:: console
    :class: cmd-host
 
-   $ ssh -i ~/bootstrap/ssh/id_ed25519 -p 10022 root@127.0.0.1 uname -r
+   $ ssh -i ~/bootstrap/system/ssh/id_ed25519 -p 10022 root@127.0.0.1 uname -r
    6.18.57
 
 .. _kernel-vsock:
@@ -287,7 +287,7 @@ over SSH first (:ref:`SSH poweroff <host-poweroff>`):
    :caption: ~/.config/qemu/systemd/bootstrap.qemu
 
    +[VM]
-   +SshPrivateKey=%h/bootstrap/ssh/id_ed25519
+   +SshPrivateKey=%h/bootstrap/system/ssh/id_ed25519
    +
     [QEMU]
     machine=q35
@@ -431,8 +431,8 @@ Make the directory and put a file in it:
 .. code-block:: console
    :class: cmd-host
 
-   $ mkdir --parents ~/bootstrap/share
-   $ echo "hello from the host" > ~/bootstrap/share/hello.txt
+   $ mkdir --parents ~/bootstrap/system/share
+   $ echo "hello from the host" > ~/bootstrap/system/share/hello.txt
 
 Then add the section:
 
@@ -442,7 +442,7 @@ Then add the section:
     gid-map=:0:%G:1:
 
    +[virtiofsd]
-   +shared-dir=%h/bootstrap/share
+   +shared-dir=%h/bootstrap/system/share
    +tag=host
    +sandbox=namespace
    +uid-map=:0:%U:1:
@@ -473,7 +473,7 @@ regenerate and restart:
    $ ssh bootstrap 'cat /mnt/host/hello.txt; touch /mnt/host/from-guest'
    Warning: Permanently added 'vsock/42' (ED25519) to the list of known hosts.
    hello from the host
-   $ ls -l ~/bootstrap/share
+   $ ls -l ~/bootstrap/system/share
    -rw-r--r-- 1 user user  0 Oct 22 16:47 from-guest
    -rw-rw-r-- 1 user user 20 Oct 22 16:47 hello.txt
 
@@ -654,7 +654,7 @@ context id of its own and no forwarded port, since ``bootstrap`` holds
    :caption: ~/.config/qemu/systemd/peer.qemu
 
    [VM]
-   SshPrivateKey=%h/bootstrap/ssh/id_ed25519
+   SshPrivateKey=%h/bootstrap/system/ssh/id_ed25519
 
    [QEMU]
    machine=microvm,rtc=on
@@ -681,7 +681,7 @@ context id of its own and no forwarded port, since ``bootstrap`` holds
    gid-map=:0:%G:1:
 
    [virtiofsd]
-   shared-dir=%h/bootstrap/share
+   shared-dir=%h/bootstrap/system/share
    tag=host
    sandbox=namespace
    uid-map=:0:%U:1:

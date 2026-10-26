@@ -35,13 +35,14 @@ The workspace
 =============
 
 Everything you write or build lives in ``~/bootstrap``: a directory per
-guide, the SSH key and configuration in ``ssh/``, and the directory the
-guests share in ``share/``:
+guide, and in ``system/`` what every guide shares, the SSH key and
+configuration in ``system/ssh/`` and the directory the guests share in
+``system/share/``:
 
 .. code-block:: console
    :class: cmd-host
 
-   $ mkdir --parents ~/bootstrap/ssh/config.d
+   $ mkdir --parents ~/bootstrap/system/ssh/config.d
 
 .. _host-ssh:
 
@@ -54,10 +55,11 @@ Create it with :cmd:`ssh-keygen`:
 .. code-block:: console
    :class: cmd-host
 
-   $ ssh-keygen -t ed25519 -N "" -C bootstrap -f ~/bootstrap/ssh/id_ed25519
+   $ ssh-keygen -t ed25519 -N "" -C bootstrap -f ~/bootstrap/system/ssh/id_ed25519
 
-The guides paste the public key, ``~/bootstrap/ssh/id_ed25519.pub``, into
-each guest's configuration.
+The guides paste the public key,
+``~/bootstrap/system/ssh/id_ed25519.pub``, into each guest's
+configuration.
 
 Every guest gets a `vsock`_ device with a context id of its own, a socket
 address the host reaches without any network. One configuration names
@@ -65,9 +67,9 @@ every guide's machine by its context id and lets them all in the same
 way:
 
 .. code-block:: text
-   :caption: ~/bootstrap/ssh/config
+   :caption: ~/bootstrap/system/ssh/config
 
-   Include ~/bootstrap/ssh/config.d/*.conf
+   Include ~/bootstrap/system/ssh/config.d/*.conf
 
    Host bootstrap
        HostName vsock/42
@@ -83,7 +85,7 @@ way:
    Host bootstrap cloud-debian cloud-fedora cloud-ubuntu peer
        ProxyCommand /usr/lib/systemd/systemd-ssh-proxy %h %p
        ProxyUseFdpass yes
-       IdentityFile ~/bootstrap/ssh/id_ed25519
+       IdentityFile ~/bootstrap/system/ssh/id_ed25519
        IdentitiesOnly yes
        User root
        StrictHostKeyChecking accept-new
@@ -113,7 +115,7 @@ would make the ``Include`` conditional (:cmd:`ssh_config(5)`). Use the
 .. code-block:: text
    :caption: ~/.ssh/config
 
-   Include ~/bootstrap/ssh/config
+   Include ~/bootstrap/system/ssh/config
 
 Then ``ssh bootstrap`` reaches the guest named ``bootstrap`` once it runs.
 A guest listens for SSH on vsock by itself through
@@ -224,7 +226,7 @@ adds the QEMU lines that connect to it. ``sandbox=``, ``uid-map=`` and
 ``gid-map=`` let it run without root: ``%U`` and ``%G`` are your user and
 group ids, which the guest's root maps to, and ``%h`` is your home
 directory, among the `specifiers`_ systemd expands in a unit. The guides
-share the host's ``/nix/store`` and ``~/bootstrap/share`` this way.
+share the host's ``/nix/store`` and ``~/bootstrap/system/share`` this way.
 
 .. _KVM: https://docs.kernel.org/virt/kvm/index.html
 .. _Nix: https://nix.dev/manual/nix/latest/

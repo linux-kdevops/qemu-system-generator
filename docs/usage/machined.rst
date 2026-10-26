@@ -91,11 +91,12 @@ all ssh still needs:
 .. code-block:: console
    :class: cmd-host
 
-   $ ssh -i ~/bootstrap/ssh/id_ed25519 machine/bootstrap
+   $ ssh -i ~/bootstrap/system/ssh/id_ed25519 machine/bootstrap
 
 The same snippet routes ``vsock/42``, by context id. The bootstrap guides
-name each machine in ``~/bootstrap/ssh/config`` instead (:ref:`host-ssh`),
-which works without the snippet and keeps ``ssh bootstrap`` short.
+name each machine in ``~/bootstrap/system/ssh/config`` instead
+(:ref:`host-ssh`), which works without the snippet and keeps
+``ssh bootstrap`` short.
 
 .. _usage-varlink:
 
