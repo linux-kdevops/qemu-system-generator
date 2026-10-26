@@ -19,9 +19,7 @@ doc or comment.
 - `notes/writing.md`: how commit messages, docs and comments are
   written, the examples to read first, and what `scripts/check-prose.py`
   refuses.
-- `notes/steps.md`: the rules for `steps/`, `dags/` and `.github/`,
-  borrowed from kdevops-ng and kdevops-ng-minimal-dagu, with where each
-  comes from.
+- `notes/steps.md`: the rules for `steps/`, `dags/` and `.github/`.
 
 ## Principles
 
