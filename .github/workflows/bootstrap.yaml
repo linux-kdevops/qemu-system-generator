@@ -1,8 +1,8 @@
 # SPDX-License-Identifier: copyleft-next-0.3.1
-# Every guide of docs/bootstrap/ followed on a GitHub-hosted runner, one job
-# each, through the same dagu start a developer runs (notes/steps.md). The
-# runner is a throwaway VM, so steps/github/prepare_runner does the one-time
-# root setup there; everything after it runs as the runner user.
+# Every DAG under dags/ on a GitHub-hosted runner, one job each, through the
+# same dagu start a person runs. The runner is a throwaway VM, so
+# steps/github/prepare_runner does the one-time root setup there;
+# everything after it runs as the runner user.
 name: bootstrap
 
 on:
@@ -11,25 +11,18 @@ on:
   pull_request:
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
-  guide:
+  dag:
     runs-on: ubuntu-latest
     timeout-minutes: 120
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - guide: disk
-            names: bootstrap
-          - guide: uki
-            names: bootstrap
-          - guide: kernel
-            names: bootstrap peer
-          - guide: knix
-            names: bootstrap peer
-          - guide: cloud
-            names: cloud-debian cloud-fedora cloud-ubuntu
-    name: ${{ matrix.guide }}
+        dag: [disk]
+    name: ${{ matrix.dag }}
     steps:
       - uses: actions/checkout@v5
 
@@ -40,13 +33,12 @@ jobs:
         with:
           github_access_token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Follow the guide
+      - name: Run the DAG
         env:
           XDG_RUNTIME_DIR: ${{ steps.runner.outputs.xdg_runtime_dir }}
         run: >-
           nix develop --ignore-env --keep-env-var HOME --keep-env-var XDG_RUNTIME_DIR
-          --command dagu --config config.yaml start bootstrap --
-          guide=${{ matrix.guide }} "names=${{ matrix.names }}"
+          --command dagu --config config.yaml start ${{ matrix.dag }}
 
       - name: Show the run
         if: always()
@@ -54,13 +46,11 @@ jobs:
           XDG_RUNTIME_DIR: ${{ steps.runner.outputs.xdg_runtime_dir }}
         run: >-
           nix develop --ignore-env --keep-env-var HOME --keep-env-var XDG_RUNTIME_DIR
-          --command dagu --config config.yaml status bootstrap
+          --command dagu --config config.yaml status ${{ matrix.dag }}
 
       - uses: actions/upload-artifact@v7
         if: always()
         with:
-          name: ${{ matrix.guide }}-logs
-          path: |
-            ~/.local/state/qemu-system-generator/dagu/logs
-            ~/bootstrap/steps
+          name: ${{ matrix.dag }}-logs
+          path: ~/.local/state/qemu-system-generator/dagu/logs
           if-no-files-found: ignore

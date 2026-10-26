@@ -2,72 +2,69 @@
 
 # Steps, DAGs and CI
 
-`steps/` reproduces what `docs/bootstrap/` documents, `dags/` wires the
-steps for [Dagu], and `.github/` runs those DAGs on GitHub-hosted runners.
-The conventions are borrowed; each section names where it comes from, so a
-question goes back to the source rather than to this page.
+`steps/` holds the commands that do what each guide of `docs/bootstrap/`
+teaches, `dags/` wires them into runs for [Dagu], one DAG per guide, and
+`.github/` starts those DAGs on GitHub-hosted runners. `CONTEXT.md` has
+the terms.
 
-## Principles
+## Steps
 
-From kdevops-ng's five rules
-(`~/src/kdevops-ng/docs/concepts/principles.rst`), applied here:
+A step is what a person would type: a bash executable,
+`steps/<subsystem>/<verb>`, that prints every command it runs
+(`set -o xtrace`) and whose `## Usage` header ends with the command line
+that runs it by hand. It takes the happy path, with as few options as
+possible, and decides nothing a DAG can decide for it: no retry loop, no
+waiting, no branching on an earlier step's result.
 
-- Nix first. A step runs in the flake's default shell under
-  `nix develop --ignore-env`, never a tool that happens to be on
-  the host's `PATH`.
-- systemd first. A machine is a `qemu-system@` unit and a step drives it
-  with `systemctl --user`; no daemon, PID file or wrapper of our own.
-- User mode only. No step runs `sudo`. The one-time root setup is written
-  in `docs/bootstrap/host.rst` for a person to run, and
-  `steps/github/prepare_runner` runs the same setup on a throwaway GitHub
-  runner only, called from no DAG a developer runs
-  (`~/src/kdevops-ng/docs/getting-started/requirements.rst` has the
-  original list).
-- Write only where the guides write: `~/bootstrap`,
-  `~/.config/qemu/systemd`, the generator's links in
-  `~/.config/systemd/user`, `~/.local/state/qemu-system` and the user's
-  Nix profile. `~/.ssh/config` stays the user's.
-- Commands a developer can run. Every step prints what it runs
-  (`set -o xtrace`) and its usage ends with the command line that runs it
-  by hand.
+A subsystem is a guide (`disk`, `uki`, `kernel`, `knix`, `cloud`) or a
+concern the guides share (`host`, `ssh`, `generator`, `machine`,
+`github`). A step is named for its action in the imperative,
+`verb_object` in snake_case when it takes an object (`generate_key`).
 
-## The step interface
+A guide and its steps are independent documents, kept by hand: neither
+reads, includes or names the other, and a change to one needs the
+matching change to the other.
 
-From `~/src/kdevops-ng-minimal-dagu/CLAUDE.md` and its README's "Steps":
-a step is a standalone executable, `steps/<subsystem>/<verb>`; every input
-is a long option; nothing comes from the environment but `HOME` and
-`XDG_RUNTIME_DIR`; an unknown option prints the `## Usage` header; results
-are `name=value` lines appended to `--output`, which is
-`$DAGU_OUTPUT_FILE` in a run and `/dev/stdout` by hand.
+## The base
 
-## Names
+`steps/base` holds the places, each defaulting from the one above it:
+`WORKBENCH_DIR` (`~/bootstrap`) gives `WORKTREES_DIR` and `SYSTEM_DIR`,
+`SYSTEM_DIR` gives `SSH_DIR`, and `SSH_DIR` gives `SSH_KEY`. A step that
+works in a place takes `--base FILE`, a user's own base that sets only
+what it changes and is read first. Nothing else comes from the
+environment but `HOME` and `XDG_RUNTIME_DIR`. A step writes every file
+that names a place itself, so the place is in the file as written.
 
-From `~/src/kdevops-ng/CLAUDE.md` ("Subsystem dirs, verb steps, thin
-flows", "Canonical upstream vocabulary") and
-`~/src/kdevops-ng/docs/concepts/flows.rst`, with Windmill's flows read as
-DAGs: a subsystem directory groups one concern (`host`, `ssh`,
-`generator`, `guide`, `machine`, `github`); a step is named for its action
-in the imperative, `verb_object` in snake_case when it takes an object
-(`generate_key`, `prepare_runner`); a DAG is `dags/<verb>.yaml`; a knob
-keeps the upstream tool's own name.
+## Environment
 
-## The guides are the source
+The caller enters the flake's default shell once and runs a step or
+`dagu start` in it:
 
-`steps/guide/run` turns a guide into the script that leaves the host as
-the guide does, so no step restates a file or a command a guide already
-shows. Only what drives a machine (start, the SSH checks, stop) and what
-needs root stay out of the replay. `docs/bootstrap/host.rst`, which every
-guide starts from, is replayed first, as a step of its own. A guide that a
-run cannot follow is a guide to fix.
+```shell
+nix develop --ignore-env --keep-env-var HOME --keep-env-var XDG_RUNTIME_DIR
+```
 
-## Thin DAGs, dumb CI
+No step or DAG calls `nix develop`, and none uses a tool that happens to
+be on the host's `PATH`. No step runs `sudo`, except
+`steps/github/prepare_runner`, which does a GitHub runner's one-time root
+setup and refuses to run anywhere else.
 
-From `~/src/kdevops-ng-minimal-dagu/CLAUDE.md` ("CI is dumb"): a DAG only
-wires steps, and a workflow under `.github/workflows/` only prepares the
-runner, runs the same `dagu start` and `dagu status` a developer runs, and
-collects what the DAG wrote. Anything that computes, parses or decides is
-a step. Dagu is that project's patched build (`nix/dagu.nix` and
-`nix/dagu-patches/` there) until the patches land upstream.
+## DAGs
+
+A DAG (`dags/<guide>.yaml`) is `type: chain`, takes no parameters, and
+holds the control flow: it retries `machine/wait` until the guest
+answers, and stops the machines from `handler_on: exit`, whether the run
+passed or failed. Every run writes to the same places, so the DAGs that
+start the `bootstrap` machine join the `bootstrap` queue in
+`config.yaml`, which admits one at a time under `dagu enqueue`;
+`dagu start` ignores it.
+
+## CI
+
+A workflow under `.github/workflows/` prepares the runner, then runs the
+`dagu start` and `dagu status` a person runs, and keeps Dagu's logs. Its
+matrix holds every DAG, and every push runs them all. Dagu is built by
+`nix/dagu.nix` until its patches land upstream.
 
 ## Runners
 

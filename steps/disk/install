@@ -1,0 +1,87 @@
+#!/usr/bin/env bash
+# SPDX-License-Identifier: copyleft-next-0.3.1
+## Usage: steps/disk/install [--base FILE]
+##
+## Write a NixOS flake that builds an EFI disk image of the bootstrap
+## machine, with the public key of SSH_KEY for root, in
+## WORKTREES_DIR/disk, and bootstrap.qemu, which boots that image with
+## OVMF, in ~/.config/qemu/systemd:
+##
+##   nix develop --ignore-env --keep-env-var HOME \
+##       --command steps/disk/install
+set -o errexit -o nounset -o pipefail
+
+while [ $# -gt 0 ]; do
+	case $1 in
+	--base) base=$2 ;;
+	*) sed --quiet 's/^## \{0,1\}//p' "$0" >&2 && exit 2 ;;
+	esac
+	shift 2
+done
+# shellcheck source=/dev/null
+[ -z "${base-}" ] || . "$base"
+# shellcheck source=steps/base
+. "$(dirname "$0")/../base"
+units=$HOME/.config/qemu/systemd
+
+set -o xtrace
+mkdir --parents "$WORKTREES_DIR/disk" "$units"
+cd "$WORKTREES_DIR/disk"
+cat >flake.nix <<'EOF'
+{
+  inputs.nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
+
+  outputs =
+    { self, nixpkgs }:
+    let
+      system = "x86_64-linux";
+      inherit (self.nixosConfigurations.bootstrap.config.system.build) images;
+    in
+    {
+      nixosConfigurations.bootstrap = nixpkgs.lib.nixosSystem {
+        inherit system;
+        modules = [ ./configuration.nix ];
+      };
+      packages.${system} = {
+        efi = images.qemu-efi;
+        ovmf = nixpkgs.legacyPackages.${system}.OVMF.fd;
+      };
+    };
+}
+EOF
+cat >configuration.nix <<EOF
+{ lib, modulesPath, ... }:
+{
+  imports = [ (modulesPath + "/profiles/qemu-guest.nix") ];
+
+  networking.hostName = "bootstrap";
+  services.openssh.enable = true;
+  services.openssh.hostKeys = [
+    { type = "ed25519"; path = "/etc/ssh/ssh_host_ed25519_key"; }
+  ];
+  security.pam.services.sshd.startSession = lib.mkForce false;
+  users.users.root.openssh.authorizedKeys.keys = [ "$(cat "$SSH_KEY.pub")" ];
+
+  boot.kernelParams = [ "console=ttyS0" ];
+  boot.loader.timeout = 0;
+  image.modules.qemu-efi.image.baseName = "bootstrap";
+
+  system.stateVersion = "26.05";
+}
+EOF
+cat >"$units/bootstrap.qemu" <<EOF
+[QEMU]
+machine=q35
+accel=kvm
+cpu=host
+m=2G
+smp=4
+nographic=
+serial=mon:stdio
+drive=if=pflash,format=raw,readonly=on,file=$WORKTREES_DIR/disk/ovmf-fd/FV/OVMF_CODE.fd
+drive=if=pflash,format=raw,snapshot=on,file=$WORKTREES_DIR/disk/ovmf-fd/FV/OVMF_VARS.fd
+drive=file=$WORKTREES_DIR/disk/efi/bootstrap.qcow2,if=virtio,format=qcow2,snapshot=on
+nic=user,model=virtio-net-pci-non-transitional
+device=vhost-vsock-pci-non-transitional,guest-cid=42
+EOF
+rm --recursive --force -- "$units/bootstrap.qemu.d"

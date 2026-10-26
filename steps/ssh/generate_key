@@ -1,27 +1,28 @@
 #!/usr/bin/env bash
 # SPDX-License-Identifier: copyleft-next-0.3.1
-## Usage: steps/ssh/generate_key --dir DIR --output FILE
+## Usage: steps/ssh/generate_key [--base FILE]
 ##
-## Make the key pair the guides log in with, DIR/id_ed25519 and its .pub, as
-## docs/bootstrap/_prepare.rst does, unless it is already there, and append
-## key=<private key> to FILE:
+## Make the key pair the machines take for root, SSH_KEY and its .pub,
+## unless it is already there:
 ##
 ##   nix develop --ignore-env --keep-env-var HOME \
-##       --command steps/ssh/generate_key --dir ~/bootstrap/ssh --output /dev/stdout
+##       --command steps/ssh/generate_key
 set -o errexit -o nounset -o pipefail
 
 while [ $# -gt 0 ]; do
 	case $1 in
-	--dir | --output) declare "${1#--}=$2" ;;
+	--base) base=$2 ;;
 	*) sed --quiet 's/^## \{0,1\}//p' "$0" >&2 && exit 2 ;;
 	esac
 	shift 2
 done
-: "${dir:?} ${output:?}"
+# shellcheck source=/dev/null
+[ -z "${base-}" ] || . "$base"
+# shellcheck source=steps/base
+. "$(dirname "$0")/../base"
 
 set -o xtrace
-if [ ! -e "$dir/id_ed25519" ]; then
-	mkdir --parents "$dir"
-	ssh-keygen -t ed25519 -N "" -C bootstrap -f "$dir/id_ed25519"
+if [ ! -e "$SSH_KEY" ]; then
+	mkdir --parents "$(dirname "$SSH_KEY")"
+	ssh-keygen -t ed25519 -N "" -C bootstrap -f "$SSH_KEY"
 fi
-echo "key=$dir/id_ed25519" >>"$output"

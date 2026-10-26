@@ -1,33 +1,27 @@
 #!/usr/bin/env bash
 # SPDX-License-Identifier: copyleft-next-0.3.1
-## Usage: steps/generator/install --flake DIR --output FILE
+## Usage: steps/generator/install
 ##
-## Put the generator of the flake in DIR in the user's Nix profile and enable
-## its two user units through the profile's link, as
-## docs/bootstrap/_generator.rst does: nix profile add the first time, nix
-## profile upgrade after, then a daemon-reload so the manager loads the new
-## generation's units. --force replaces the links of an earlier install made
-## from elsewhere. Append generator=<profile link> to FILE:
+## Put the generator of this checkout in the user's Nix profile and enable
+## its two user units through the profile's link: nix profile add the first
+## time, nix profile upgrade after, then a daemon-reload so the manager
+## loads the new generation's units. --force replaces the links of an
+## earlier install made from elsewhere:
 ##
 ##   nix develop --ignore-env --keep-env-var HOME \
 ##       --keep-env-var XDG_RUNTIME_DIR \
-##       --command steps/generator/install --flake . --output /dev/stdout
+##       --command steps/generator/install
 set -o errexit -o nounset -o pipefail
 
-while [ $# -gt 0 ]; do
-	case $1 in
-	--flake | --output) declare "${1#--}=$2" ;;
-	*) sed --quiet 's/^## \{0,1\}//p' "$0" >&2 && exit 2 ;;
-	esac
-	shift 2
-done
-: "${flake:?} ${output:?}"
+if [ $# -gt 0 ]; then
+	sed --quiet 's/^## \{0,1\}//p' "$0" >&2 && exit 2
+fi
 
 set -o xtrace
 if nix profile list --json | jq --exit-status '.elements | has("qemu-system-generator")' >/dev/null; then
 	nix profile upgrade qemu-system-generator
 else
-	nix profile add "$flake"
+	nix profile add "$(dirname "$0")/../.."
 fi
 # The profile's link, ~/.nix-profile, or ~/.local/state/nix/profile with
 # use-xdg-base-directories.
@@ -39,4 +33,3 @@ systemctl --user enable --now --force \
 	"$profile/lib/systemd/user/qemu-system-generator.path"
 systemctl --user daemon-reload
 "$profile/bin/qemu-system-generator" --version
-echo "generator=$profile" >>"$output"

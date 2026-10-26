@@ -14,7 +14,7 @@ set -o errexit -o nounset -o pipefail
 
 while [ $# -gt 0 ]; do
 	case $1 in
-	--name) declare "${1#--}=$2" ;;
+	--name) name=$2 ;;
 	*) sed --quiet 's/^## \{0,1\}//p' "$0" >&2 && exit 2 ;;
 	esac
 	shift 2

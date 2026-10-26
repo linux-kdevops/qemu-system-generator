@@ -3,8 +3,8 @@
 ## Usage: steps/github/prepare_runner --output FILE
 ##
 ## The one step that runs as root, and only on a throwaway GitHub-hosted
-## runner: the one-time setup docs/bootstrap/_prepare.rst leaves to a host's
-## owner. It opens /dev/kvm and /dev/vhost-vsock to the runner user, lets
+## runner: the one-time setup the owner of any other host does by hand.
+## It opens /dev/kvm and /dev/vhost-vsock to the runner user, lets
 ## virtiofsd's namespace sandbox map that user to root (Ubuntu's AppArmor
 ## refuses unprivileged user namespaces by default), and starts a lingering
 ## user manager. Append xdg_runtime_dir=<its runtime directory> to FILE.

@@ -1,0 +1,11 @@
+# SPDX-License-Identifier: copyleft-next-0.3.1
+# shellcheck shell=bash
+# The places every step works in, each defaulting from the one above it, so
+# setting one moves those below it unless they are set too. A step reads
+# the user's own base, given with --base FILE, first, then this file.
+
+: "${WORKBENCH_DIR:=$HOME/bootstrap}"
+: "${WORKTREES_DIR:=$WORKBENCH_DIR}"
+: "${SYSTEM_DIR:=$WORKBENCH_DIR}"
+: "${SSH_DIR:=$SYSTEM_DIR/ssh}"
+: "${SSH_KEY:=$SSH_DIR/id_ed25519}"

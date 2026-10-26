@@ -120,8 +120,8 @@ docs/                    walk-throughs and the Sphinx site
 examples/                one file per feature; the conformance inputs
 tests/                   expected generator output, verify script
 nix/                     package, NixOS module and Dagu
-steps/                   the guides of docs/bootstrap/ as steps
-dags/, config.yaml       the Dagu DAG that wires the steps, and its config
+steps/                   the commands the guides of docs/bootstrap/ teach
+dags/, config.yaml       the Dagu DAGs that wire the steps, and their config
 notes/                   rules for contributors, unpublished
 ```
 
@@ -145,17 +145,16 @@ nix flake check
 `tests/update-expected` rewrites the expected output after a deliberate
 format change.
 
-`steps/` follows each guide of `docs/bootstrap/` on this host and checks
-the machines it leaves, and `dags/bootstrap.yaml` wires the steps for
-[Dagu]; `.github/workflows/bootstrap.yaml` runs the same DAG for every
-guide. A run does what the guide does, so it replaces `~/bootstrap/<guide>`
-and the guide's `.qemu` files, and adds the generator to your Nix profile:
+`steps/` holds the commands that do what each guide of `docs/bootstrap/`
+teaches, and `dags/` wires them for [Dagu], one DAG per guide;
+`.github/workflows/bootstrap.yaml` runs every DAG. A run writes where the
+guides write, so it replaces `~/bootstrap/<guide>` and the machines'
+`.qemu` files, and adds the generator to your Nix profile:
 
 ```shell
 nix develop --ignore-env \
     --keep-env-var HOME --keep-env-var XDG_RUNTIME_DIR \
-    --command dagu --config config.yaml start bootstrap -- \
-    guide=kernel "names=bootstrap peer"
+    --command dagu --config config.yaml start disk
 ```
 
 `notes/steps.md` has the rules the steps follow.
