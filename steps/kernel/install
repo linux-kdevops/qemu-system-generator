@@ -1,0 +1,126 @@
+#!/usr/bin/env bash
+# SPDX-License-Identifier: copyleft-next-0.3.1
+## Usage: steps/kernel/install [--base FILE]
+##
+## Write a NixOS flake whose system closure, with the latest kernel and the
+## public key of SSH_KEY for root, two microvm machines boot directly, in
+## WORKTREES_DIR/kernel; bootstrap.qemu and peer.qemu, which boot it with
+## the host's Nix store and SYSTEM_DIR/share over virtiofs and a LAN
+## between them, in ~/.config/qemu/systemd; and a file in the share for the
+## guests to read:
+##
+##   nix develop --ignore-env --keep-env-var HOME \
+##       --command steps/kernel/install
+set -o errexit -o nounset -o pipefail
+
+while [ $# -gt 0 ]; do
+	case $1 in
+	--base) base=$2 ;;
+	*) sed --quiet 's/^## \{0,1\}//p' "$0" >&2 && exit 2 ;;
+	esac
+	shift 2
+done
+# shellcheck source=/dev/null
+[ -z "${base-}" ] || . "$base"
+# shellcheck source=steps/base
+. "$(dirname "$0")/../base"
+units=$HOME/.config/qemu/systemd
+
+set -o xtrace
+mkdir --parents "$WORKTREES_DIR/kernel" "$units" "$SYSTEM_DIR/share"
+cd "$WORKTREES_DIR/kernel"
+cat >flake.nix <<'EOF'
+{
+  inputs.nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
+
+  outputs =
+    { self, nixpkgs }:
+    {
+      nixosConfigurations.bootstrap = nixpkgs.lib.nixosSystem {
+        system = "x86_64-linux";
+        modules = [ ./configuration.nix ];
+      };
+      packages.x86_64-linux.default = self.nixosConfigurations.bootstrap.config.system.build.toplevel;
+    };
+}
+EOF
+cat >configuration.nix <<EOF
+{ lib, modulesPath, pkgs, ... }:
+{
+  imports = [ (modulesPath + "/profiles/qemu-guest.nix") ];
+
+  boot.kernelPackages = pkgs.linuxPackages_latest;
+  networking.hostName = "bootstrap";
+  networking.useNetworkd = true;
+  systemd.network.networks = {
+    "10-lan-bootstrap" = {
+      matchConfig.MACAddress = "52:54:00:00:00:42";
+      address = [ "10.0.100.42/24" ];
+    };
+    "10-lan-peer" = {
+      matchConfig.MACAddress = "52:54:00:00:00:46";
+      address = [ "10.0.100.46/24" ];
+    };
+  };
+  services.openssh.enable = true;
+  services.openssh.hostKeys = [
+    { type = "ed25519"; path = "/etc/ssh/ssh_host_ed25519_key"; }
+  ];
+  security.pam.services.sshd.startSession = lib.mkForce false;
+  users.users.root.openssh.authorizedKeys.keys = [ "$(cat "$SSH_KEY.pub")" ];
+
+  boot.loader.grub.enable = false;
+  fileSystems."/" = {
+    device = "none";
+    fsType = "tmpfs";
+    options = [ "mode=0755" ];
+  };
+  fileSystems."/nix/store" = {
+    device = "store";
+    fsType = "virtiofs";
+  };
+  fileSystems."/mnt/host" = {
+    device = "host";
+    fsType = "virtiofs";
+  };
+
+  system.stateVersion = "26.05";
+}
+EOF
+for vm in bootstrap:42:4 peer:46:2; do
+	IFS=: read -r name cid cpus <<<"$vm"
+	cat >"$units/$name.qemu" <<EOF
+[QEMU]
+machine=microvm,rtc=on
+accel=kvm
+cpu=host
+m=2G
+smp=$cpus
+nographic=
+serial=mon:stdio
+kernel=$WORKTREES_DIR/kernel/result/kernel
+initrd=$WORKTREES_DIR/kernel/result/initrd
+global=virtio-mmio.force-legacy=false
+netdev=user,id=net0
+device=virtio-net-device,netdev=net0
+netdev=dgram,id=lan,remote.type=inet,remote.host=239.255.0.1,remote.port=5555,local.type=inet,local.host=127.0.0.1,local.port=0
+device=virtio-net-device,netdev=lan,mac=52:54:00:00:00:$cid
+device=vhost-vsock-device,guest-cid=$cid
+
+[virtiofsd]
+shared-dir=/nix/store
+tag=store
+sandbox=namespace
+uid-map=:0:%U:1:
+gid-map=:0:%G:1:
+
+[virtiofsd]
+shared-dir=$SYSTEM_DIR/share
+tag=host
+sandbox=namespace
+uid-map=:0:%U:1:
+gid-map=:0:%G:1:
+EOF
+	rm --recursive --force -- "$units/$name.qemu.d"
+done
+echo "hello from the host" >"$SYSTEM_DIR/share/hello.txt"
