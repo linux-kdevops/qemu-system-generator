@@ -148,6 +148,7 @@
               # What steps/ and dags/ run besides, under nix develop
               # --ignore-env, which keeps only HOME and XDG_RUNTIME_DIR.
               self.packages.${pkgs.stdenv.hostPlatform.system}.dagu
+              pkgs.cloud-utils
               pkgs.cpio
               pkgs.curl
               pkgs.git

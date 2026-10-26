@@ -1,0 +1,38 @@
+#!/usr/bin/env bash
+# SPDX-License-Identifier: copyleft-next-0.3.1
+## Usage: steps/cloud/fetch
+##
+## Download the Debian, Fedora and Ubuntu cloud images into their machines'
+## state directories under ~/.local/state/qemu-system, unless the image
+## already there passes its publisher's checksum:
+##
+##   nix develop --ignore-env --keep-env-var HOME \
+##       --command steps/cloud/fetch
+set -o errexit -o nounset -o pipefail
+
+if [ $# -gt 0 ]; then
+	sed --quiet 's/^## \{0,1\}//p' "$0" >&2 && exit 2
+fi
+
+# name, image URL, checksum file URL, checksum command
+fetch() {
+	mkdir --parents "$HOME/.local/state/qemu-system/$1"
+	cd "$HOME/.local/state/qemu-system/$1"
+	curl --fail --silent --location "$3" >"$1.sums"
+	if ! [ -e "${2##*/}" ] || ! "$4" --check --ignore-missing "$1.sums"; then
+		curl --fail --location --remote-name "$2"
+		"$4" --check --ignore-missing "$1.sums"
+	fi
+	rm -- "$1.sums"
+}
+
+set -o xtrace
+fetch cloud-debian \
+	https://cloud.debian.org/images/cloud/forky/daily/latest/debian-14-genericcloud-amd64-daily.qcow2 \
+	https://cloud.debian.org/images/cloud/forky/daily/latest/SHA512SUMS sha512sum
+fetch cloud-fedora \
+	https://download.fedoraproject.org/pub/fedora/linux/releases/44/Cloud/x86_64/images/Fedora-Cloud-Base-Generic-44-1.7.x86_64.qcow2 \
+	https://download.fedoraproject.org/pub/fedora/linux/releases/44/Cloud/x86_64/images/Fedora-Cloud-44-1.7-x86_64-CHECKSUM sha256sum
+fetch cloud-ubuntu \
+	https://cloud-images.ubuntu.com/stonking/current/stonking-server-cloudimg-amd64.img \
+	https://cloud-images.ubuntu.com/stonking/current/SHA256SUMS sha256sum

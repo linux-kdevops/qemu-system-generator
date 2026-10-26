@@ -1,0 +1,50 @@
+# SPDX-License-Identifier: copyleft-next-0.3.1
+description: >-
+  Fetch the Debian, Fedora and Ubuntu cloud images, write their cloud-init
+  seeds, boot the three machines, log in, and have Debian and Fedora ping
+  each other.
+working_dir: ..
+type: chain
+
+env:
+  - XDG_RUNTIME_DIR: ${XDG_RUNTIME_DIR}
+
+handler_on:
+  exit:
+    run: steps/machine/stop --name "cloud-debian cloud-fedora cloud-ubuntu"
+
+steps:
+  - id: check_host
+    run: steps/host/check
+
+  - id: generate_key
+    run: steps/ssh/generate_key
+
+  - id: install_host
+    run: steps/host/install
+
+  - id: install_generator
+    run: steps/generator/install
+
+  - id: fetch
+    run: steps/cloud/fetch
+
+  - id: install
+    run: steps/cloud/install
+
+  - id: build
+    run: steps/cloud/build
+
+  - id: start
+    run: steps/machine/start --name "cloud-debian cloud-fedora cloud-ubuntu"
+
+  # The guest answers once its sshd runs; until then the step fails.
+  # cloud-init's first boot grows the disk and makes the host keys.
+  - id: wait
+    run: steps/machine/wait --name "cloud-debian cloud-fedora cloud-ubuntu"
+    retry_policy:
+      limit: 120
+      interval_sec: 5
+
+  - id: check
+    run: steps/cloud/check

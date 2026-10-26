@@ -1,0 +1,80 @@
+#!/usr/bin/env bash
+# SPDX-License-Identifier: copyleft-next-0.3.1
+## Usage: steps/cloud/install [--base FILE]
+##
+## Write the cloud-init user-data that gives root the public key of
+## SSH_KEY, and the network configuration of Debian and Fedora, in
+## WORKTREES_DIR/cloud; and in ~/.config/qemu/systemd, the three machines'
+## .qemu files, the drop-in they share, and the drop-ins that put Debian
+## and Fedora on a LAN:
+##
+##   nix develop --ignore-env --keep-env-var HOME \
+##       --command steps/cloud/install
+set -o errexit -o nounset -o pipefail
+
+while [ $# -gt 0 ]; do
+	case $1 in
+	--base) base=$2 ;;
+	*) sed --quiet 's/^## \{0,1\}//p' "$0" >&2 && exit 2 ;;
+	esac
+	shift 2
+done
+# shellcheck source=/dev/null
+[ -z "${base-}" ] || . "$base"
+# shellcheck source=steps/base
+. "$(dirname "$0")/../base"
+units=$HOME/.config/qemu/systemd
+
+set -o xtrace
+mkdir --parents "$WORKTREES_DIR/cloud" "$units/cloud-.qemu.d"
+cd "$WORKTREES_DIR/cloud"
+cat >user-data <<EOF
+#cloud-config
+disable_root: false
+ssh_authorized_keys:
+  - $(cat "$SSH_KEY.pub")
+EOF
+cat >"$units/cloud-.qemu.d/10-cloud.conf" <<'EOF'
+[QEMU]
+machine=q35
+accel=kvm
+cpu=host
+m=2G
+smp=2
+nographic=
+serial=mon:stdio
+drive=file=seed.iso,if=virtio,format=raw,readonly=on
+nic=user,model=virtio-net-pci-non-transitional
+EOF
+for vm in cloud-debian:43:debian-14-genericcloud-amd64-daily.qcow2 \
+	cloud-fedora:44:Fedora-Cloud-Base-Generic-44-1.7.x86_64.qcow2 \
+	cloud-ubuntu:45:stonking-server-cloudimg-amd64.img; do
+	IFS=: read -r name cid image <<<"$vm"
+	cat >"$units/$name.qemu" <<EOF
+[QEMU]
+drive=file=$image,if=virtio,format=qcow2
+device=vhost-vsock-pci-non-transitional,guest-cid=$cid
+EOF
+	rm --recursive --force -- "$units/$name.qemu.d"
+done
+for vm in cloud-debian:43 cloud-fedora:44; do
+	IFS=: read -r name cid <<<"$vm"
+	cat >"$name.network" <<EOF
+version: 2
+ethernets:
+  user:
+    match:
+      macaddress: "52:54:00:12:34:56"
+    dhcp4: true
+  lan:
+    match:
+      macaddress: "52:54:00:00:00:$cid"
+    addresses: [10.0.100.$cid/24]
+EOF
+	mkdir --parents "$units/$name.qemu.d"
+	cat >"$units/$name.qemu.d/20-lan.conf" <<EOF
+[QEMU]
+netdev=dgram,id=lan,remote.type=inet,remote.host=239.255.0.1,remote.port=5555,local.type=inet,local.host=127.0.0.1,local.port=0
+device=virtio-net-pci-non-transitional,netdev=lan,mac=52:54:00:00:00:$cid
+EOF
+done

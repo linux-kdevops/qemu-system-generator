@@ -1,0 +1,34 @@
+#!/usr/bin/env bash
+# SPDX-License-Identifier: copyleft-next-0.3.1
+## Usage: steps/cloud/build [--base FILE]
+##
+## Write each machine's cloud-init seed into its state directory from the
+## files in WORKTREES_DIR/cloud: Debian and Fedora with their network
+## configuration, Ubuntu without:
+##
+##   nix develop --ignore-env --keep-env-var HOME \
+##       --command steps/cloud/build
+set -o errexit -o nounset -o pipefail
+
+while [ $# -gt 0 ]; do
+	case $1 in
+	--base) base=$2 ;;
+	*) sed --quiet 's/^## \{0,1\}//p' "$0" >&2 && exit 2 ;;
+	esac
+	shift 2
+done
+# shellcheck source=/dev/null
+[ -z "${base-}" ] || . "$base"
+# shellcheck source=steps/base
+. "$(dirname "$0")/../base"
+state=$HOME/.local/state/qemu-system
+
+set -o xtrace
+cd "$WORKTREES_DIR/cloud"
+printf 'instance-id: %s\nlocal-hostname: %s\n' cloud-ubuntu cloud-ubuntu >meta-data
+cloud-localds "$state/cloud-ubuntu/seed.iso" user-data meta-data
+for name in cloud-debian cloud-fedora; do
+	printf 'instance-id: %s-lan\nlocal-hostname: %s\n' $name $name >meta-data
+	cloud-localds --network-config=$name.network \
+		"$state/$name/seed.iso" user-data meta-data
+done

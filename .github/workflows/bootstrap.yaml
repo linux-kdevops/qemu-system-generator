@@ -21,7 +21,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        dag: [disk, uki, kernel, knix]
+        dag: [disk, uki, kernel, knix, cloud]
     name: ${{ matrix.dag }}
     steps:
       - uses: actions/checkout@v5
