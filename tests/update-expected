@@ -6,7 +6,7 @@
 # depends on the checkout or on the build environment (the same
 # variables build.rs reads) becomes a placeholder that tests/examples.rs
 # fills back in.
-set -eu
+set -o errexit -o nounset
 cd "$(dirname "$0")/.."
 cargo build --quiet
 qemu="${QEMU_BINDIR:-/usr/bin}/qemu-system-[^ ]*"

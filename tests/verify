@@ -3,7 +3,7 @@
 #
 # Generate the examples into a scratch directory and load them in a
 # service manager with systemd-analyze verify, both scopes.
-set -eu
+set -o errexit -o nounset
 cd "$(dirname "$0")/.."
 cargo build --quiet
 tmp="$(mktemp --directory)"
