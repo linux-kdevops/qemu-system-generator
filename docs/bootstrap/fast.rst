@@ -141,7 +141,7 @@ Quiet
 Every line on the serial console costs time: the kernel writes it a
 character at a time to an emulated UART. ``quiet`` turns off the kernel's
 log output and systemd's status output (:cmd:`systemd(1)`). The journal
-then shows the boot only when something fails, and ``journalctl -b`` in
+then shows the boot only when something fails, and ``journalctl --boot`` in
 the guest still has every line. Leave it out while a boot needs watching.
 
 .. _fast-mounts:
