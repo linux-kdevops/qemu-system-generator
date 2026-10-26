@@ -1,0 +1,127 @@
+#!/usr/bin/env bash
+# SPDX-License-Identifier: copyleft-next-0.3.1
+## Usage: steps/uki/install [--base FILE]
+##
+## Write a NixOS flake that builds an EFI system partition holding the
+## bootstrap machine's unified kernel image, with the public key of SSH_KEY
+## for root, in WORKTREES_DIR/uki; bootstrap.qemu, which boots it with OVMF
+## and shares the host's Nix store and SYSTEM_DIR/share over virtiofs, in
+## ~/.config/qemu/systemd; and a file in the share for the guest to read:
+##
+##   nix develop --ignore-env --keep-env-var HOME \
+##       --command steps/uki/install
+set -o errexit -o nounset -o pipefail
+
+while [ $# -gt 0 ]; do
+	case $1 in
+	--base) base=$2 ;;
+	*) sed --quiet 's/^## \{0,1\}//p' "$0" >&2 && exit 2 ;;
+	esac
+	shift 2
+done
+# shellcheck source=/dev/null
+[ -z "${base-}" ] || . "$base"
+# shellcheck source=steps/base
+. "$(dirname "$0")/../base"
+units=$HOME/.config/qemu/systemd
+
+set -o xtrace
+mkdir --parents "$WORKTREES_DIR/uki" "$units" "$SYSTEM_DIR/share"
+cd "$WORKTREES_DIR/uki"
+cat >flake.nix <<'EOF'
+{
+  inputs.nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
+
+  outputs =
+    { self, nixpkgs }:
+    let
+      system = "x86_64-linux";
+      pkgs = nixpkgs.legacyPackages.${system};
+      inherit (self.nixosConfigurations.bootstrap) config;
+    in
+    {
+      nixosConfigurations.bootstrap = nixpkgs.lib.nixosSystem {
+        inherit system;
+        modules = [ ./configuration.nix ];
+      };
+      packages.${system} = {
+        default = pkgs.runCommand "esp" { } ''
+          mkdir --parents $out/EFI/BOOT
+          cp ${config.system.build.uki}/${config.system.boot.loader.ukiFile} $out/EFI/BOOT/BOOTX64.EFI
+        '';
+        ovmf = pkgs.OVMF.fd;
+      };
+    };
+}
+EOF
+cat >configuration.nix <<EOF
+{ lib, modulesPath, ... }:
+{
+  imports = [ (modulesPath + "/profiles/qemu-guest.nix") ];
+
+  networking.hostName = "bootstrap";
+  services.openssh.enable = true;
+  services.openssh.hostKeys = [
+    { type = "ed25519"; path = "/etc/ssh/ssh_host_ed25519_key"; }
+  ];
+  security.pam.services.sshd.startSession = lib.mkForce false;
+  users.users.root.openssh.authorizedKeys.keys = [ "$(cat "$SSH_KEY.pub")" ];
+
+  boot.kernelParams = [ "console=ttyS0" ];
+  boot.loader.grub.enable = false;
+  fileSystems."/" = {
+    device = "none";
+    fsType = "tmpfs";
+    options = [ "mode=0755" ];
+  };
+  fileSystems."/nix/store" = {
+    device = "store";
+    fsType = "virtiofs";
+  };
+  fileSystems."/mnt/host" = {
+    device = "host";
+    fsType = "virtiofs";
+  };
+  systemd.services.systemd-boot-random-seed.enable = false;
+
+  system.stateVersion = "26.05";
+}
+EOF
+cat >"$units/bootstrap.qemu" <<EOF
+[QEMU]
+machine=q35
+accel=kvm
+cpu=host
+m=2G
+smp=4
+nographic=
+serial=mon:stdio
+drive=if=pflash,format=raw,readonly=on,file=$WORKTREES_DIR/uki/ovmf-fd/FV/OVMF_CODE.fd
+drive=if=pflash,format=raw,snapshot=on,file=$WORKTREES_DIR/uki/ovmf-fd/FV/OVMF_VARS.fd
+nic=user,model=virtio-net-pci-non-transitional
+device=vhost-vsock-pci-non-transitional,guest-cid=42
+
+[virtiofsd]
+shared-dir=$WORKTREES_DIR/uki/result/
+tag=esp
+sandbox=namespace
+uid-map=:0:%U:1:
+gid-map=:0:%G:1:
+
+[virtiofsd]
+shared-dir=/nix/store
+tag=store
+cache=always
+sandbox=namespace
+uid-map=:0:%U:1:
+gid-map=:0:%G:1:
+
+[virtiofsd]
+shared-dir=$SYSTEM_DIR/share
+tag=host
+sandbox=namespace
+uid-map=:0:%U:1:
+gid-map=:0:%G:1:
+EOF
+rm --recursive --force -- "$units/bootstrap.qemu.d"
+echo "hello from the host" >"$SYSTEM_DIR/share/hello.txt"
