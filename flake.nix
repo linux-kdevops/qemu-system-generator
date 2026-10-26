@@ -120,41 +120,33 @@
         };
 
       devShells = forAllSystems (pkgs: {
-        default = pkgs.mkShell {
-          inputsFrom = [ self.packages.${pkgs.stdenv.hostPlatform.system}.default ];
-          packages = [
-            pkgs.cargo
-            pkgs.rustc
-            pkgs.rustfmt
-            pkgs.clippy
-            pkgs.rust-analyzer
-            pkgs.scdoc
-            # mandoc's own man would shadow the host's, and tests/verify needs
-            # that one to find the systemd and QEMU pages Documentation= cites.
-            (pkgs.runCommand "mandoc-only" { } ''
-              mkdir --parents $out/bin
-              ln --symbolic ${pkgs.mandoc}/bin/mandoc $out/bin/
-            '')
-            (docsPython pkgs)
-            pkgs.markdownlint-cli2
-            pkgs.python3Packages.doc8
-            pkgs.systemd
-            pkgs.nixfmt
-            pkgs.python3
-          ];
-          env.RUST_SRC_PATH = "${pkgs.rustPlatform.rustLibSrc}";
-        };
-
-        # What steps/ runs under nix develop --ignore-env, which keeps only
-        # HOME and XDG_RUNTIME_DIR: nix itself, git without the user's or the
-        # system's configuration, and a pinned CA bundle. nix develop never
-        # takes SSL_CERT_FILE from a shell, so the hook exports it.
-        steps =
+        default =
           let
             cacert = "${pkgs.cacert}/etc/ssl/certs/ca-bundle.crt";
           in
           pkgs.mkShell {
+            inputsFrom = [ self.packages.${pkgs.stdenv.hostPlatform.system}.default ];
             packages = [
+              pkgs.cargo
+              pkgs.rustc
+              pkgs.rustfmt
+              pkgs.clippy
+              pkgs.rust-analyzer
+              pkgs.scdoc
+              # mandoc's own man would shadow the host's, and tests/verify needs
+              # that one to find the systemd and QEMU pages Documentation= cites.
+              (pkgs.runCommand "mandoc-only" { } ''
+                mkdir --parents $out/bin
+                ln --symbolic ${pkgs.mandoc}/bin/mandoc $out/bin/
+              '')
+              (docsPython pkgs)
+              pkgs.markdownlint-cli2
+              pkgs.python3Packages.doc8
+              pkgs.systemd
+              pkgs.nixfmt
+              pkgs.python3
+              # What steps/ and dags/ run besides, under nix develop
+              # --ignore-env, which keeps only HOME and XDG_RUNTIME_DIR.
               self.packages.${pkgs.stdenv.hostPlatform.system}.dagu
               pkgs.cpio
               pkgs.curl
@@ -163,16 +155,14 @@
               pkgs.nix
               pkgs.openssh
               pkgs.procps
-              pkgs.python3
               pkgs.socat
-              pkgs.systemd
               pkgs.util-linux
             ];
             env = {
-              GIT_CONFIG_GLOBAL = "/dev/null";
-              GIT_CONFIG_NOSYSTEM = "1";
+              RUST_SRC_PATH = "${pkgs.rustPlatform.rustLibSrc}";
               NIX_SSL_CERT_FILE = cacert;
             };
+            # nix develop never takes SSL_CERT_FILE from a shell.
             shellHook = ''
               export SSL_CERT_FILE=${cacert}
             '';

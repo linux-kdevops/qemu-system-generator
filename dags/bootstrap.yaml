@@ -22,7 +22,7 @@ env:
 steps:
   - id: host
     run: >-
-      nix develop .#steps --ignore-env --keep-env-var HOME --keep-env-var XDG_RUNTIME_DIR
+      nix develop --ignore-env --keep-env-var HOME --keep-env-var XDG_RUNTIME_DIR
       --command steps/host/check --output "$DAGU_OUTPUT_FILE"
     outputs:
       - name: cpus
@@ -30,7 +30,7 @@ steps:
   - id: key
     depends: host
     run: >-
-      nix develop .#steps --ignore-env --keep-env-var HOME
+      nix develop --ignore-env --keep-env-var HOME
       --command steps/ssh/generate_key --dir "$SSH_DIR" --output "$DAGU_OUTPUT_FILE"
     outputs:
       - name: key
@@ -38,7 +38,7 @@ steps:
   - id: generator
     depends: key
     run: >-
-      nix develop .#steps --ignore-env --keep-env-var HOME --keep-env-var XDG_RUNTIME_DIR
+      nix develop --ignore-env --keep-env-var HOME --keep-env-var XDG_RUNTIME_DIR
       --command steps/generator/install --flake . --output "$DAGU_OUTPUT_FILE"
     outputs:
       - name: generator
@@ -46,7 +46,7 @@ steps:
   - id: remove
     depends: generator
     run: >-
-      nix develop .#steps --ignore-env --keep-env-var HOME --keep-env-var XDG_RUNTIME_DIR
+      nix develop --ignore-env --keep-env-var HOME --keep-env-var XDG_RUNTIME_DIR
       --command steps/machine/remove --name "${params.names}"
 
   # The guide starts from an empty host: knix clones into its directory
@@ -54,7 +54,7 @@ steps:
   - id: clean
     depends: remove
     run: >-
-      nix develop .#steps --ignore-env --keep-env-var HOME
+      nix develop --ignore-env --keep-env-var HOME
       --command steps/guide/clean --dir "$HOME/bootstrap/${params.guide}"
 
   # docs/bootstrap/host.rst writes what every guide uses: the workspace
@@ -62,7 +62,7 @@ steps:
   - id: prepare
     depends: clean
     run: >-
-      nix develop .#steps --ignore-env --keep-env-var HOME
+      nix develop --ignore-env --keep-env-var HOME
       --command steps/guide/run --guide docs/bootstrap/host.rst
       --key ${steps.key.outputs.key}
       --script "$HOME/bootstrap/steps/host.sh" --output "$DAGU_OUTPUT_FILE"
@@ -72,7 +72,7 @@ steps:
   - id: follow
     depends: prepare
     run: >-
-      nix develop .#steps --ignore-env --keep-env-var HOME
+      nix develop --ignore-env --keep-env-var HOME
       --command steps/guide/run --guide docs/bootstrap/${params.guide}.rst
       --key ${steps.key.outputs.key}
       --script "$HOME/bootstrap/steps/${params.guide}.sh" --output "$DAGU_OUTPUT_FILE"
@@ -82,14 +82,14 @@ steps:
   - id: start
     depends: follow
     run: >-
-      nix develop .#steps --ignore-env --keep-env-var HOME --keep-env-var XDG_RUNTIME_DIR
+      nix develop --ignore-env --keep-env-var HOME --keep-env-var XDG_RUNTIME_DIR
       --command steps/machine/start --config "$SSH_DIR/config"
       --name "${params.names}" --timeout 600
 
   - id: check
     depends: start
     run: >-
-      nix develop .#steps --ignore-env --keep-env-var HOME
+      nix develop --ignore-env --keep-env-var HOME
       --command steps/guide/check --guide docs/bootstrap/${params.guide}.rst
       --config "$SSH_DIR/config" --output "$DAGU_OUTPUT_FILE"
     outputs:
@@ -98,5 +98,5 @@ steps:
   - id: stop
     depends: check
     run: >-
-      nix develop .#steps --ignore-env --keep-env-var HOME --keep-env-var XDG_RUNTIME_DIR
+      nix develop --ignore-env --keep-env-var HOME --keep-env-var XDG_RUNTIME_DIR
       --command steps/machine/stop --name "${params.names}"

@@ -8,7 +8,7 @@
 ## /dev/vhost-vsock are readable and writable and a user manager answers,
 ## which docs/bootstrap/ lists under "What you need":
 ##
-##   nix develop .#steps --ignore-env --keep-env-var HOME \
+##   nix develop --ignore-env --keep-env-var HOME \
 ##       --keep-env-var XDG_RUNTIME_DIR \
 ##       --command steps/host/check --output /dev/stdout
 set -o errexit -o nounset -o pipefail

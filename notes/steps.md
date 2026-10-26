@@ -12,8 +12,8 @@ question goes back to the source rather than to this page.
 From kdevops-ng's five rules
 (`~/src/kdevops-ng/docs/concepts/principles.rst`), applied here:
 
-- Nix first. A step runs in the flake's `steps` shell under
-  `nix develop .#steps --ignore-env`, never a tool that happens to be on
+- Nix first. A step runs in the flake's default shell under
+  `nix develop --ignore-env`, never a tool that happens to be on
   the host's `PATH`.
 - systemd first. A machine is a `qemu-system@` unit and a step drives it
   with `systemctl --user`; no daemon, PID file or wrapper of our own.

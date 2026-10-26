@@ -44,7 +44,7 @@ jobs:
         env:
           XDG_RUNTIME_DIR: ${{ steps.runner.outputs.xdg_runtime_dir }}
         run: >-
-          nix develop .#steps --ignore-env --keep-env-var HOME --keep-env-var XDG_RUNTIME_DIR
+          nix develop --ignore-env --keep-env-var HOME --keep-env-var XDG_RUNTIME_DIR
           --command dagu --config config.yaml start bootstrap --
           guide=${{ matrix.guide }} "names=${{ matrix.names }}"
 
@@ -53,7 +53,7 @@ jobs:
         env:
           XDG_RUNTIME_DIR: ${{ steps.runner.outputs.xdg_runtime_dir }}
         run: >-
-          nix develop .#steps --ignore-env --keep-env-var HOME --keep-env-var XDG_RUNTIME_DIR
+          nix develop --ignore-env --keep-env-var HOME --keep-env-var XDG_RUNTIME_DIR
           --command dagu --config config.yaml status bootstrap
 
       - uses: actions/upload-artifact@v7

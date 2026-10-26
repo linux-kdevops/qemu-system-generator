@@ -9,7 +9,7 @@
 ## degraded counts as up. Fail when a service stops, or after SEC seconds
 ## (default 300) without an answer from every guest:
 ##
-##   nix develop .#steps --ignore-env --keep-env-var HOME \
+##   nix develop --ignore-env --keep-env-var HOME \
 ##       --keep-env-var XDG_RUNTIME_DIR \
 ##       --command steps/machine/start --config ~/bootstrap/ssh/config \
 ##       --name bootstrap

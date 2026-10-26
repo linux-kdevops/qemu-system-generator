@@ -152,7 +152,7 @@ guide. A run does what the guide does, so it replaces `~/bootstrap/<guide>`
 and the guide's `.qemu` files, and adds the generator to your Nix profile:
 
 ```shell
-nix develop .#steps --ignore-env \
+nix develop --ignore-env \
     --keep-env-var HOME --keep-env-var XDG_RUNTIME_DIR \
     --command dagu --config config.yaml start bootstrap -- \
     guide=kernel "names=bootstrap peer"
