@@ -1,0 +1,48 @@
+# SPDX-License-Identifier: copyleft-next-0.3.1
+description: >-
+  Build two kernels and QEMU from their release tarballs and a knix
+  imageless NixOS guest, boot bootstrap through a BusyBox initramfs and
+  peer through the guest's own initrd, log in, and have each machine
+  ping the other.
+working_dir: ..
+type: chain
+queue: bootstrap
+
+env:
+  - XDG_RUNTIME_DIR: ${XDG_RUNTIME_DIR}
+
+handler_on:
+  exit:
+    run: steps/machine/stop --name "bootstrap peer"
+
+steps:
+  - id: check_host
+    run: steps/host/check
+
+  - id: generate_key
+    run: steps/ssh/generate_key
+
+  - id: install_host
+    run: steps/host/install
+
+  - id: install_generator
+    run: steps/generator/install
+
+  - id: install
+    run: steps/knix/install
+
+  - id: build
+    run: steps/knix/build
+
+  - id: start
+    run: steps/machine/start --name "bootstrap peer"
+
+  # The guest answers once its sshd runs; until then the step fails.
+  - id: wait
+    run: steps/machine/wait --name "bootstrap peer"
+    retry_policy:
+      limit: 60
+      interval_sec: 5
+
+  - id: check
+    run: steps/knix/check
