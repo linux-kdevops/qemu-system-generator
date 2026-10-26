@@ -39,9 +39,9 @@ One guide's directory of work (`~/bootstrap/kernel`), under
 _Avoid_: guide directory, workbench
 
 **System workbench**:
-What every worktree-group shares (`SYSTEM_DIR`, default `WORKBENCH_DIR`):
-the SSH key and configuration under `ssh/` (`SSH_DIR`, `SSH_KEY`) and the
-directory the guests share, `share/`.
+What every worktree-group shares (`SYSTEM_DIR`, default
+`WORKBENCH_DIR/system`): the SSH key and configuration under `ssh/`
+(`SSH_DIR`, `SSH_KEY`) and the directory the guests share, `share/`.
 _Avoid_: ssh directory
 
 **Base**:

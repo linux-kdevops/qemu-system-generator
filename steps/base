@@ -6,6 +6,6 @@
 
 : "${WORKBENCH_DIR:=$HOME/bootstrap}"
 : "${WORKTREES_DIR:=$WORKBENCH_DIR}"
-: "${SYSTEM_DIR:=$WORKBENCH_DIR}"
+: "${SYSTEM_DIR:=$WORKBENCH_DIR/system}"
 : "${SSH_DIR:=$SYSTEM_DIR/ssh}"
 : "${SSH_KEY:=$SSH_DIR/id_ed25519}"

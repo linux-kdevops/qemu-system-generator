@@ -28,12 +28,13 @@ matching change to the other.
 ## The base
 
 `steps/base` holds the places, each defaulting from the one above it:
-`WORKBENCH_DIR` (`~/bootstrap`) gives `WORKTREES_DIR` and `SYSTEM_DIR`,
-`SYSTEM_DIR` gives `SSH_DIR`, and `SSH_DIR` gives `SSH_KEY`. A step that
-works in a place takes `--base FILE`, a user's own base that sets only
-what it changes and is read first. Nothing else comes from the
-environment but `HOME` and `XDG_RUNTIME_DIR`. A step writes every file
-that names a place itself, so the place is in the file as written.
+`WORKBENCH_DIR` (`~/bootstrap`) gives `WORKTREES_DIR` and `SYSTEM_DIR`
+(`~/bootstrap/system`), `SYSTEM_DIR` gives `SSH_DIR`, and `SSH_DIR`
+gives `SSH_KEY`. A step that works in a place takes `--base FILE`, a
+user's own base that sets only what it changes and is read first.
+Nothing else comes from the environment but `HOME` and
+`XDG_RUNTIME_DIR`. A step writes every file that names a place itself,
+so the place is in the file as written.
 
 ## Environment
 
