@@ -21,7 +21,7 @@ set -o xtrace
 if nix profile list --json | jq --exit-status '.elements | has("qemu-system-generator")' >/dev/null; then
 	nix profile upgrade qemu-system-generator
 else
-	nix profile add "$(dirname "$0")/../.."
+	nix profile add "$(realpath "$(dirname "$0")/../..")"
 fi
 # The profile's link, ~/.nix-profile, or ~/.local/state/nix/profile with
 # use-xdg-base-directories.
