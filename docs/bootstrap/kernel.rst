@@ -93,7 +93,7 @@ boots, and its ``init`` is what the kernel runs once the store is mounted:
 .. code-block:: console
    :class: cmd-host
 
-   $ ls -l result/kernel result/initrd
+   $ ls --format=long result/kernel result/initrd
    lrwxrwxrwx 1 root root 71 Jan  1  1970 result/initrd -> /nix/store/3rxnmhxn6xfh2hwiakgircj03j4gvd1g-initrd-linux-6.18.57/initrd
    lrwxrwxrwx 1 root root 65 Jan  1  1970 result/kernel -> /nix/store/maq0fxv0r4p9bac4haqy45c4vhlc33ag-linux-6.18.57/bzImage
 
@@ -474,7 +474,7 @@ regenerate and restart:
    $ ssh bootstrap 'cat /mnt/host/hello.txt; touch /mnt/host/from-guest'
    Warning: Permanently added 'vsock/42' (ED25519) to the list of known hosts.
    hello from the host
-   $ ls -l ~/bootstrap/system/share
+   $ ls --format=long ~/bootstrap/system/share
    -rw-r--r-- 1 user user  0 Oct 22 16:47 from-guest
    -rw-rw-r-- 1 user user 20 Oct 22 16:47 hello.txt
 

@@ -113,7 +113,7 @@ Build the UKI and the firmware with ``nix build``:
    $ cd ~/bootstrap/uki
    $ nix build
    $ nix build .#ovmf --out-link ovmf
-   $ ls -l result/EFI/BOOT
+   $ ls --format=long result/EFI/BOOT
    -r--r--r-- 1 root root 41664512 Jan  1  1970 BOOTX64.EFI
 
 The firmware is a package output named ``fd``, so its link is ``ovmf-fd``.
@@ -316,7 +316,7 @@ Rebuild, regenerate and restart:
    $ ssh bootstrap 'cat /mnt/host/hello.txt; touch /mnt/host/from-guest'
    Warning: Permanently added 'vsock/42' (ED25519) to the list of known hosts.
    hello from the host
-   $ ls -l ~/bootstrap/system/share
+   $ ls --format=long ~/bootstrap/system/share
    -rw-r--r-- 1 user user  0 Oct 23 09:08 from-guest
    -rw-rw-r-- 1 user user 20 Oct 23 09:08 hello.txt
 
