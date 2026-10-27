@@ -105,7 +105,7 @@ The UKI's stub sets the ``StubFeatures`` EFI variable, which makes
 partition. The guest has none mounted, and the unit fails with
 "Failed to start Update Boot Loader Random Seed"; the last line masks it.
 
-Build the UKI and the firmware with ``nix build``:
+Build the UKI and the firmware with :cmd:`nix build`:
 
 .. code-block:: console
    :class: cmd-host
@@ -232,7 +232,7 @@ takes 1.8 seconds:
 ======
 
 Forward a local port to the guest's SSH over QEMU's `user-mode network`_,
-which needs no privileges, and add the vsock device with the context id
+which needs no privileges, and add the `vsock`_ device with the context id
 :ref:`host-ssh` names:
 
 .. code-block:: diff
@@ -448,3 +448,4 @@ and is not on the way to a login.
 .. _EDK II: https://github.com/tianocore/edk2
 .. _QEMU: https://www.qemu.org/docs/master/system/invocation.html
 .. _user-mode network: https://www.qemu.org/docs/master/system/devices/net.html#using-the-user-mode-network-stack
+.. _vsock: https://man7.org/linux/man-pages/man7/vsock.7.html

@@ -4,7 +4,7 @@
 A faster boot
 =============
 
-Each NixOS guide ends with a section that takes its machine from the
+Each `NixOS`_ guide ends with a section that takes its machine from the
 defaults to its fastest boot, one change at a time. This page explains
 the changes they share; each guide's section has its own diffs and
 times.
@@ -35,9 +35,9 @@ Measuring
 
 The time that matters is from starting the unit to the first command
 that runs over :cmd:`ssh`. :cmd:`systemd-analyze(1)` in the guest
-splits the guest's part into kernel, initrd and userspace, but it cannot
-see QEMU or the firmware, so time the whole of it from the host. Stop the
-machine first. The ``timeout`` covers a vsock connection that does not
+splits the guest's part into kernel, `initrd`_ and userspace, but it cannot
+see `QEMU`_ or the firmware, so time the whole of it from the host. Stop the
+machine first. The ``timeout`` covers a `vsock`_ connection that does not
 answer yet:
 
 .. code-block:: console
@@ -55,7 +55,7 @@ before it.
 The console
 ===========
 
-Before it prints anything, systemd asks the console which terminal it is
+Before it prints anything, `systemd`_ asks the console which terminal it is
 and how large, with ANSI queries, and waits 333 milliseconds for each
 answer (``CONSOLE_ANSI_SEQUENCE_TIMEOUT_USEC`` in systemd's
 ``src/basic/terminal-util.c``). A serial console that goes to the journal
@@ -75,7 +75,7 @@ names the terminal, and ``systemd.tty.rows.console=`` and
 The store
 =========
 
-By default virtiofsd lets the guest cache a file only until it opens it
+By default `virtiofsd`_ lets the guest cache a file only until it opens it
 again, so every lookup in the store goes back to the host. The store
 never changes under a path once written, which is the case ``cache=always``
 is for: the guest keeps what it read (``CachePolicy`` in virtiofsd's
@@ -92,20 +92,22 @@ The guests forget everything when they stop, so every boot is a first
 boot, and four things on the way to a login are first-boot work or not
 needed here:
 
-- NixOS generates an RSA key of 4096 bits and an Ed25519 key for sshd
-  (``services.openssh.hostKeys``), and the first login waits for
-  ``sshd-keygen.service``. The RSA key takes most of the time, and the
-  configuration from :ref:`host-ssh` accepts any host key. Keep Ed25519 only.
+- NixOS generates an RSA key of 4096 bits and an Ed25519 key for
+  :cmd:`sshd <sshd(8)>` (``services.openssh.hostKeys``), and the first
+  login waits for ``sshd-keygen.service``. The RSA key takes most of the
+  time, and the configuration from :ref:`host-ssh` accepts any host key.
+  Keep Ed25519 only.
 - ``systemd-journal-catalog-update.service`` and
   ``systemd-update-done.service`` run when ``/var`` is newer than its
   last update (``ConditionNeedsUpdate=``), which a fresh ``/var`` always
   is, and ``sysinit.target`` waits for them. ``systemd.suppressedSystemUnits``
   leaves them out.
-- sshd's PAM stack registers each login with logind, and the first
-  registration starts root's user manager, ``user@0.service``, before
-  the command runs. ``startSession = false`` skips that; logins then have
-  no logind session, so ``loginctl`` does not list them. The sshd module
-  sets it, hence ``lib.mkForce``.
+- sshd's PAM stack registers each login with
+  :cmd:`logind <systemd-logind.service(8)>`, and the first registration
+  starts root's user manager, ``user@0.service``, before the command runs.
+  ``startSession = false`` skips that; logins then have no logind session,
+  so :cmd:`loginctl` does not list them. The sshd module sets it, hence
+  ``lib.mkForce``.
 - ``systemd-vconsole-setup.service`` sets the keyboard map and font of
   virtual terminals, which these guests do not show. ``console.enable =
   false`` leaves it out.
@@ -131,7 +133,7 @@ More processors
 
 systemd starts what it can in parallel, so ``smp=4`` instead of two
 shortens the boot, by 0.05 to 0.12 seconds in the guides. Eight gained
-nothing more in the knix guide.
+nothing more in the `knix`_ guide.
 
 .. _fast-quiet:
 
@@ -158,8 +160,18 @@ passes a ``key=value`` parameter it does not know to init as an
 environment variable (``unknown_bootoption()`` in the kernel's
 ``init/main.c``), and systemd keeps it across the switch to the real root.
 
-It is safe only with virtiofs built into the kernel. With the nixpkgs
+It is safe only with `virtiofs`_ built into the kernel. With the `nixpkgs`_
 kernel, whose virtiofs is a module, the store's mount then runs before
 the ``virtiofs`` module has found the ``store`` tag, and the guest stops
 in emergency mode. :ref:`knix-fast` builds a kernel with virtiofs built
 in and lifts the limit.
+
+.. _NixOS: https://nixos.org/manual/nixos/stable/
+.. _initrd: https://docs.kernel.org/filesystems/ramfs-rootfs-initramfs.html
+.. _QEMU: https://www.qemu.org/docs/master/system/invocation.html
+.. _vsock: https://man7.org/linux/man-pages/man7/vsock.7.html
+.. _systemd: https://systemd.io
+.. _virtiofsd: https://gitlab.com/virtio-fs/virtiofsd
+.. _knix: https://github.com/linux-kdevops/knix
+.. _virtiofs: https://virtio-fs.gitlab.io
+.. _nixpkgs: https://github.com/NixOS/nixpkgs

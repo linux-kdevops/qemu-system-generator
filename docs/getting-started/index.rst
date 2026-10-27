@@ -5,7 +5,7 @@ Getting started
 ===============
 
 :doc:`requirements` lists what the host needs, :doc:`installation`
-installs the generator for one user, the whole host or NixOS, and
+installs the generator for one user, the whole host or `NixOS`_, and
 :doc:`quickstart` boots a disk image you already have.
 
 .. toctree::
@@ -14,3 +14,5 @@ installs the generator for one user, the whole host or NixOS, and
    requirements
    installation
    quickstart
+
+.. _NixOS: https://nixos.org/manual/nixos/stable/

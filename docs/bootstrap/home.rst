@@ -87,11 +87,12 @@ writing units your own manager would then load.
 What else the guest sees
 ------------------------
 
-NixOS's sshd reads ``~/.ssh/authorized_keys`` as well as the keys set in
-the configuration (`services.openssh.authorizedKeysInHomedir`_ and
-``AuthorizedKeysFile`` in :cmd:`sshd_config(5)`), so a key your account
-accepts on the host also logs in to the guests as root. The files root
-writes, such as its shell history, land in your home.
+NixOS's :cmd:`sshd <sshd(8)>` reads ``~/.ssh/authorized_keys`` as well as
+the keys set in the configuration
+(`services.openssh.authorizedKeysInHomedir`_ and ``AuthorizedKeysFile`` in
+:cmd:`sshd_config(5)`), so a key your account accepts on the host also logs
+in to the guests as root. The files root writes, such as its shell history,
+land in your home.
 
 .. _home-cloud:
 

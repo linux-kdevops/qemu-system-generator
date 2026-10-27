@@ -4,7 +4,7 @@
 QMP and console
 ===============
 
-systemd sees a machine as a process; QEMU itself knows whether the guest
+`systemd`_ sees a machine as a process; `QEMU`_ itself knows whether the guest
 runs, is paused or is reset. `QMP`_, the QEMU Machine Protocol, lets you
 ask it, and the generated unit gives every machine a QMP socket in its
 runtime directory, ``$XDG_RUNTIME_DIR/qemu-system/name/qmp.sock``, which
@@ -69,3 +69,5 @@ guide adds one (:ref:`direct-console`).
 
 .. _QMP: https://www.qemu.org/docs/master/interop/qmp-spec.html
 .. _QMP reference: https://www.qemu.org/docs/master/interop/qemu-qmp-ref.html
+.. _systemd: https://systemd.io
+.. _QEMU: https://www.qemu.org/docs/master/system/invocation.html

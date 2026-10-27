@@ -79,7 +79,7 @@ The root is a tmpfs, and the store arrives over virtiofs under the tag
      };
    }
 
-Build it with ``nix build``:
+Build it with :cmd:`nix build`:
 
 .. code-block:: console
    :class: cmd-host
@@ -247,7 +247,7 @@ Regenerate, restart with ``systemctl --user restart``, and log in with
 4. vsock
 ========
 
-A vsock device gives the guest a context id, a socket address the host
+A `vsock`_ device gives the guest a context id, a socket address the host
 can reach without any network:
 
 .. code-block:: diff
@@ -256,8 +256,8 @@ can reach without any network:
     nic=user,model=virtio-net-pci-non-transitional,hostfwd=tcp:127.0.0.1:10022-:22
    +device=vhost-vsock-pci-non-transitional,guest-cid=42
 
-The machine registers with machined (:ref:`host-machined`), which
-records the id:
+The machine registers with :cmd:`machined <systemd-machined>`
+(:ref:`host-machined`), which records the id:
 
 .. code-block:: console
    :class: cmd-host
@@ -512,7 +512,7 @@ QEMU's warning, ``requested NIC (anonymous, model virtio-net-device) was
 not created (not supported by this machine?)``. The ``global=`` line has
 QEMU's virtio-mmio transport offer virtio 1.0, as a non-transitional PCI
 device does; QEMU defaults to the legacy transport (``force-legacy`` in
-``hw/virtio/virtio-mmio.c``). Under KVM, microvm leaves the RTC out unless
+``hw/virtio/virtio-mmio.c``). Under `KVM`_, microvm leaves the RTC out unless
 ``rtc=on`` asks for it (``hw/i386/microvm.c``). Without it the kernel's
 RTC probe fails, and ``/init`` started at 1.66 seconds instead of 0.49
 here:
@@ -854,3 +854,5 @@ Notes
 .. _ACPI: https://uefi.org/specifications
 .. _Linux: https://www.kernel.org
 .. _resource limits: https://www.freedesktop.org/software/systemd/man/latest/systemd.resource-control.html
+.. _vsock: https://man7.org/linux/man-pages/man7/vsock.7.html
+.. _KVM: https://docs.kernel.org/virt/kvm/index.html

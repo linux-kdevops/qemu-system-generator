@@ -4,12 +4,12 @@
 Machines
 ========
 
-Each machine the generator writes is an ordinary systemd service,
-registered with machined and given its own QMP socket. The tools that
-ship with systemd and QEMU drive it, and this project adds none. These
-pages show which command does what for a machine of your user manager,
-with a link to each command's upstream manual. The examples use the
-bootstrap guides' machine, ``bootstrap``.
+Each machine the generator writes is an ordinary `systemd`_ service,
+registered with :cmd:`machined <systemd-machined>` and given its own `QMP`_
+socket. The tools that ship with systemd and `QEMU`_ drive it, and this
+project adds none. These pages show which command does what for a machine
+of your user manager, with a link to each command's upstream manual. The
+examples use the bootstrap guides' machine, ``bootstrap``.
 
 .. list-table::
    :header-rows: 1
@@ -62,3 +62,7 @@ bootstrap guides' machine, ``bootstrap``.
    journal
    machined
    qmp
+
+.. _systemd: https://systemd.io
+.. _QMP: https://www.qemu.org/docs/master/interop/qmp-spec.html
+.. _QEMU: https://www.qemu.org/docs/master/system/invocation.html

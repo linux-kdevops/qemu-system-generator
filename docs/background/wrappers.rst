@@ -4,7 +4,7 @@
 QEMU wrappers
 =============
 
-On this page, a QEMU wrapper is a tool that writes the `QEMU`_ command line
+On this page, a `QEMU`_ wrapper is a tool that writes the QEMU command line
 itself, from a configuration language or defaults of its own, so that you
 can start a virtual machine without writing that command line. A test
 runner that boots the kernel under test this way is one. A tool that

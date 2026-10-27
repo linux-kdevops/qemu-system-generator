@@ -6,8 +6,8 @@ Requirements
 
 The host needs two things installed: `systemd`_ and `Nix`_. systemd runs
 the machines, as services of your user's manager or of the system's, and
-Nix builds the generator together with the QEMU, virtiofsd, ``socat``
-and ``varlinkctl`` its units call, pinned to store paths, so the host needs
+Nix builds the generator together with the `QEMU`_, `virtiofsd`_, :cmd:`socat`
+and :cmd:`varlinkctl` its units call, pinned to store paths, so the host needs
 no QEMU package from its distribution.
 
 systemd
@@ -31,7 +31,7 @@ Machines of your own run under your user's manager, the one
 starts one at login.
 
 Two parts of a machine's lifecycle need a recent systemd on the host.
-``ssh`` reaches a guest over vsock through :cmd:`systemd-ssh-proxy(1)`,
+:cmd:`ssh` reaches a guest over `vsock`_ through :cmd:`systemd-ssh-proxy(1)`,
 added in systemd 256. A machine registers with your user's
 :cmd:`systemd-machined`, which runs per user since systemd 259; the
 registration is best effort, and an older systemd runs the machine
@@ -62,7 +62,7 @@ Device access
 =============
 
 QEMU's ``accel=kvm`` opens ``/dev/kvm``, and a ``vhost-vsock`` device
-opens ``/dev/vhost-vsock``. systemd's udev rules give both to the ``kvm``
+opens ``/dev/vhost-vsock``. systemd's `udev`_ rules give both to the ``kvm``
 group, and the vsock device needs the ``vhost_vsock`` module, loaded at
 every boot from then on. Both need root, once, through :cmd:`usermod` and
 :cmd:`modprobe`:
@@ -127,3 +127,7 @@ reboot:
 .. _Nix: https://nix.dev/manual/nix/latest/
 .. _Nix install guide: https://nixos.org/download/#nix-install-linux
 .. _VFIO: https://docs.kernel.org/driver-api/vfio.html
+.. _QEMU: https://www.qemu.org/docs/master/system/invocation.html
+.. _virtiofsd: https://gitlab.com/virtio-fs/virtiofsd
+.. _vsock: https://man7.org/linux/man-pages/man7/vsock.7.html
+.. _udev: https://www.freedesktop.org/software/systemd/man/latest/udev.html

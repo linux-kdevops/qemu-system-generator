@@ -7,7 +7,7 @@ Quick start
 This boots a disk image you already have as a machine of your user's
 manager, with the generator installed :ref:`for your user <install-user>`.
 The image needs a guest that prints to its serial console and powers off
-when the ACPI power button is pressed, as most distributions do.
+when the `ACPI`_ power button is pressed, as most distributions do.
 
 The file
 ========
@@ -99,10 +99,12 @@ Stop it. ``systemctl --user stop`` presses the guest's power button over
 Next
 ====
 
-:doc:`/usage/index` shows what else ``systemctl``, ``journalctl``,
-``machinectl`` and QMP do with a running machine, and :doc:`/bootstrap/index`
-builds machines up one feature at a time: SSH over vsock, shares,
+:doc:`/usage/index` shows what else :cmd:`systemctl`, ``journalctl``,
+:cmd:`machinectl` and QMP do with a running machine, and :doc:`/bootstrap/index`
+builds machines up one feature at a time: SSH over `vsock`_, shares,
 drop-ins, a network between machines. :doc:`qemu-systemd.unit(5)
 </man/qemu-systemd.unit.5>` specifies the whole file.
 
 .. _QMP: https://www.qemu.org/docs/master/interop/qmp-spec.html
+.. _ACPI: https://uefi.org/specifications
+.. _vsock: https://man7.org/linux/man-pages/man7/vsock.7.html

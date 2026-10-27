@@ -6,9 +6,9 @@ machined, machinectl, varlink
 
 :cmd:`systemd-machined` keeps a list of the virtual machines and
 containers that run on a host. Each user manager has one of its own,
-since systemd 259, and every machine the generator writes registers with
+since `systemd`_ 259, and every machine the generator writes registers with
 yours as it starts (:ref:`host-machined`): its name, class ``vm``,
-service ``qemu-system``, QEMU's process as its leader, the vsock context
+service ``qemu-system``, `QEMU`_'s process as its leader, the `vsock`_ context
 id from a ``vhost-vsock`` device, and the UUID from ``uuid=``.
 Registration is best effort: a machine runs without machined. It leaves
 the list when QEMU exits.
@@ -51,11 +51,11 @@ systemd-vmspawn starts. Few of them fit a machine the generator writes:
 
 ``login``, ``shell``, ``bind``, ``copy-to``, ``copy-from``
    Containers only. machined refuses them for a virtual machine; use
-   ``ssh`` and ``scp`` instead.
+   :cmd:`ssh` and ``scp`` instead.
 ``poweroff``, ``reboot``, ``pause``, ``resume``
    Since systemd 261 these go to the machine's control socket, a
    Varlink service (``io.systemd.MachineInstance``) that systemd-vmspawn
-   runs in front of QEMU's QMP. QEMU speaks only QMP, so a machine the
+   runs in front of QEMU's `QMP`_. QEMU speaks only QMP, so a machine the
    generator writes registers no control socket. ``pause`` and
    ``resume`` then fail with "does not expose a varlink control socket".
    ``poweroff`` and ``reboot`` fall back to the signals that shut a
@@ -125,7 +125,11 @@ only with ``--more``; ``--json=pretty`` indents them:
    $ varlinkctl call --more --json=pretty $XDG_RUNTIME_DIR/systemd/machine/io.systemd.Machine io.systemd.Machine.List '{}'
 
 ``Register``, called the same way, is what the generated unit runs as
-it starts (``ExecStartPost=`` in
+it starts (:cmd:`ExecStartPost=` in
 :doc:`qemu-systemd.unit(5) </man/qemu-systemd.unit.5>`).
 
 .. _Varlink: https://varlink.org
+.. _systemd: https://systemd.io
+.. _QEMU: https://www.qemu.org/docs/master/system/invocation.html
+.. _vsock: https://man7.org/linux/man-pages/man7/vsock.7.html
+.. _QMP: https://www.qemu.org/docs/master/interop/qmp-spec.html

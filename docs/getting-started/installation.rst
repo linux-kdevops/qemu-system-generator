@@ -5,7 +5,7 @@ Installation
 ============
 
 The generator installs for one user without root, for the whole host
-from a build of its own, or through a NixOS module. Each starts from a
+from a build of its own, or through a `NixOS`_ module. Each starts from a
 checkout of `this repository`_:
 
 .. code-block:: console
@@ -20,14 +20,14 @@ checkout of `this repository`_:
 For your user
 =============
 
-Add it to your Nix profile with :cmd:`nix profile add`, from the checkout:
+Add it to your `Nix`_ profile with :cmd:`nix profile add`, from the checkout:
 
 .. code-block:: console
    :class: cmd-host
 
    $ nix profile add .
 
-The profile puts ``qemu-system-generator`` on ``PATH``. systemd runs user
+The profile puts ``qemu-system-generator`` on ``PATH``. `systemd`_ runs user
 generators only from root-owned directories
 (:cmd:`systemd.generator(7)`), so a user manager never runs this one on its
 own. Two user units do it instead. Enable them through the profile's
@@ -41,7 +41,7 @@ link, ``~/.nix-profile`` (``~/.local/state/nix/profile`` with
        ~/.nix-profile/lib/systemd/user/qemu-system-generator.service \
        ~/.nix-profile/lib/systemd/user/qemu-system-generator.path
 
-``systemctl`` links the units by the path it is given, not by the store
+:cmd:`systemctl` links the units by the path it is given, not by the store
 path behind it. After
 :cmd:`nix profile upgrade qemu-system-generator <nix profile upgrade>`, a
 ``systemctl --user daemon-reload`` loads the new generation's units.
@@ -56,7 +56,7 @@ For the whole host
 A build installed under ``/usr/lib/systemd/`` runs as the generator of
 both the system manager and every user manager, at boot and on each
 ``daemon-reload``, with no user units. Without Nix, it needs `Cargo`_ to
-build and the distribution's QEMU, virtiofsd and ``socat`` to run: the
+build and the distribution's `QEMU`_, `virtiofsd`_ and :cmd:`socat` to run: the
 units call ``/usr/bin/qemu-system-<arch>``, ``/usr/libexec/virtiofsd``
 and ``socat`` unless the build sets other paths (``build.rs``).
 
@@ -97,3 +97,7 @@ configuration, by name, as text or as a path.
 .. _Cargo: https://doc.rust-lang.org/cargo/
 .. _NixOS: https://nixos.org/manual/nixos/stable/
 .. _use-xdg-base-directories: https://nix.dev/manual/nix/latest/command-ref/conf-file.html#conf-use-xdg-base-directories
+.. _Nix: https://nix.dev/manual/nix/latest/
+.. _systemd: https://systemd.io
+.. _QEMU: https://www.qemu.org/docs/master/system/invocation.html
+.. _virtiofsd: https://gitlab.com/virtio-fs/virtiofsd

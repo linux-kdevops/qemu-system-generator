@@ -145,7 +145,7 @@ the part of the name up to a dash, ``cloud-.qemu.d/``, applies to every
 in a unit, and the :key:`[virtiofsd]` section shares it
 (:ref:`home-host`). ``nic=`` gives the guest `QEMU`_'s
 `user-mode network`_, which needs no privileges. Then create
-``~/.config/qemu/systemd/cloud-debian.qemu``, with the disk and a vsock
+``~/.config/qemu/systemd/cloud-debian.qemu``, with the disk and a `vsock`_
 device whose context id is the machine's own:
 
 .. code-block:: ini
@@ -394,3 +394,4 @@ Regenerate and restart both, and each reaches the other:
 .. _SeaBIOS: https://www.seabios.org/
 .. _write_files: https://cloudinit.readthedocs.io/en/latest/reference/modules.html#write-files
 .. _runcmd: https://cloudinit.readthedocs.io/en/latest/reference/modules.html#runcmd
+.. _vsock: https://man7.org/linux/man-pages/man7/vsock.7.html

@@ -132,7 +132,7 @@ needs.
 2. A disk
 =========
 
-Build the disk image with ``nix build``. The first build takes a
+Build the disk image with :cmd:`nix build`. The first build takes a
 couple of minutes:
 
 .. code-block:: console
@@ -158,7 +158,7 @@ writes to a temporary file instead, and what the guest wrote is gone
 when it stops.
 
 Regenerate and start as in :ref:`step 1 <disk-machine>`. SeaBIOS finds
-the disk, GRUB loads the kernel and the initrd with the command line
+the disk, GRUB loads the kernel and the `initrd`_ with the command line
 from ``disk.nix``, and NixOS boots in about 18 seconds:
 
 .. code-block:: console
@@ -231,7 +231,7 @@ menu counts down on the serial console:
 ======
 
 Forward a local port to the guest's SSH over QEMU's `user-mode network`_,
-which needs no privileges, and add the vsock device with the context id
+which needs no privileges, and add the `vsock`_ device with the context id
 :ref:`host-ssh` names:
 
 .. code-block:: diff
@@ -442,3 +442,4 @@ Quiet
 .. _EDK II: https://github.com/tianocore/edk2
 .. _QEMU: https://www.qemu.org/docs/master/system/invocation.html
 .. _user-mode network: https://www.qemu.org/docs/master/system/devices/net.html#using-the-user-mode-network-stack
+.. _vsock: https://man7.org/linux/man-pages/man7/vsock.7.html

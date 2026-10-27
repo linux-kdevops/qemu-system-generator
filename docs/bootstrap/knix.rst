@@ -14,7 +14,7 @@ Why knix
 
 A NixOS system from `nixpkgs`_ carries its kernel: the `initrd`_ holds that
 kernel's modules, and ``/lib/modules`` in the running system is that
-kernel's too. nixpkgs can build a kernel from your tree, but as a Nix
+kernel's too. nixpkgs can build a kernel from your tree, but as a `Nix`_
 derivation, which rebuilds from scratch after every change.
 
 `knix`_ keeps the kernel out of the closure. Its ``imageless`` backend
@@ -30,7 +30,7 @@ Prepare the host as :doc:`host` shows, once for every guide.
 The kernel
 ----------
 
-Configure the release as a KVM guest with virtiofs built in, build it
+Configure the release as a `KVM`_ guest with virtiofs built in, build it
 and install its modules next to it, inside the ``build-kernel`` shell
 (:cmd:`nix develop`):
 
@@ -190,14 +190,14 @@ home:
    gid-map=:0:%G:1:
 
 ``nic=`` forwards a local port to the guest's SSH over QEMU's
-`user-mode network`_, and the vsock device gives the guest the context id
+`user-mode network`_, and the `vsock`_ device gives the guest the context id
 :ref:`host-ssh` names. :key:`SshPrivateKey=` has a stop power the guest
 off over SSH first (:ref:`SSH poweroff <host-poweroff>`), and each
 :key:`[virtiofsd]` section shares one directory without root
 (:ref:`host-virtiofsd`).
 
 The initrd and ``init=`` name one build of the closure, and every
-``nix build`` makes a new one, so they go in a drop-in: the files in
+:cmd:`nix build` makes a new one, so they go in a drop-in: the files in
 ``bootstrap.qemu.d/`` are appended to ``bootstrap.qemu``. :cmd:`jq` writes
 it from ``boot.json``, and knix wants ``root=tmpfs`` on the command line:
 
@@ -523,7 +523,7 @@ The firmware
 ------------
 
 QEMU ships `qboot`_, "a simple x86 firmware that can boot Linux" from
-``kernel=``, as ``qboot.rom``. It can replace SeaBIOS on q35:
+``kernel=``, as ``qboot.rom``. It can replace `SeaBIOS`_ on q35:
 
 .. code-block:: diff
    :caption: ~/.config/qemu/systemd/bootstrap.qemu
@@ -616,7 +616,7 @@ with the systemd initrd, NixOS copies its stage 2 script to
 nixpkgs), and that script, run as PID 1, mounts what is missing, runs
 the activation and starts systemd
 (``nixos/modules/system/boot/stage-2-init.sh``). It only needs the store
-mounted first. A static BusyBox does that from an initramfs of 1.4 MB:
+mounted first. A static `BusyBox`_ does that from an initramfs of 1.4 MB:
 
 .. code-block:: shell
    :class: cmd-host
@@ -637,11 +637,11 @@ mounted first. A static BusyBox does that from an initramfs of 1.4 MB:
    /bin/busybox mount -t virtiofs store /nix/store || exec /bin/busybox sh
    exec "$CLOSURE/prepare-root"
 
-``prepare-root`` reads ``/proc/cmdline`` and writes through
-``/dev/fd``, hence the two lines before the store. The archive's root
-becomes the guest's ``/``, and sshd refuses an authorized keys file when
-it or any directory above it is writable by group or others
-(``safe_path()`` in OpenSSH's ``misc.c``), so set the modes before
+``prepare-root`` reads ``/proc/cmdline`` and writes through ``/dev/fd``,
+hence the two lines before the store. The archive's root becomes the
+guest's ``/``, and :cmd:`sshd <sshd(8)>` refuses an authorized keys file
+when it or any directory above it is writable by group or others
+(``safe_path()`` in `OpenSSH`_'s ``misc.c``), so set the modes before
 packing it:
 
 .. code-block:: shell
@@ -654,7 +654,7 @@ packing it:
 The drop-in boots it with the closure's path in ``CLOSURE=``, which
 reaches the script as an environment variable like the rate limit. It
 leaves out ``root=``: with no root device named, the kernel makes its
-initial root a tmpfs (``init/do_mounts.c``), and NixOS's ``/`` is a
+initial root a `tmpfs`_ (``init/do_mounts.c``), and NixOS's ``/`` is a
 tmpfs anyway. It leaves out ``init=`` too, so the kernel runs ``/init``:
 
 .. code-block:: shell
@@ -686,7 +686,7 @@ parallel start:
 1.5 seconds again, a little less: the middle of ten boots is 1.49. That
 is a fifth of where this section started. Eight vCPUs gain nothing more,
 and ``mitigations=off`` and booting the uncompressed ``vmlinux`` gain
-nothing measurable. microvm, with this kernel and the store's cache,
+nothing measurable. `microvm`_, with this kernel and the store's cache,
 took 5.7 to 6.0 seconds where q35 took 4.9 to 5.0, all of it in the
 guest's userspace.
 
@@ -704,3 +704,11 @@ guest's userspace.
 .. _user-mode network: https://www.qemu.org/docs/master/system/devices/net.html#using-the-user-mode-network-stack
 .. _kfragments: https://github.com/linux-kdevops/kfragments
 .. _qboot: https://github.com/bonzini/qboot
+.. _Nix: https://nix.dev/manual/nix/latest/
+.. _KVM: https://docs.kernel.org/virt/kvm/index.html
+.. _vsock: https://man7.org/linux/man-pages/man7/vsock.7.html
+.. _SeaBIOS: https://www.seabios.org/
+.. _BusyBox: https://busybox.net
+.. _OpenSSH: https://www.openssh.com
+.. _tmpfs: https://docs.kernel.org/filesystems/tmpfs.html
+.. _microvm: https://www.qemu.org/docs/master/system/i386/microvm.html

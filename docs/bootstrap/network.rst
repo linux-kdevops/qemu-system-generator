@@ -4,10 +4,10 @@
 A network between machines
 =============================
 
-Each machine's user-mode network belongs to its own QEMU process: the
+Each machine's user-mode network belongs to its own `QEMU`_ process: the
 guests reach the internet through it, but not each other. A second card
 on QEMU's ``dgram`` network backend joins them, as an NFS server and its
-client would need. The cloud, direct and knix guides join two machines
+client would need. The cloud, direct and `knix`_ guides join two machines
 this way, with the lines below.
 
 The segment
@@ -37,7 +37,7 @@ The ``mac=`` must differ between the machines. Without one, each QEMU
 gives its second card the same address, ``52:54:00:12:34:57``, since it
 counts up from ``52:54:00:12:34:56`` per process. The guides take the
 last byte from the machine's context id. A third machine joins with the
-same ``netdev=`` line, a ``mac=`` and an address of its own. On microvm
+same ``netdev=`` line, a ``mac=`` and an address of its own. On `microvm`_
 the card is a ``virtio-net-device`` (:ref:`direct-microvm`).
 
 .. _network-addresses:
@@ -48,12 +48,12 @@ Addresses
 Nothing on the segment hands out addresses, so each guest sets its own
 from its card's MAC address, ``10.0.100.<context id>/24`` in the guides.
 
-A cloud image gets them from cloud-init's `network configuration`_. It
+A cloud image gets them from `cloud-init`_'s `network configuration`_. It
 replaces the configuration cloud-init would write itself, which covers
 only the first card, so it has to name both; :ref:`cloud-network` writes
 one per machine.
 
-Two NixOS machines can boot one closure. The closure then holds both
+Two `NixOS`_ machines can boot one closure. The closure then holds both
 addresses, as two `systemd-networkd`_ networks, and each card takes the
 one that matches its MAC address. The ``10-`` names put them ahead of the
 network that asks for every other card's address over DHCP. The
@@ -65,3 +65,8 @@ do this.
 .. _RFC 2365: https://www.rfc-editor.org/rfc/rfc2365
 .. _network configuration: https://cloudinit.readthedocs.io/en/latest/reference/network-config-format-v2.html
 .. _systemd-networkd: https://www.freedesktop.org/software/systemd/man/latest/systemd-networkd.service.html
+.. _QEMU: https://www.qemu.org/docs/master/system/invocation.html
+.. _knix: https://github.com/linux-kdevops/knix
+.. _microvm: https://www.qemu.org/docs/master/system/i386/microvm.html
+.. _cloud-init: https://cloudinit.readthedocs.io
+.. _NixOS: https://nixos.org/manual/nixos/stable/

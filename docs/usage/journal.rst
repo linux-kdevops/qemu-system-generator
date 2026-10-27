@@ -5,7 +5,7 @@ Journal
 ========
 
 Two journals are involved: the host's, which holds the machine's serial
-console and what systemd and QEMU say about it, and the guest's own,
+console and what `systemd`_ and `QEMU`_ say about it, and the guest's own,
 which holds everything the guest logs. :cmd:`journalctl` reads both.
 
 .. _usage-console-log:
@@ -31,7 +31,7 @@ service is an invocation; ``--invocation=0`` shows the latest,
 all. The usual filters work too, such as ``--since=-10min``,
 ``--lines=50``, ``--grep=pattern``, and ``--output=cat`` for the
 console's text alone.
-A pattern names several units, such as a machine's virtiofsd daemons:
+A pattern names several units, such as a machine's `virtiofsd`_ daemons:
 
 .. code-block:: console
    :class: cmd-host
@@ -39,11 +39,12 @@ A pattern names several units, such as a machine's virtiofsd daemons:
    $ journalctl --user-unit='virtiofsd@bootstrap-*'
 
 Use ``--user-unit=``, not ``--user --unit=``. ``--user`` reads only your
-own journal files, and journald writes those only with persistent
-storage (``SplitMode=`` in :cmd:`journald.conf(5)`). On a host whose
-journal is in ``/run``, it finds nothing. ``--user-unit=`` matches your
-units' entries in every journal you can read. Reading entries that
-landed in the system journal needs the ``systemd-journal`` group.
+own journal files, and :cmd:`journald <systemd-journald.service(8)>` writes
+those only with persistent storage (``SplitMode=`` in
+:cmd:`journald.conf(5)`). On a host whose journal is in ``/run``, it finds
+nothing. ``--user-unit=`` matches your units' entries in every journal you
+can read. Reading entries that landed in the system journal needs the
+``systemd-journal`` group.
 
 .. _usage-guest-journal:
 
@@ -65,7 +66,7 @@ can read any journal:
 
 ``--dmesg`` shows only the kernel's messages. ``--list-boots`` lists the
 boots the guest still has: a guest whose root file system is new at
-every boot, as in the direct and knix guides, has only the current one.
+every boot, as in the direct and `knix`_ guides, has only the current one.
 
 .. _usage-forward:
 
@@ -76,7 +77,7 @@ A guest with a fresh root loses its journal, and SSH cannot reach a
 guest that stops answering. journald can send every entry over a socket
 as it logs it (``ForwardToSocket=`` in :cmd:`journald.conf(5)`, systemd
 256 and later), and :cmd:`systemd-journal-remote.service(8)` on the host
-writes what arrives into journal files. The socket can be a vsock one,
+writes what arrives into journal files. The socket can be a `vsock`_ one,
 so this needs no network and no root.
 
 On the host, a socket unit and its service of your own listen on port
@@ -117,7 +118,7 @@ units:
    $ systemctl --user daemon-reload
    $ systemctl --user enable --now journal-remote.socket
 
-Debian and Ubuntu ship ``systemd-journal-remote`` in a package of that
+`Debian`_ and `Ubuntu`_ ship ``systemd-journal-remote`` in a package of that
 name. Like ``systemd-ssh-proxy`` (:ref:`host-ssh`), it lives in systemd's
 private library directory, which
 :cmd:`systemd-path system-library-private <systemd-path>` prints.
@@ -127,7 +128,7 @@ guest's vsock address and port, not its name.
 
 On the guest, journald takes the address from the
 ``journal.forward_to_socket`` credential
-(:cmd:`systemd.system-credentials(7)`). QEMU passes it in the SMBIOS
+(:cmd:`systemd.system-credentials(7)`). QEMU passes it in the `SMBIOS`_
 tables (:cmd:`smbios-type-11(7)`), one line in :key:`[QEMU]`:
 
 .. code-block:: ini
@@ -164,6 +165,15 @@ Between hosts on a network, systemd has two more tools.
 HTTP or HTTPS to a ``systemd-journal-remote`` started with
 ``--listen-http=`` or ``--listen-https=``, and
 :cmd:`systemd-journal-gatewayd.service(8)` serves a system's journal
-over HTTP, on port 19531, to a browser or ``curl``. Both need the guest
+over HTTP, on port 19531, to a browser or :cmd:`curl`. Both need the guest
 to have an address the other side can reach; the vsock socket above
 needs none.
+
+.. _systemd: https://systemd.io
+.. _QEMU: https://www.qemu.org/docs/master/system/invocation.html
+.. _virtiofsd: https://gitlab.com/virtio-fs/virtiofsd
+.. _knix: https://github.com/linux-kdevops/knix
+.. _vsock: https://man7.org/linux/man-pages/man7/vsock.7.html
+.. _Debian: https://www.debian.org
+.. _Ubuntu: https://ubuntu.com
+.. _SMBIOS: https://www.dmtf.org/standards/smbios

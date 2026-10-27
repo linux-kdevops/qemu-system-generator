@@ -14,7 +14,8 @@ it does any other service. The unit's lines are in
 Listing and inspecting
 ======================
 
-Two commands list the machines, systemd's view and machined's:
+Two commands list the machines, `systemd`_'s view and
+:cmd:`machined <systemd-machined>`'s:
 
 .. code-block:: console
    :class: cmd-host
@@ -25,7 +26,7 @@ Two commands list the machines, systemd's view and machined's:
 The first lists the units, failed ones included; the second the machines
 that registered, with their class and service (:doc:`machined`).
 
-``status`` shows a machine's state, its memory and CPU time, the QEMU
+``status`` shows a machine's state, its memory and CPU time, the `QEMU`_
 command line in its cgroup, and the last ten lines of its journal, which
 are the end of the serial console:
 
@@ -53,11 +54,11 @@ Starting and stopping
 A start returns as soon as QEMU runs; the guest boots after that. A stop
 asks the guest to power off, first over SSH, then with the power button,
 and waits for QEMU to exit (:ref:`SSH poweroff <host-poweroff>`). A
-restart is a stop and a start; the machine's virtiofsd daemons exit
+restart is a stop and a start; the machine's `virtiofsd`_ daemons exit
 with the old QEMU and start again when the new one connects. Every
 command takes several names, or a pattern such as ``'qemu-system@*'``.
 Stopping :cmd:`machines.target` stops every machine at once; starting it
-starts each one whose file names it in ``WantedBy=``
+starts each one whose file names it in :cmd:`WantedBy=`
 (:ref:`direct-settings`).
 
 A guest that cannot answer yet takes the full stop timeout, two minutes.
@@ -87,7 +88,7 @@ so the service stays active with the same process:
 
    $ ssh bootstrap systemctl reboot
 
-QMP resets a hung guest from the host, as the reset button would
+`QMP`_ resets a hung guest from the host, as the reset button would
 (:ref:`usage-qmp`). A machine whose file has ``no-reboot=`` in
 :key:`[QEMU]` exits instead of rebooting, and its service stops.
 
@@ -141,3 +142,8 @@ root:
 
 The machines then stop when the host shuts down, each as
 ``systemctl --user stop`` would stop it.
+
+.. _systemd: https://systemd.io
+.. _QEMU: https://www.qemu.org/docs/master/system/invocation.html
+.. _virtiofsd: https://gitlab.com/virtio-fs/virtiofsd
+.. _QMP: https://www.qemu.org/docs/master/interop/qmp-spec.html

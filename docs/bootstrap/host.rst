@@ -72,7 +72,7 @@ way:
 ssh takes the first value it finds for each keyword, so the two blocks
 for one name add up (:cmd:`ssh_config(5)`). A machine of your own gets a
 file of its own in ``config.d/``. The last block dials the context id
-through :cmd:`systemd-ssh-proxy(1)`, which systemd installs in its private
+through :cmd:`systemd-ssh-proxy(1)`, which `systemd`_ installs in its private
 library directory, ``/usr/lib/systemd/`` on most distributions;
 :cmd:`systemd-path system-library-private <systemd-path>` prints the
 prefix. ``ProxyUseFdpass`` has the proxy hand ssh the connected socket,
@@ -97,7 +97,7 @@ would make the ``Include`` conditional (:cmd:`ssh_config(5)`). Use the
 
 Then ``ssh bootstrap`` reaches the guest named ``bootstrap`` once it runs.
 A guest listens for SSH on vsock by itself through
-:cmd:`systemd-ssh-generator(8)`, which NixOS and the cloud images have.
+:cmd:`systemd-ssh-generator(8)`, which `NixOS`_ and the cloud images have.
 
 .. _host-start:
 
@@ -125,8 +125,8 @@ hand before starting a machine; the start waits until the reload is done.
 "Regenerate and restart" in a guide means the first line, then
 ``systemctl --user restart``.
 
-:doc:`/usage/index` shows what else ``systemctl``, ``journalctl``,
-``machinectl`` and QMP do with a running machine.
+:doc:`/usage/index` shows what else :cmd:`systemctl`, ``journalctl``,
+:cmd:`machinectl` and `QMP`_ do with a running machine.
 
 .. _host-poweroff:
 
@@ -174,3 +174,6 @@ what the guest does with the home.
 .. _vsock: https://man7.org/linux/man-pages/man7/vsock.7.html
 .. _virtiofsd: https://gitlab.com/virtio-fs/virtiofsd
 .. _specifiers: https://www.freedesktop.org/software/systemd/man/latest/systemd.unit.html#Specifiers
+.. _systemd: https://systemd.io
+.. _NixOS: https://nixos.org/manual/nixos/stable/
+.. _QMP: https://www.qemu.org/docs/master/interop/qmp-spec.html
