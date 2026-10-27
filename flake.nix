@@ -151,6 +151,7 @@
               pkgs.cloud-utils
               pkgs.cpio
               pkgs.curl
+              pkgs.gettext
               pkgs.git
               pkgs.jq
               pkgs.nix
