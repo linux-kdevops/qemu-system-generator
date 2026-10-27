@@ -113,8 +113,10 @@ paths, options and file names. Plain text for tool names in prose
 
 ### Examples are generic
 
-Paths under `/srv/`, relative image names that resolve in the state
-directory, no user names or home-directory paths.
+Placeholder paths under `/path/to/`, relative image names that resolve in
+the state directory, no user names or home-directory paths. Not `/srv/`:
+the UAPI file system hierarchy gives it to server payload that may mount
+only late in boot.
 
 ## Commit rules
 
