@@ -1,8 +1,8 @@
 .. SPDX-License-Identifier: copyleft-next-0.3.1
 
-================
-The QEMU problem
-================
+==========
+Motivation
+==========
 
 Running a virtual machine under `QEMU`_ is two jobs. One is the command
 line: the machine type, memory, disks, devices, network and kernel. The
@@ -17,11 +17,11 @@ vocabulary: the command line stays QEMU's own, one option per line, and
 `systemd`_ runs the lifecycle, through a generator modelled on `Podman`_'s
 `Quadlet`_ (:ref:`below <from-quadlet>`).
 
-What QEMU leaves out
-====================
+What QEMU does not do
+=====================
 
-A complete configuration file
------------------------------
+Configuration files
+-------------------
 
 ``-readconfig`` reads QEMU's option groups only. A ``[machine]`` section
 can carry ``kernel``, ``initrd`` and ``append``, since QEMU parses those
@@ -44,8 +44,8 @@ QEMU 11.1.2 answers the same for ``[serial]`` and ``[nographic]``. So
 ``-cpu``, ``-serial`` and ``-nographic``, among others, stay on the command
 line, and no file alone describes a machine.
 
-A clean stop
-------------
+Stopping the guest
+------------------
 
 QEMU treats ``SIGTERM``, the signal systemd stops a service with, as a
 host-side kill: ``qemu_system_killed()`` in
@@ -80,8 +80,8 @@ virtual machine's OS or addresses: in systemd v262,
 return ``-EOPNOTSUPP`` for any machine that is neither the host nor a
 container.
 
-Every wrapper decides for you
-=============================
+Existing wrappers
+=================
 
 A wrapper answers both halves at once, so its configuration language
 carries its author's choices. Two examples, from their sources:
@@ -135,8 +135,8 @@ it adds, so every exception to the one-to-one mapping is stated.
 
 .. _from-quadlet:
 
-What it takes from Quadlet
---------------------------
+Comparison with Quadlet
+-----------------------
 
 Quadlet does for Podman's containers what this project does for QEMU: its
 generator, ``podman-system-generator``, turns ``.container`` files and the
@@ -162,8 +162,8 @@ Templates such as ``foo@.container`` have no counterpart either: a
 ``.qemu`` file's unit is already an instance of ``qemu-system@.service``,
 so a family shares its lines through drop-ins.
 
-What the generator decides
---------------------------
+Generated settings
+------------------
 
 None of the following touches a device, a disk, the network, the display
 or the firmware; those are the file's. Each is a lifecycle need, and the
@@ -205,8 +205,8 @@ Every scalar :cmd:`[Service] <systemd.service(5)>` setting in the file
 overrides the generated one, and an empty ``ExecStop=`` clears the stop
 commands. The file states everything else a wrapper would decide.
 
-What it cannot fix
-------------------
+Limitations
+-----------
 
 A decoder that passes QEMU's options through cannot add what QEMU lacks:
 the stop still goes through QMP until ``SIGTERM`` powers the guest down,
@@ -214,6 +214,11 @@ the service stays ``Type=simple`` until QEMU notifies readiness, and
 :cmd:`machinectl` shows no OS or address for a virtual machine until
 ``systemd-machined`` can learn them. Those are upstream work, in QEMU and
 in systemd.
+
+.. toctree::
+   :hidden:
+
+   wrappers
 
 .. _QEMU: https://www.qemu.org/docs/master/system/invocation.html
 .. _systemd: https://systemd.io

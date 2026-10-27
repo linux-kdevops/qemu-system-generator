@@ -15,7 +15,7 @@ path, drop-ins, ``[Install]`` and ``--dryrun`` work as they do in
 :cmd:`podman-systemd.unit(5)`, while ``[QEMU]`` keeps QEMU's own option
 names (:ref:`from-quadlet`).
 
-:doc:`background/qemu-problem` explains why: QEMU leaves its lifecycle to
+:doc:`background/motivation` explains why: QEMU leaves its lifecycle to
 whoever starts it, every wrapper that takes the job on brings its own
 configuration language, and this one maps the file to QEMU's command line
 one to one.
@@ -41,8 +41,7 @@ These are linked from the icons in the top navigation bar too.
    :maxdepth: 1
    :caption: Background
 
-   background/qemu-problem
-   background/wrappers
+   background/motivation
 
 .. toctree::
    :maxdepth: 1
