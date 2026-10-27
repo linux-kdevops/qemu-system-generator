@@ -3,9 +3,9 @@
 ## Usage: steps/direct/check [--base FILE]
 ##
 ## Log in to the running bootstrap and peer machines, print bootstrap's
-## kernel, have it read a file the host leaves in SYSTEM_DIR/share and
-## leave one there, find that file on the host, and have each machine ping
-## the other over their LAN:
+## kernel, check that its root's home is the shared home with its systemd
+## directories masked, leave a file in WORKTREES_DIR/direct, which must
+## lie in the home, and have each machine ping the other over their LAN:
 ##
 ##   nix develop --ignore-env --keep-env-var HOME \
 ##       --command steps/direct/check
@@ -24,10 +24,10 @@ done
 . "$(dirname "$0")/../base"
 
 set -o xtrace
-rm --force -- "$SYSTEM_DIR/share/from-guest"
-echo "hello from the host" >"$SYSTEM_DIR/share/hello.txt"
 ssh -F "$SSH_DIR/config" bootstrap uname --kernel-release
-ssh -F "$SSH_DIR/config" bootstrap 'cat /mnt/host/hello.txt; touch /mnt/host/from-guest'
-ls --format=long "$SYSTEM_DIR/share/from-guest"
+rm --force -- "$WORKTREES_DIR/direct/from-guest"
+ssh -F "$SSH_DIR/config" bootstrap \
+	"pwd && findmnt --mountpoint ~/.config/systemd && findmnt --mountpoint ~/.local/share/systemd && touch $WORKTREES_DIR/direct/from-guest"
+ls --format=long "$WORKTREES_DIR/direct/from-guest"
 ssh -F "$SSH_DIR/config" peer 'hostname; ping -c 1 10.0.100.42'
 ssh -F "$SSH_DIR/config" bootstrap ping -c 1 10.0.100.46

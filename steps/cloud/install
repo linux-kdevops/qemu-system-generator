@@ -32,7 +32,7 @@ files=$(realpath "$(dirname "$0")/files")
 set -o xtrace
 mkdir --parents "$WORKTREES_DIR/cloud" "$units/cloud-.qemu.d"
 cd "$WORKTREES_DIR/cloud"
-key=$(cat "$SSH_KEY.pub") envsubst "\$key" <"$files/user-data" >user-data
+key=$(cat "$SSH_KEY.pub") HOME=$HOME envsubst "\$key \$HOME" <"$files/user-data" >user-data
 cp "$files/10-cloud.conf" "$units/cloud-.qemu.d/10-cloud.conf"
 image=$image cid=$cid envsubst "\$image \$cid" <"$files/machine.qemu" >"$units/$name.qemu"
 rm --recursive --force -- "$units/$name.qemu.d"

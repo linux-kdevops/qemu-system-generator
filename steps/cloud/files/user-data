@@ -3,3 +3,10 @@
 disable_root: false
 ssh_authorized_keys:
   - $key
+write_files:
+  - path: /etc/fstab
+    append: true
+    content: |
+      home $HOME virtiofs defaults 0 0
+runcmd:
+  - [mount, --mkdir, $HOME]

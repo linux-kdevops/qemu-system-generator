@@ -12,3 +12,10 @@ drive=if=pflash,format=raw,snapshot=on,file=$WORKTREES_DIR/disk/ovmf-fd/FV/OVMF_
 drive=file=$WORKTREES_DIR/disk/efi/bootstrap.qcow2,if=virtio,format=qcow2,snapshot=on
 nic=user,model=virtio-net-pci-non-transitional
 device=vhost-vsock-pci-non-transitional,guest-cid=42
+
+[virtiofsd]
+shared-dir=%h
+tag=home
+sandbox=namespace
+uid-map=:0:%U:1:
+gid-map=:0:%G:1:

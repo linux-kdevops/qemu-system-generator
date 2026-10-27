@@ -22,10 +22,6 @@
     device = "store";
     fsType = "virtiofs";
   };
-  fileSystems."/mnt/host" = {
-    device = "host";
-    fsType = "virtiofs";
-  };
   systemd.services.systemd-boot-random-seed.enable = false;
 
   system.stateVersion = "26.05";

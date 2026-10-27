@@ -27,10 +27,6 @@
     device = "store";
     fsType = "virtiofs";
   };
-  fileSystems."/mnt/host" = {
-    device = "host";
-    fsType = "virtiofs";
-  };
 
   system.stateVersion = "26.05";
 }

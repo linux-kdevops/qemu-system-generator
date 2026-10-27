@@ -5,7 +5,7 @@
 ## Write a NixOS flake that builds an EFI system partition holding the
 ## bootstrap machine's unified kernel image, with the public key of SSH_KEY
 ## for root, in WORKTREES_DIR/uki; bootstrap.qemu, which boots it with OVMF
-## and shares the host's Nix store and SYSTEM_DIR/share over virtiofs, in
+## and shares the host's Nix store and the home over virtiofs, in
 ## ~/.config/qemu/systemd; and a file in the share for the guest to read:
 ##
 ##   nix develop --ignore-env --keep-env-var HOME \
@@ -27,11 +27,11 @@ units=$HOME/.config/qemu/systemd
 files=$(realpath "$(dirname "$0")/files")
 
 set -o xtrace
-mkdir --parents "$WORKTREES_DIR/uki" "$units" "$SYSTEM_DIR/share"
+mkdir --parents "$WORKTREES_DIR/uki" "$units"
 cd "$WORKTREES_DIR/uki"
 cp "$files/flake.nix" flake.nix
 key=$(cat "$SSH_KEY.pub") envsubst "\$key" <"$files/configuration.nix" >configuration.nix
-WORKTREES_DIR=$WORKTREES_DIR SYSTEM_DIR=$SYSTEM_DIR \
-	envsubst "\$WORKTREES_DIR \$SYSTEM_DIR" <"$files/bootstrap.qemu" >"$units/bootstrap.qemu"
+HOME=$HOME envsubst "\$HOME" <"$files/home.nix" >home.nix
+WORKTREES_DIR=$WORKTREES_DIR \
+	envsubst "\$WORKTREES_DIR" <"$files/bootstrap.qemu" >"$units/bootstrap.qemu"
 rm --recursive --force -- "$units/bootstrap.qemu.d"
-echo "hello from the host" >"$SYSTEM_DIR/share/hello.txt"

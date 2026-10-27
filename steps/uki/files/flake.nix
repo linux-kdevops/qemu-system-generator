@@ -12,7 +12,10 @@
     {
       nixosConfigurations.bootstrap = nixpkgs.lib.nixosSystem {
         inherit system;
-        modules = [ ./configuration.nix ];
+        modules = [
+          ./configuration.nix
+          ./home.nix
+        ];
       };
       packages.${system} = {
         default = pkgs.runCommand "esp" { } ''

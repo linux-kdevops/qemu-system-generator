@@ -3,8 +3,7 @@
 ## Usage: steps/host/install [--base FILE]
 ##
 ## Write SSH_DIR/config, which names every machine the steps start and
-## reaches it over AF_VSOCK through systemd-ssh-proxy, and make the
-## directory the guests share, SYSTEM_DIR/share. A host without
+## reaches it over AF_VSOCK through systemd-ssh-proxy. A host without
 ## /usr/lib/systemd/systemd-ssh-proxy gets the proxy of this shell's
 ## systemd:
 ##
@@ -29,7 +28,7 @@ set -o xtrace
 proxy=/usr/lib/systemd/systemd-ssh-proxy
 [ -x "$proxy" ] ||
 	proxy=$(dirname "$(dirname "$(realpath "$(command -v systemctl)")")")/lib/systemd/systemd-ssh-proxy
-mkdir --parents "$SSH_DIR/config.d" "$SYSTEM_DIR/share"
+mkdir --parents "$SSH_DIR/config.d"
 SSH_DIR=$SSH_DIR proxy=$proxy SSH_KEY=$SSH_KEY \
 	envsubst "\$SSH_DIR \$proxy \$SSH_KEY" <"$files/config" >"$SSH_DIR/config"
 chmod go-w "$SSH_DIR/config"

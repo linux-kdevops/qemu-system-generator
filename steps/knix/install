@@ -8,7 +8,7 @@
 ## guest's closure; and bootstrap.qemu and peer.qemu in
 ## ~/.config/qemu/systemd, which boot the kernels and QEMU that
 ## steps/knix/build links into WORKTREES_DIR/knix/nix, with the store, the
-## kernel's modules and SYSTEM_DIR/share over virtiofs and a LAN between
+## kernel's modules and the home over virtiofs and a LAN between
 ## them:
 ##
 ##   nix develop --ignore-env --keep-env-var HOME \
@@ -31,17 +31,18 @@ knix=$WORKTREES_DIR/knix
 files=$(realpath "$(dirname "$0")/files")
 
 set -o xtrace
-mkdir --parents "$knix/guest" "$knix/tiny" "$units" "$SYSTEM_DIR/share"
+mkdir --parents "$knix/guest" "$knix/tiny" "$units"
 cp "$files/guest/flake.nix" "$knix/guest/flake.nix"
 key=$(cat "$SSH_KEY.pub") envsubst "\$key" <"$files/guest/default.nix" >"$knix/guest/default.nix"
+HOME=$HOME envsubst "\$HOME" <"$files/guest/home.nix" >"$knix/guest/home.nix"
 install --mode=0755 "$files/tiny/init" "$knix/tiny/init"
 # The fast kernel boots through qboot, the other through QEMU's default
 # firmware.
 for vm in bootstrap:42:4:fast-kernel:qboot.rom peer:46:2:kernel:; do
 	IFS=: read -r name cid cpus kernel bios <<<"$vm"
-	knix=$knix cid=$cid cpus=$cpus kernel=$kernel SYSTEM_DIR=$SYSTEM_DIR \
+	knix=$knix cid=$cid cpus=$cpus kernel=$kernel \
 		firmware=${bios:+bios=$bios} \
-		envsubst "\$knix \$cid \$cpus \$kernel \$SYSTEM_DIR \$firmware" \
+		envsubst "\$knix \$cid \$cpus \$kernel \$firmware" \
 		<"$files/machine.qemu" >"$units/$name.qemu"
 	rm --recursive --force -- "$units/$name.qemu.d"
 done

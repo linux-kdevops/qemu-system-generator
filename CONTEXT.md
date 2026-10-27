@@ -41,7 +41,7 @@ _Avoid_: guide directory, workbench
 **System workbench**:
 What every worktree-group shares (`SYSTEM_DIR`, default
 `WORKBENCH_DIR/system`): the SSH key and configuration under `ssh/`
-(`SSH_DIR`, `SSH_KEY`) and the directory the guests share, `share/`.
+(`SSH_DIR`, `SSH_KEY`).
 _Avoid_: ssh directory
 
 **Base**:

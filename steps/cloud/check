@@ -3,7 +3,9 @@
 ## Usage: steps/cloud/check [--base FILE]
 ##
 ## Log in to the three running cloud machines, print each one's host name
-## and kernel, and have Debian and Fedora ping each other over their LAN:
+## and kernel, have each leave a file in WORKTREES_DIR/cloud, which must
+## lie in the home, through the shared home, and have Debian and Fedora
+## ping each other over their LAN:
 ##
 ##   nix develop --ignore-env --keep-env-var HOME \
 ##       --command steps/cloud/check
@@ -23,7 +25,9 @@ done
 
 set -o xtrace
 for vm in cloud-debian cloud-fedora cloud-ubuntu; do
-	ssh -F "$SSH_DIR/config" "$vm" 'hostname; uname --kernel-release'
+	rm --force -- "$WORKTREES_DIR/cloud/from-$vm"
+	ssh -F "$SSH_DIR/config" "$vm" "hostname; uname --kernel-release; touch $WORKTREES_DIR/cloud/from-$vm"
+	ls --format=long "$WORKTREES_DIR/cloud/from-$vm"
 done
 ssh -F "$SSH_DIR/config" cloud-debian ping -c 1 10.0.100.44
 ssh -F "$SSH_DIR/config" cloud-fedora ping -c 1 10.0.100.43

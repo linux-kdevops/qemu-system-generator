@@ -28,8 +28,8 @@ uid-map=:0:%U:1:
 gid-map=:0:%G:1:
 
 [virtiofsd]
-shared-dir=$SYSTEM_DIR/share
-tag=host
+shared-dir=%h
+tag=home
 sandbox=namespace
 uid-map=:0:%U:1:
 gid-map=:0:%G:1:

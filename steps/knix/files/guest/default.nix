@@ -1,8 +1,7 @@
 # SPDX-License-Identifier: copyleft-next-0.3.1
 { lib, knix, ... }:
 {
-  imports = [ knix.nixosModules.mounts.shares ];
-  knix.shares."/mnt/host".tag = "host";
+  imports = [ ./home.nix ];
 
   networking.hostName = "bootstrap";
   systemd.network.networks = {

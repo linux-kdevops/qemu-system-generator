@@ -30,5 +30,6 @@ mkdir --parents "$WORKTREES_DIR/disk" "$units"
 cd "$WORKTREES_DIR/disk"
 cp "$files/flake.nix" flake.nix
 key=$(cat "$SSH_KEY.pub") envsubst "\$key" <"$files/configuration.nix" >configuration.nix
+HOME=$HOME envsubst "\$HOME" <"$files/home.nix" >home.nix
 WORKTREES_DIR=$WORKTREES_DIR envsubst "\$WORKTREES_DIR" <"$files/bootstrap.qemu" >"$units/bootstrap.qemu"
 rm --recursive --force -- "$units/bootstrap.qemu.d"

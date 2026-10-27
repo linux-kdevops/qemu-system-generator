@@ -7,7 +7,7 @@
 ## latest kernel, the public key of SSH_KEY for root and the machine's
 ## address on the LAN, the machine boots directly; and in
 ## ~/.config/qemu/systemd, VM.qemu, which boots it with the host's Nix
-## store and SYSTEM_DIR/share over virtiofs and puts it on the LAN:
+## store and the home over virtiofs and puts it on the LAN:
 ##
 ##   nix develop --ignore-env --keep-env-var HOME \
 ##       --command steps/direct/install --name bootstrap
@@ -39,12 +39,13 @@ peer) cid=46 cpus=2 ;;
 esac
 
 set -o xtrace
-mkdir --parents "$WORKTREES_DIR/direct/$name" "$units" "$SYSTEM_DIR/share"
+mkdir --parents "$WORKTREES_DIR/direct/$name" "$units"
 cd "$WORKTREES_DIR/direct/$name"
 name=$name envsubst "\$name" <"$files/flake.nix" >flake.nix
 name=$name cid=$cid key=$(cat "$SSH_KEY.pub") \
 	envsubst "\$name \$cid \$key" <"$files/configuration.nix" >configuration.nix
-name=$name cid=$cid cpus=$cpus WORKTREES_DIR=$WORKTREES_DIR SYSTEM_DIR=$SYSTEM_DIR \
-	envsubst "\$name \$cid \$cpus \$WORKTREES_DIR \$SYSTEM_DIR" \
+HOME=$HOME envsubst "\$HOME" <"$files/home.nix" >home.nix
+name=$name cid=$cid cpus=$cpus WORKTREES_DIR=$WORKTREES_DIR \
+	envsubst "\$name \$cid \$cpus \$WORKTREES_DIR" \
 	<"$files/machine.qemu" >"$units/$name.qemu"
 rm --recursive --force -- "${units:?}/${name:?}.qemu.d"

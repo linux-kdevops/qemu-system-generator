@@ -7,7 +7,10 @@
     {
       nixosConfigurations.$name = nixpkgs.lib.nixosSystem {
         system = "x86_64-linux";
-        modules = [ ./configuration.nix ];
+        modules = [
+          ./configuration.nix
+          ./home.nix
+        ];
       };
       packages.x86_64-linux.default = self.nixosConfigurations.$name.config.system.build.toplevel;
     };

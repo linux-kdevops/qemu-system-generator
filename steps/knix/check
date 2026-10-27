@@ -3,8 +3,10 @@
 ## Usage: steps/knix/check [--base FILE]
 ##
 ## Log in to the running bootstrap and peer machines, print bootstrap's
-## kernel and its virtiofs mounts, and have each machine ping the other
-## over their LAN:
+## kernel and its virtiofs mounts, check that its root's home is the
+## shared home with its systemd directories masked, leave a file in
+## WORKTREES_DIR/knix, which must lie in the home, and have each machine
+## ping the other over their LAN:
 ##
 ##   nix develop --ignore-env --keep-env-var HOME \
 ##       --command steps/knix/check
@@ -25,5 +27,9 @@ done
 set -o xtrace
 ssh -F "$SSH_DIR/config" bootstrap \
 	'uname --kernel-release; findmnt --noheadings --output=TARGET,SOURCE,FSTYPE --types=virtiofs'
+rm --force -- "$WORKTREES_DIR/knix/from-guest"
+ssh -F "$SSH_DIR/config" bootstrap \
+	"pwd && findmnt --mountpoint ~/.config/systemd && findmnt --mountpoint ~/.local/share/systemd && touch $WORKTREES_DIR/knix/from-guest"
+ls --format=long "$WORKTREES_DIR/knix/from-guest"
 ssh -F "$SSH_DIR/config" peer 'hostname; ping -c 1 10.0.100.42'
 ssh -F "$SSH_DIR/config" bootstrap ping -c 1 10.0.100.46
