@@ -148,8 +148,11 @@ type directory and the dash-prefix directories that let a family of
 machines share lines. ``[Install]`` becomes symlinks at
 generation time, since a generated unit cannot be enabled afterwards.
 ``--dryrun`` prints each file after a ``---path---`` line, and an
-environment variable replaces the search path: ``QUADLET_UNIT_DIRS``
-there, ``QEMU_SYSTEMD_UNIT_DIRS`` here. The manual is named after
+environment variable named after the project replaces the search path:
+``QUADLET_UNIT_DIRS`` there, ``QEMU_SYSTEM_GENERATOR_UNIT_DIRS`` here. The
+generator is linked once per scope, ``podman-system-generator`` and
+``podman-user-generator`` there, ``qemu-system-system-generator`` and
+``qemu-system-user-generator`` here. The manual is named after
 Quadlet's too: ``qemu-systemd.unit(5)`` for ``podman-systemd.unit(5)``.
 
 The vocabulary is not copied. A ``[Container]`` key is Quadlet's own and

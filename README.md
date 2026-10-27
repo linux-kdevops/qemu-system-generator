@@ -78,7 +78,8 @@ or a distribution's cloud image.
 Check a file before deploying it:
 
 ```shell
-QEMU_SYSTEMD_UNIT_DIRS=examples ./target/release/qemu-system-generator --user --dryrun
+QEMU_SYSTEM_GENERATOR_UNIT_DIRS=examples \
+    ./target/release/qemu-system-generator --user --dryrun
 ```
 
 With [Nix]:

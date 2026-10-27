@@ -39,8 +39,8 @@ in
   };
 
   config = lib.mkIf cfg.enable {
-    systemd.generators.qemu-system-generator = "${cfg.package}/lib/systemd/system-generators/qemu-system-generator";
-    systemd.user.generators.qemu-system-generator = "${cfg.package}/lib/systemd/user-generators/qemu-system-generator";
+    systemd.generators.qemu-system-system-generator = "${cfg.package}/lib/systemd/system-generators/qemu-system-system-generator";
+    systemd.user.generators.qemu-system-user-generator = "${cfg.package}/lib/systemd/user-generators/qemu-system-user-generator";
 
     environment.systemPackages = [ cfg.package ];
 

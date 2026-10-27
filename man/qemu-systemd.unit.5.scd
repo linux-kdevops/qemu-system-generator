@@ -349,7 +349,7 @@ More examples ship in _/usr/share/doc/qemu-system-generator/examples/_.
 
 # ENVIRONMENT
 
-*$QEMU_SYSTEMD_UNIT_DIRS*
+*$QEMU_SYSTEM_GENERATOR_UNIT_DIRS*
 	A colon-separated list of directories that replaces the search path,
 	for testing with *qemu-system-generator --dryrun*.
 

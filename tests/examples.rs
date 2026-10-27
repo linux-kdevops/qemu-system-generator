@@ -20,7 +20,7 @@ fn examples() -> PathBuf {
 fn dryrun(scope: &str, dir: &Path) -> Output {
     Command::new(BIN)
         .args([scope, "--dryrun"])
-        .env("QEMU_SYSTEMD_UNIT_DIRS", dir)
+        .env("QEMU_SYSTEM_GENERATOR_UNIT_DIRS", dir)
         .output()
         .expect("run generator")
 }

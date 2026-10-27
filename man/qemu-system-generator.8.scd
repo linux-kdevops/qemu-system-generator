@@ -19,10 +19,13 @@ file together with the socket and service units of each virtiofsd the
 machine uses, and the symlinks that *[Install]* asks for. It exits
 afterwards; nothing of it stays between systemd and QEMU.
 
-It is installed under _/usr/lib/systemd/system-generators/_ and
-_/usr/lib/systemd/user-generators/_ as symlinks to one binary. The scope
-is taken from *$SYSTEMD_SCOPE*, which the service manager sets, or from
-*--user* and *--system*; without either, the effective user id decides.
+It is installed as _qemu-system-system-generator_ under
+_/usr/lib/systemd/system-generators/_ and as _qemu-system-user-generator_
+under _/usr/lib/systemd/user-generators/_, symlinks to one binary, as
+Podman installs _podman-system-generator_ and _podman-user-generator_.
+The scope is taken from *$SYSTEMD_SCOPE*, which the service manager
+sets, or from *--user* and *--system*; without either, the effective
+user id decides.
 
 A user manager runs generators only from root-owned directories
 (*systemd.generator*(7)). Without root, enable the two user units shipped
@@ -40,10 +43,10 @@ a drop-in directory are not seen; start the service by hand after those.
 
 With *--dryrun* nothing is written: every generated file is printed after
 a *---path---* line, and every symlink as *---path -> target---*. Together
-with *$QEMU_SYSTEMD_UNIT_DIRS* this checks a file before deploying it:
+with *$QEMU_SYSTEM_GENERATOR_UNIT_DIRS* this checks a file before deploying it:
 
 ```
-QEMU_SYSTEMD_UNIT_DIRS=. qemu-system-generator --user --dryrun
+QEMU_SYSTEM_GENERATOR_UNIT_DIRS=. qemu-system-generator --user --dryrun
 ```
 
 # OPTIONS
@@ -65,7 +68,7 @@ QEMU_SYSTEMD_UNIT_DIRS=. qemu-system-generator --user --dryrun
 *$SYSTEMD_SCOPE*
 	Set by the service manager to _system_ or _user_.
 
-*$QEMU_SYSTEMD_UNIT_DIRS*
+*$QEMU_SYSTEM_GENERATOR_UNIT_DIRS*
 	Colon-separated directories that replace the search path.
 
 # FILES

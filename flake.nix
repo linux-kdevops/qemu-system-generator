@@ -272,7 +272,7 @@
                 ];
               }
               ''
-                export QEMU_SYSTEMD_UNIT_DIRS=${src}/examples
+                export QEMU_SYSTEM_GENERATOR_UNIT_DIRS=${src}/examples
                 export HOME=$PWD/home XDG_RUNTIME_DIR=$PWD/run XDG_CONFIG_HOME=$PWD/home/.config
                 mkdir --parents generated home run
                 qemu-system-generator --user generated

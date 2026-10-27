@@ -10,7 +10,7 @@ tmp="$(mktemp --directory)"
 trap 'rm --recursive --force "$tmp"' EXIT
 for scope in system user; do
 	mkdir --parents "$tmp/$scope"
-	QEMU_SYSTEMD_UNIT_DIRS="$PWD/examples" ./target/debug/qemu-system-generator "--$scope" "$tmp/$scope"
+	QEMU_SYSTEM_GENERATOR_UNIT_DIRS="$PWD/examples" ./target/debug/qemu-system-generator "--$scope" "$tmp/$scope"
 	SYSTEMD_UNIT_PATH="$tmp/$scope:" systemd-analyze "--$scope" verify "$tmp/$scope"/*.service "$tmp/$scope"/*.socket
 	echo "$scope: $(ls "$tmp/$scope" | wc --lines) entries verified"
 done

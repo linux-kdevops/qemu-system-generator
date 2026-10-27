@@ -82,10 +82,10 @@ Then build and install:
        --profile /nix/var/nix/profiles/qemu-system-generator "$out"
    $ sudo mkdir --parents /etc/systemd/system-generators /etc/systemd/user-generators
    $ sudo ln --symbolic --force \
-       /nix/var/nix/profiles/qemu-system-generator/lib/systemd/system-generators/qemu-system-generator \
+       /nix/var/nix/profiles/qemu-system-generator/lib/systemd/system-generators/qemu-system-system-generator \
        /etc/systemd/system-generators/
    $ sudo ln --symbolic --force \
-       /nix/var/nix/profiles/qemu-system-generator/lib/systemd/user-generators/qemu-system-generator \
+       /nix/var/nix/profiles/qemu-system-generator/lib/systemd/user-generators/qemu-system-user-generator \
        /etc/systemd/user-generators/
    $ sudo systemctl daemon-reload
 

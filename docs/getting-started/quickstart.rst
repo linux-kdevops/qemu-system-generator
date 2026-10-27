@@ -116,14 +116,14 @@ nothing:
    The dry run generates every ``.qemu`` file on the search path, in name
    order, so with other machines in ``~/.config/qemu/systemd/`` it prints
    their units too. To check one file alone, keep it in a directory of
-   its own and point ``QEMU_SYSTEMD_UNIT_DIRS`` at that directory, which
-   replaces the search path
+   its own and point ``QEMU_SYSTEM_GENERATOR_UNIT_DIRS`` at that
+   directory, which replaces the search path
    (:doc:`qemu-systemd.unit(5) </man/qemu-systemd.unit.5>`):
 
    .. code-block:: console
       :class: cmd-host
 
-      $ QEMU_SYSTEMD_UNIT_DIRS=/srv/machines qemu-system-generator --user --dryrun
+      $ QEMU_SYSTEM_GENERATOR_UNIT_DIRS=/srv/machines qemu-system-generator --user --dryrun
 
 The options come out in the file's order, and the only one the
 generator adds is the ``-qmp`` socket it stops the machine through. It

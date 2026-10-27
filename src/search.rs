@@ -16,7 +16,7 @@ use std::path::{Path, PathBuf};
 use std::str::FromStr;
 
 const SUFFIX: &str = "qemu";
-const UNIT_DIRS_ENV: &str = "QEMU_SYSTEMD_UNIT_DIRS";
+const UNIT_DIRS_ENV: &str = "QEMU_SYSTEM_GENERATOR_UNIT_DIRS";
 
 /// The service manager generated for (`systemd.generator(7)`).
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

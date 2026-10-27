@@ -15,7 +15,7 @@ qmp_powerdown="${QMP_POWERDOWN:-/usr/share/qemu/systemd/qmp-powerdown}"
 socat="${SOCAT:-socat}"
 varlinkctl="${VARLINKCTL:-varlinkctl}"
 ssh="${SSH:-ssh}"
-QEMU_SYSTEMD_UNIT_DIRS="$PWD/examples" ./target/debug/qemu-system-generator --system --dryrun \
+QEMU_SYSTEM_GENERATOR_UNIT_DIRS="$PWD/examples" ./target/debug/qemu-system-generator --system --dryrun \
 	| sed --expression "s|$PWD/examples|@EXAMPLES@|g" \
 		--expression "s|^ExecStart=$qemu |ExecStart=@QEMU@ |" \
 		--expression "s|^ExecStart=$virtiofsd |ExecStart=@VIRTIOFSD@ |" \
