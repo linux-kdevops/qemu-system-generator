@@ -7,7 +7,7 @@ A network between machines
 Each machine's user-mode network belongs to its own QEMU process: the
 guests reach the internet through it, but not each other. A second card
 on QEMU's ``dgram`` network backend joins them, as an NFS server and its
-client would need. The cloud, kernel and knix guides join two machines
+client would need. The cloud, direct and knix guides join two machines
 this way, with the lines below.
 
 The segment
@@ -38,7 +38,7 @@ gives its second card the same address, ``52:54:00:12:34:57``, since it
 counts up from ``52:54:00:12:34:56`` per process. The guides take the
 last byte from the machine's context id. A third machine joins with the
 same ``netdev=`` line, a ``mac=`` and an address of its own. On microvm
-the card is a ``virtio-net-device`` (:ref:`kernel-microvm`).
+the card is a ``virtio-net-device`` (:ref:`direct-microvm`).
 
 .. _network-addresses:
 
@@ -59,7 +59,7 @@ one that matches its MAC address. The ``10-`` names put them ahead of the
 network that asks for every other card's address over DHCP. The
 closure's hostname is the first machine's, and ``systemd.hostname=`` on
 the second machine's kernel command line takes precedence over it
-(:cmd:`kernel-command-line(7)`). :ref:`kernel-peer` and :ref:`knix-peer`
+(:cmd:`kernel-command-line(7)`). :ref:`direct-peer` and :ref:`knix-peer`
 do this.
 
 .. _RFC 2365: https://www.rfc-editor.org/rfc/rfc2365

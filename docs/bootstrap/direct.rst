@@ -16,10 +16,10 @@ The guest
 ---------
 
 The guest is an ordinary NixOS configuration. Create
-``~/bootstrap/kernel/flake.nix``:
+``~/bootstrap/direct/flake.nix``:
 
 .. code-block:: nix
-   :caption: ~/bootstrap/kernel/flake.nix
+   :caption: ~/bootstrap/direct/flake.nix
 
    {
      inputs.nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
@@ -38,11 +38,11 @@ The guest is an ordinary NixOS configuration. Create
        };
    }
 
-``~/bootstrap/kernel/configuration.nix`` sets the guest up as
+``~/bootstrap/direct/configuration.nix`` sets the guest up as
 :ref:`nixos-configuration` describes, with your public key pasted in:
 
 .. code-block:: nix
-   :caption: ~/bootstrap/kernel/configuration.nix
+   :caption: ~/bootstrap/direct/configuration.nix
 
    { modulesPath, ... }:
    {
@@ -59,12 +59,12 @@ The guest is an ordinary NixOS configuration. Create
 The guest keeps the kernel NixOS picks by default; :ref:`nixos-kernel`
 shows how to switch.
 
-``~/bootstrap/kernel/virtiofs.nix`` has no boot loader and no disk.
+``~/bootstrap/direct/virtiofs.nix`` has no boot loader and no disk.
 The root is a tmpfs, and the store arrives over virtiofs under the tag
-``store``, which :ref:`step 2 <kernel-store>` sets up:
+``store``, which :ref:`step 2 <direct-store>` sets up:
 
 .. code-block:: nix
-   :caption: ~/bootstrap/kernel/virtiofs.nix
+   :caption: ~/bootstrap/direct/virtiofs.nix
 
    {
      boot.loader.grub.enable = false;
@@ -84,7 +84,7 @@ Build it with ``nix build``:
 .. code-block:: console
    :class: cmd-host
 
-   $ cd ~/bootstrap/kernel
+   $ cd ~/bootstrap/direct
    $ nix build
 
 ``result`` now holds the system. Its ``kernel`` and ``initrd`` are what QEMU
@@ -97,7 +97,7 @@ boots, and its ``init`` is what the kernel runs once the store is mounted:
    lrwxrwxrwx 1 root root 71 Jan  1  1970 result/initrd -> /nix/store/3rxnmhxn6xfh2hwiakgircj03j4gvd1g-initrd-linux-6.18.57/initrd
    lrwxrwxrwx 1 root root 65 Jan  1  1970 result/kernel -> /nix/store/maq0fxv0r4p9bac4haqy45c4vhlc33ag-linux-6.18.57/bzImage
 
-.. _kernel-kernel:
+.. _direct-kernel:
 
 1. A kernel
 ===========
@@ -117,8 +117,8 @@ closure's kernel and initrd. ``%h`` is your home directory, one of the
    smp=2
    nographic=
    serial=mon:stdio
-   kernel=%h/bootstrap/kernel/result/kernel
-   initrd=%h/bootstrap/kernel/result/initrd
+   kernel=%h/bootstrap/direct/result/kernel
+   initrd=%h/bootstrap/direct/result/initrd
    append=console=ttyS0
 
 Regenerate and start it as :ref:`host-start` shows; the journal has the
@@ -145,7 +145,7 @@ store:
 Kill it, as :ref:`a guest that cannot answer the power button <host-kill>`
 needs.
 
-.. _kernel-store:
+.. _direct-store:
 
 2. The store
 ============
@@ -156,7 +156,7 @@ which tells the initrd which system in the store to boot:
 .. code-block:: console
    :class: cmd-host
 
-   $ readlink ~/bootstrap/kernel/result
+   $ readlink ~/bootstrap/direct/result
    /nix/store/i7s2903dhm9g5z73vkcbpggmv1iqnvwy-nixos-system-bootstrap-26.11.20261020.02c087f
 
 Add both, with your own path in ``init=``:
@@ -164,8 +164,8 @@ Add both, with your own path in ``init=``:
 .. code-block:: diff
    :caption: ~/.config/qemu/systemd/bootstrap.qemu
 
-    kernel=%h/bootstrap/kernel/result/kernel
-    initrd=%h/bootstrap/kernel/result/initrd
+    kernel=%h/bootstrap/direct/result/kernel
+    initrd=%h/bootstrap/direct/result/initrd
    -append=console=ttyS0
    +append=console=ttyS0 init=/nix/store/i7s2903dhm9g5z73vkcbpggmv1iqnvwy-nixos-system-bootstrap-26.11.20261020.02c087f/init
    +
@@ -218,7 +218,7 @@ The guest answers the power button now, so stop it the normal way:
 That took 1.7 seconds. The daemon stops with the machine, and its
 socket stays listening for the next start.
 
-.. _kernel-network:
+.. _direct-network:
 
 3. A network
 ============
@@ -242,7 +242,7 @@ Regenerate, restart with ``systemctl --user restart``, and log in with
        uname --kernel-release
    6.18.57
 
-.. _kernel-vsock:
+.. _direct-vsock:
 
 4. vsock
 ========
@@ -276,7 +276,7 @@ names the machine by this context id:
    Warning: Permanently added 'vsock/42' (ED25519) to the list of known hosts.
    running
 
-.. _kernel-poweroff:
+.. _direct-poweroff:
 
 5. Poweroff over SSH
 ====================
@@ -303,7 +303,7 @@ over SSH first (:ref:`SSH poweroff <host-poweroff>`):
    [  OK  ] Reached target System Power Off.
    [   16.084116] reboot: Power down
 
-.. _kernel-console:
+.. _direct-console:
 
 6. A console
 ============
@@ -336,7 +336,7 @@ as root with no password, and leave with Ctrl-O:
    [root@bootstrap:~]# uname --kernel-release
    6.18.57
 
-.. _kernel-drop-in:
+.. _direct-drop-in:
 
 7. The closure in a drop-in
 ===========================
@@ -350,7 +350,7 @@ touching the file you edit by hand.
 .. code-block:: diff
    :caption: ~/.config/qemu/systemd/bootstrap.qemu
 
-    initrd=%h/bootstrap/kernel/result/initrd
+    initrd=%h/bootstrap/direct/result/initrd
    -append=console=ttyS0 console=hvc0 init=/nix/store/i7s2903dhm9g5z73vkcbpggmv1iqnvwy-nixos-system-bootstrap-26.11.20261020.02c087f/init
     nic=user,model=virtio-net-pci-non-transitional,hostfwd=tcp:127.0.0.1:10022-:22
 
@@ -360,7 +360,7 @@ touching the file you edit by hand.
    mkdir --parents ~/.config/qemu/systemd/bootstrap.qemu.d
    cat > ~/.config/qemu/systemd/bootstrap.qemu.d/10-closure.conf <<EOF
    [QEMU]
-   append=console=ttyS0 console=hvc0 init=$(readlink ~/bootstrap/kernel/result)/init
+   append=console=ttyS0 console=hvc0 init=$(readlink ~/bootstrap/direct/result)/init
    EOF
 
 :cmd:`readlink` fills in the path. To see what the generator makes of the
@@ -382,7 +382,7 @@ two files without writing anything:
 The path unit does not watch the drop-in directory, so regenerate by
 hand after rewriting it.
 
-.. _kernel-settings:
+.. _direct-settings:
 
 8. systemd settings
 ===================
@@ -421,7 +421,7 @@ machines.target`` starts the machine too. Every generated machine is
 also part of :cmd:`machines.target`, so ``systemctl --user stop
 machines.target`` stops all of them, not only this one.
 
-.. _kernel-share:
+.. _direct-share:
 
 9. A share of your own
 ======================
@@ -454,7 +454,7 @@ Then add the section:
 The guest mounts it by tag, so ``virtiofs.nix`` changes too:
 
 .. code-block:: diff
-   :caption: ~/bootstrap/kernel/virtiofs.nix
+   :caption: ~/bootstrap/direct/virtiofs.nix
 
       fileSystems."/nix/store" = {
         device = "store";
@@ -465,7 +465,7 @@ The guest mounts it by tag, so ``virtiofs.nix`` changes too:
    +    fsType = "virtiofs";
    +  };
 
-Rebuild, rewrite the drop-in as in :ref:`step 7 <kernel-drop-in>`,
+Rebuild, rewrite the drop-in as in :ref:`step 7 <direct-drop-in>`,
 regenerate and restart:
 
 .. code-block:: console
@@ -481,7 +481,7 @@ regenerate and restart:
 The guest's root wrote ``from-guest``, and on the host the file belongs
 to you.
 
-.. _kernel-microvm:
+.. _direct-microvm:
 
 10. A microvm
 =============
@@ -494,7 +494,7 @@ five. Switch the guest to ``pkgs.linuxPackages_latest``, as
 :ref:`nixos-kernel` shows:
 
 .. code-block:: diff
-   :caption: ~/bootstrap/kernel/configuration.nix
+   :caption: ~/bootstrap/direct/configuration.nix
 
    -{ modulesPath, ... }:
    +{ modulesPath, pkgs, ... }:
@@ -507,7 +507,7 @@ And rebuild:
 .. code-block:: console
    :class: cmd-host
 
-   $ cd ~/bootstrap/kernel
+   $ cd ~/bootstrap/direct
    $ nix build
    $ readlink result/kernel
    /nix/store/sby4x25d1wl7nn915c62jps8nr65sncj-linux-7.3/bzImage
@@ -538,8 +538,8 @@ here:
     smp=2
     nographic=
     serial=mon:stdio
-    kernel=%h/bootstrap/kernel/result/kernel
-    initrd=%h/bootstrap/kernel/result/initrd
+    kernel=%h/bootstrap/direct/result/kernel
+    initrd=%h/bootstrap/direct/result/initrd
    -nic=user,model=virtio-net-pci-non-transitional,hostfwd=tcp:127.0.0.1:10022-:22
    -device=vhost-vsock-pci-non-transitional,guest-cid=42
    -device=virtio-serial-pci-non-transitional
@@ -570,7 +570,7 @@ closure and that option:
 
    cat > ~/.config/qemu/systemd/bootstrap.qemu.d/10-closure.conf <<EOF
    [QEMU]
-   append=console=ttyS0 console=hvc0 systemd.ssh_listen=vsock::22 init=$(readlink ~/bootstrap/kernel/result)/init
+   append=console=ttyS0 console=hvc0 systemd.ssh_listen=vsock::22 init=$(readlink ~/bootstrap/direct/result)/init
    EOF
 
 Regenerate, restart and log in:
@@ -590,7 +590,7 @@ on q35 with the same kernel, but the initrd mounted the store later, at
 against 8.2 to 8.3. What microvm saves in the kernel, NixOS's userspace
 outweighs, so the other guides keep q35.
 
-.. _kernel-peer:
+.. _direct-peer:
 
 11. A second machine on one network
 ===================================
@@ -600,7 +600,7 @@ and boots the same closure, which holds both machines' addresses
 (:doc:`network`):
 
 .. code-block:: diff
-   :caption: ~/bootstrap/kernel/configuration.nix
+   :caption: ~/bootstrap/direct/configuration.nix
 
       networking.hostName = "bootstrap";
    +  networking.useNetworkd = true;
@@ -620,12 +620,12 @@ With ``networking.useNetworkd``, NixOS asks for the user-mode card's
 address over DHCP through systemd-networkd too, from its
 ``99-ethernet-default-dhcp`` network, which the two ``10-`` networks
 come before. Rebuild, and rewrite the drop-in as in
-:ref:`step 10 <kernel-microvm>`:
+:ref:`step 10 <direct-microvm>`:
 
 .. code-block:: console
    :class: cmd-host
 
-   $ cd ~/bootstrap/kernel
+   $ cd ~/bootstrap/direct
    $ nix build
 
 .. code-block:: shell
@@ -633,7 +633,7 @@ come before. Rebuild, and rewrite the drop-in as in
 
    cat > ~/.config/qemu/systemd/bootstrap.qemu.d/10-closure.conf <<EOF
    [QEMU]
-   append=console=ttyS0 console=hvc0 systemd.ssh_listen=vsock::22 init=$(readlink ~/bootstrap/kernel/result)/init
+   append=console=ttyS0 console=hvc0 systemd.ssh_listen=vsock::22 init=$(readlink ~/bootstrap/direct/result)/init
    EOF
 
 Give ``bootstrap`` its card:
@@ -665,8 +665,8 @@ context id of its own and no forwarded port, since ``bootstrap`` holds
    smp=2
    nographic=
    serial=mon:stdio
-   kernel=%h/bootstrap/kernel/result/kernel
-   initrd=%h/bootstrap/kernel/result/initrd
+   kernel=%h/bootstrap/direct/result/kernel
+   initrd=%h/bootstrap/direct/result/initrd
    global=virtio-mmio.force-legacy=false
    netdev=user,id=net0
    device=virtio-net-device,netdev=net0
@@ -697,7 +697,7 @@ hostname:
    mkdir --parents ~/.config/qemu/systemd/peer.qemu.d
    cat > ~/.config/qemu/systemd/peer.qemu.d/10-closure.conf <<EOF
    [QEMU]
-   append=console=ttyS0 systemd.hostname=peer systemd.ssh_listen=vsock::22 init=$(readlink ~/bootstrap/kernel/result)/init
+   append=console=ttyS0 systemd.hostname=peer systemd.ssh_listen=vsock::22 init=$(readlink ~/bootstrap/direct/result)/init
    EOF
 
 Regenerate, restart ``bootstrap``, start ``peer``, and each reaches the
@@ -720,7 +720,7 @@ other:
    64 bytes from 10.0.100.46: icmp_seq=1 ttl=64 time=0.276 ms
    ...
 
-.. _kernel-fast:
+.. _direct-fast:
 
 12. A faster boot
 =================
@@ -741,7 +741,7 @@ Add them to the drop-in:
 
    cat > ~/.config/qemu/systemd/bootstrap.qemu.d/10-closure.conf <<EOF
    [QEMU]
-   append=console=ttyS0 console=hvc0 systemd.ssh_listen=vsock::22 systemd.tty.term.console=vt220 systemd.tty.rows.console=24 systemd.tty.columns.console=80 init=$(readlink ~/bootstrap/kernel/result)/init
+   append=console=ttyS0 console=hvc0 systemd.ssh_listen=vsock::22 systemd.tty.term.console=vt220 systemd.tty.rows.console=24 systemd.tty.columns.console=80 init=$(readlink ~/bootstrap/direct/result)/init
    EOF
 
 Regenerate and restart: 7.3 seconds, and the initrd's share falls from
@@ -769,7 +769,7 @@ The closure
 :ref:`fast-closure` explains these four settings.
 
 .. code-block:: diff
-   :caption: ~/bootstrap/kernel/configuration.nix
+   :caption: ~/bootstrap/direct/configuration.nix
 
    -{ modulesPath, pkgs, ... }:
    +{ lib, modulesPath, pkgs, ... }:
@@ -790,7 +790,7 @@ Rebuild, and rewrite the drop-in with the new closure:
 .. code-block:: console
    :class: cmd-host
 
-   $ cd ~/bootstrap/kernel
+   $ cd ~/bootstrap/direct
    $ nix build
 
 .. code-block:: shell
@@ -798,7 +798,7 @@ Rebuild, and rewrite the drop-in with the new closure:
 
    cat > ~/.config/qemu/systemd/bootstrap.qemu.d/10-closure.conf <<EOF
    [QEMU]
-   append=console=ttyS0 console=hvc0 systemd.ssh_listen=vsock::22 systemd.tty.term.console=vt220 systemd.tty.rows.console=24 systemd.tty.columns.console=80 init=$(readlink ~/bootstrap/kernel/result)/init
+   append=console=ttyS0 console=hvc0 systemd.ssh_listen=vsock::22 systemd.tty.term.console=vt220 systemd.tty.rows.console=24 systemd.tty.columns.console=80 init=$(readlink ~/bootstrap/direct/result)/init
    EOF
 
 5.1 seconds. ``peer`` keeps the closure its own drop-in names until you
@@ -827,7 +827,7 @@ Quiet
 
    cat > ~/.config/qemu/systemd/bootstrap.qemu.d/10-closure.conf <<EOF
    [QEMU]
-   append=console=ttyS0 console=hvc0 systemd.ssh_listen=vsock::22 systemd.tty.term.console=vt220 systemd.tty.rows.console=24 systemd.tty.columns.console=80 quiet init=$(readlink ~/bootstrap/kernel/result)/init
+   append=console=ttyS0 console=hvc0 systemd.ssh_listen=vsock::22 systemd.tty.term.console=vt220 systemd.tty.rows.console=24 systemd.tty.columns.console=80 quiet init=$(readlink ~/bootstrap/direct/result)/init
    EOF
 
 4.7 seconds, half the time this section started from.

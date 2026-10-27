@@ -321,7 +321,7 @@ Rebuild, regenerate and restart:
    -rw-rw-r-- 1 user user 20 Oct 23 09:08 hello.txt
 
 The guest's root wrote ``from-guest``, and on the host the file belongs
-to you. :doc:`kernel` boots the same kind of system without firmware and
+to you. :doc:`direct` boots the same kind of system without firmware and
 goes on to SSH poweroff, consoles and systemd settings, which work the
 same way here.
 

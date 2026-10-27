@@ -65,7 +65,7 @@ can read any journal:
 
 ``--dmesg`` shows only the kernel's messages. ``--list-boots`` lists the
 boots the guest still has: a guest whose root file system is new at
-every boot, as in the kernel and knix guides, has only the current one.
+every boot, as in the direct and knix guides, has only the current one.
 
 .. _usage-forward:
 

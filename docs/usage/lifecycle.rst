@@ -58,7 +58,7 @@ with the old QEMU and start again when the new one connects. Every
 command takes several names, or a pattern such as ``'qemu-system@*'``.
 Stopping :cmd:`machines.target` stops every machine at once; starting it
 starts each one whose file names it in ``WantedBy=``
-(:ref:`kernel-settings`).
+(:ref:`direct-settings`).
 
 A guest that cannot answer yet takes the full stop timeout, two minutes.
 ``kill`` ends it at once (:ref:`kill <host-kill>`). It sends

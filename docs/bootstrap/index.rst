@@ -26,7 +26,7 @@ costs.
      - OVMF
      - A NixOS UKI shared over virtiofs, with the host's store
      - Rebuild the UKI and restart
-   * - :doc:`kernel`
+   * - :doc:`direct`
      - None: QEMU loads the kernel
      - The kernel and initrd of a NixOS closure, with the host's store
      - Rebuild and rewrite one drop-in line
@@ -39,10 +39,10 @@ costs.
      - Debian, Fedora and Ubuntu cloud images, set up by cloud-init
      - Change it inside the guest, with its package manager
 
-:doc:`disk` is the closest to a physical machine. :doc:`kernel` covers
+:doc:`disk` is the closest to a physical machine. :doc:`direct` covers
 the most of the format: `vsock`_, SSH poweroff, consoles, drop-ins, systemd
 settings and shares, which work the same way in the others, and ends on
-`QEMU`_'s :ref:`microvm machine type <kernel-microvm>`.
+`QEMU`_'s :ref:`microvm machine type <direct-microvm>`.
 
 Each NixOS guide ends with :doc:`a faster boot <fast>`, from the
 defaults to the fastest configuration it can reach, one change at a time.
@@ -65,9 +65,9 @@ keep nothing there; the cloud guests keep their disks there.
 
 The NixOS guides and the `knix`_ guide all write the machine ``bootstrap``,
 in ``~/.config/qemu/systemd/bootstrap.qemu``; before following a second
-one, remove that file and ``bootstrap.qemu.d/``. The kernel and knix
+one, remove that file and ``bootstrap.qemu.d/``. The direct and knix
 guides end with a second machine, ``peer``, on one network with
-``bootstrap`` (:ref:`kernel <kernel-peer>`, :ref:`knix <knix-peer>`),
+``bootstrap`` (:ref:`direct <direct-peer>`, :ref:`knix <knix-peer>`),
 so remove ``peer.qemu`` and ``peer.qemu.d/`` too. The cloud guide writes
 ``cloud-debian``, ``cloud-fedora`` and ``cloud-ubuntu`` beside them, and
 ends by :ref:`joining two of them on one network <cloud-network>`.
@@ -78,7 +78,7 @@ ends by :ref:`joining two of them on one network <cloud-network>`.
    host
    disk
    uki
-   kernel
+   direct
    knix
    cloud
    nixos

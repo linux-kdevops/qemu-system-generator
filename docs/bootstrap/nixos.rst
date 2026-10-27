@@ -4,7 +4,7 @@
 NixOS guests
 ============
 
-The disk, uki and kernel guides boot an ordinary `NixOS`_ configuration,
+The disk, uki and direct guides boot an ordinary `NixOS`_ configuration,
 built from a ``flake.nix`` that pins nixos-unstable, a
 ``configuration.nix`` they share almost line for line, and one file of
 each guide's own that says how the guest boots. The knix guide builds
@@ -32,7 +32,7 @@ The guests run the kernel NixOS picks by default, 6.18.57 here. The
 ``pkgs.linuxPackages_latest`` follows the newest release, 7.3 here, which
 :cmd:`nix build` fetches from the binary cache like the default
 (`Linux kernel`_ in the NixOS manual). The disk and uki guides keep the
-default; the kernel guide switches for its microvm stage. To switch,
+default; the direct guide switches for its microvm stage. To switch,
 take ``pkgs`` among the arguments of ``configuration.nix`` and set the
 option; the next build puts that kernel in the guest:
 

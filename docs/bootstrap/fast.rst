@@ -21,7 +21,7 @@ times.
    * - :ref:`uki <uki-fast>`
      - 8.7 s
      - 5.3 s
-   * - :ref:`kernel <kernel-fast>`
+   * - :ref:`direct <direct-fast>`
      - 9.1 s
      - 4.7 s
    * - :ref:`knix <knix-fast>`

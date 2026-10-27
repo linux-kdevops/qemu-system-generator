@@ -65,7 +65,7 @@ Console
 The serial console goes to the journal (:ref:`usage-console-log`),
 which you read but cannot type into. A virtio console on a socket of its
 own gives a login prompt to attach to with ``socat``, and the kernel
-guide adds one (:ref:`kernel-console`).
+guide adds one (:ref:`direct-console`).
 
 .. _QMP: https://www.qemu.org/docs/master/interop/qmp-spec.html
 .. _QMP reference: https://www.qemu.org/docs/master/interop/qemu-qmp-ref.html

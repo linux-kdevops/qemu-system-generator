@@ -256,7 +256,7 @@ forwarded port takes the key on the command line:
    6.18.57
 
 Every change to the guest means a new image with the whole system in
-it. :doc:`uki` and :doc:`kernel` keep the system in the host's store
+it. :doc:`uki` and :doc:`direct` keep the system in the host's store
 instead.
 
 .. _disk-fast:
@@ -376,7 +376,7 @@ Quiet
    $ nix build .#efi --out-link efi
 
 4.5 seconds, about a third of where this section started.
-:doc:`kernel` boots with no firmware and no boot loader.
+:doc:`direct` boots with no firmware and no boot loader.
 
 .. _systemd: https://systemd.io
 .. _NixOS: https://nixos.org/manual/nixos/stable/
