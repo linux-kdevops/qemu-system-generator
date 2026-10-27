@@ -89,7 +89,7 @@ console:
    $ journalctl --user-unit=qemu-system@demo.service --follow
 
 Stop it. ``systemctl --user stop`` presses the guest's power button over
-QMP and waits up to two minutes for it to power off:
+`QMP`_ and waits up to two minutes for it to power off:
 
 .. code-block:: console
    :class: cmd-host
@@ -104,3 +104,5 @@ Next
 builds machines up one feature at a time: SSH over vsock, shares,
 drop-ins, a network between machines. :doc:`qemu-systemd.unit(5)
 </man/qemu-systemd.unit.5>` specifies the whole file.
+
+.. _QMP: https://www.qemu.org/docs/master/interop/qmp-spec.html

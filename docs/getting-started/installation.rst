@@ -55,7 +55,7 @@ For the whole host
 
 A build installed under ``/usr/lib/systemd/`` runs as the generator of
 both the system manager and every user manager, at boot and on each
-``daemon-reload``, with no user units. Without Nix, it needs Cargo to
+``daemon-reload``, with no user units. Without Nix, it needs `Cargo`_ to
 build and the distribution's QEMU, virtiofsd and ``socat`` to run: the
 units call ``/usr/bin/qemu-system-<arch>``, ``/usr/libexec/virtiofsd``
 and ``socat`` unless the build sets other paths (``build.rs``).
@@ -78,7 +78,7 @@ path.
 On NixOS
 ========
 
-The flake's NixOS module installs the generator for the system manager
+The flake's `NixOS`_ module installs the generator for the system manager
 and every user manager. Add the flake as an input of your system's flake,
 add ``qemu-system-generator.nixosModules.default`` to its modules, and
 enable it:
@@ -94,4 +94,6 @@ enable it:
 configuration, by name, as text or as a path.
 
 .. _this repository: https://github.com/linux-kdevops/qemu-system-generator
+.. _Cargo: https://doc.rust-lang.org/cargo/
+.. _NixOS: https://nixos.org/manual/nixos/stable/
 .. _use-xdg-base-directories: https://nix.dev/manual/nix/latest/command-ref/conf-file.html#conf-use-xdg-base-directories

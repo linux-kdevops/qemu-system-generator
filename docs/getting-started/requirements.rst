@@ -64,7 +64,8 @@ Device access
 QEMU's ``accel=kvm`` opens ``/dev/kvm``, and a ``vhost-vsock`` device
 opens ``/dev/vhost-vsock``. systemd's udev rules give both to the ``kvm``
 group, and the vsock device needs the ``vhost_vsock`` module, loaded at
-every boot from then on. Both need root, once:
+every boot from then on. Both need root, once, through :cmd:`usermod` and
+:cmd:`modprobe`:
 
 .. code-block:: console
    :class: cmd-host
@@ -85,7 +86,8 @@ pins guest memory. The rest is host configuration, done once as root.
 
 Bind each device to the ``vfio-pci`` driver, as the kernel's `VFIO`_
 documentation shows. Its ``/dev/vfio/<group>`` node belongs to root; a
-udev rule gives the nodes to the ``kvm`` group:
+udev rule gives the nodes to the ``kvm`` group, and :cmd:`udevadm` applies
+it:
 
 .. code-block:: text
    :caption: /etc/udev/rules.d/10-vfio-kvm.rules
