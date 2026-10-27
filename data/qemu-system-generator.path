@@ -5,7 +5,7 @@
 # qemu-system-generator.service.
 
 [Unit]
-Description=Watch .qemu files for changes
+Description=QEMU System Unit Generator Directory Watch
 Documentation=man:qemu-system-generator(8)
 
 [Path]

@@ -4,7 +4,7 @@
 # /etc/systemd/user-generators/, which only root can write to.
 
 [Unit]
-Description=Generate QEMU units from .qemu files
+Description=QEMU System Unit Generator
 Documentation=man:qemu-system-generator(8)
 # The path unit starts this on every write to the directory, and a burst
 # of writes must not leave the units stale.
