@@ -3,8 +3,8 @@
 ## Usage: steps/uki/install [--base FILE]
 ##
 ## Write a NixOS flake that builds an EFI system partition holding the
-## bootstrap machine's unified kernel image, with the public key of SSH_KEY
-## for root, in WORKTREES_DIR/uki; bootstrap.qemu, which boots it with OVMF
+## bootstrap-uki machine's unified kernel image, with the public key of SSH_KEY
+## for root, in WORKTREES_DIR/uki; bootstrap-uki.qemu, which boots it with OVMF
 ## and shares the host's Nix store and the home over virtiofs, in
 ## ~/.config/qemu/systemd; and a file in the share for the guest to read:
 ##
@@ -33,5 +33,5 @@ cp "$files/flake.nix" flake.nix
 key=$(cat "$SSH_KEY.pub") envsubst "\$key" <"$files/configuration.nix" >configuration.nix
 HOME=$HOME envsubst "\$HOME" <"$files/home.nix" >home.nix
 WORKTREES_DIR=$WORKTREES_DIR \
-	envsubst "\$WORKTREES_DIR" <"$files/bootstrap.qemu" >"$units/bootstrap.qemu"
-rm --recursive --force -- "$units/bootstrap.qemu.d"
+	envsubst "\$WORKTREES_DIR" <"$files/bootstrap.qemu" >"$units/bootstrap-uki.qemu"
+rm --recursive --force -- "$units/bootstrap-uki.qemu.d"

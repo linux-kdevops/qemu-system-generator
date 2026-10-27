@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: copyleft-next-0.3.1
 ## Usage: steps/uki/build [--base FILE]
 ##
-## Build the EFI system partition and the OVMF firmware that bootstrap.qemu
+## Build the EFI system partition and the OVMF firmware that bootstrap-uki.qemu
 ## boots, linked as result and ovmf-fd in WORKTREES_DIR/uki:
 ##
 ##   nix develop --ignore-env --keep-env-var HOME \

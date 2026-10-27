@@ -1,17 +1,15 @@
 # SPDX-License-Identifier: copyleft-next-0.3.1
 description: >-
-  Build a NixOS EFI disk image, boot it as the bootstrap machine with
+  Build a NixOS EFI disk image, boot it as the bootstrap-disk machine with
   OVMF, and log in to it.
 working_dir: ..
 type: chain
-queue: bootstrap
-
 env:
   - XDG_RUNTIME_DIR: ${XDG_RUNTIME_DIR}
 
 handler_on:
   exit:
-    run: steps/machine/stop --name bootstrap
+    run: steps/machine/stop --name bootstrap-disk
 
 steps:
   - id: host_check
@@ -36,11 +34,11 @@ steps:
     run: steps/generator/run
 
   - id: machine_start
-    run: steps/machine/start --name bootstrap
+    run: steps/machine/start --name bootstrap-disk
 
   # The guest answers once its sshd runs; until then the step fails.
   - id: machine_wait
-    run: steps/machine/wait --name bootstrap
+    run: steps/machine/wait --name bootstrap-disk
     retry_policy:
       limit: 60
       interval_sec: 5

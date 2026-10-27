@@ -12,7 +12,7 @@ initrd=$WORKTREES_DIR/direct/$name/initrd
 global=virtio-mmio.force-legacy=false
 netdev=user,id=net0
 device=virtio-net-device,netdev=net0
-netdev=dgram,id=lan,remote.type=inet,remote.host=239.255.0.1,remote.port=5555,local.type=inet,local.host=127.0.0.1,local.port=0
+netdev=dgram,id=lan,remote.type=inet,remote.host=239.255.0.1,remote.port=5556,local.type=inet,local.host=127.0.0.1,local.port=0
 device=virtio-net-device,netdev=lan,mac=52:54:00:00:00:$cid
 device=vhost-vsock-device,guest-cid=$cid
 

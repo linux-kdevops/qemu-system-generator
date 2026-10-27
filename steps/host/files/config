@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: copyleft-next-0.3.1
 Include $SSH_DIR/config.d/*.conf
 
-Host bootstrap
+Host bootstrap-disk
     HostName vsock/42
 Host cloud-debian
     HostName vsock/43
@@ -9,10 +9,18 @@ Host cloud-fedora
     HostName vsock/44
 Host cloud-ubuntu
     HostName vsock/45
-Host peer
+Host bootstrap-uki
     HostName vsock/46
+Host bootstrap-direct
+    HostName vsock/47
+Host bootstrap-direct-peer
+    HostName vsock/48
+Host bootstrap-knix
+    HostName vsock/49
+Host bootstrap-knix-peer
+    HostName vsock/50
 
-Host bootstrap cloud-debian cloud-fedora cloud-ubuntu peer
+Host bootstrap-* cloud-*
     ProxyCommand $proxy %h %p
     ProxyUseFdpass yes
     IdentityFile $SSH_KEY

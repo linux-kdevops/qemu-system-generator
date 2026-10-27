@@ -1,13 +1,11 @@
 # SPDX-License-Identifier: copyleft-next-0.3.1
 description: >-
   Build two kernels and QEMU from their release tarballs and a knix
-  imageless NixOS guest, boot bootstrap through a BusyBox initramfs and
-  peer through the guest's own initrd, log in, and have each machine
+  imageless NixOS guest, boot bootstrap-knix through a BusyBox
+  initramfs and bootstrap-knix-peer through the guest's own initrd, log in, and have each machine
   ping the other.
 working_dir: ..
 type: chain
-queue: bootstrap
-
 env:
   - XDG_RUNTIME_DIR: ${XDG_RUNTIME_DIR}
 
@@ -16,7 +14,7 @@ handler_on:
     # Stop every machine, even after one fails to stop.
     run: >-
       status=0;
-      for vm in bootstrap peer; do
+      for vm in bootstrap-knix bootstrap-knix-peer; do
       steps/machine/stop --name $vm || status=1; done;
       exit $status
 
@@ -42,21 +40,21 @@ steps:
   - id: generator_run
     run: steps/generator/run
 
-  - id: machine_start_bootstrap
-    run: steps/machine/start --name bootstrap
+  - id: machine_start_bootstrap_knix
+    run: steps/machine/start --name bootstrap-knix
 
-  - id: machine_start_peer
-    run: steps/machine/start --name peer
+  - id: machine_start_bootstrap_knix_peer
+    run: steps/machine/start --name bootstrap-knix-peer
 
   # The guest answers once its sshd runs; until then the step fails.
-  - id: machine_wait_bootstrap
-    run: steps/machine/wait --name bootstrap
+  - id: machine_wait_bootstrap_knix
+    run: steps/machine/wait --name bootstrap-knix
     retry_policy:
       limit: 60
       interval_sec: 5
 
-  - id: machine_wait_peer
-    run: steps/machine/wait --name peer
+  - id: machine_wait_bootstrap_knix_peer
+    run: steps/machine/wait --name bootstrap-knix-peer
     retry_policy:
       limit: 60
       interval_sec: 5

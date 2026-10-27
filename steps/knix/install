@@ -5,7 +5,7 @@
 ## Write, in WORKTREES_DIR/knix, the knix flake of an imageless NixOS
 ## guest with the public key of SSH_KEY for root, and the init of a
 ## BusyBox initramfs that mounts the host's Nix store and starts that
-## guest's closure; and bootstrap.qemu and peer.qemu in
+## guest's closure; and bootstrap-knix.qemu and bootstrap-knix-peer.qemu in
 ## ~/.config/qemu/systemd, which boot the kernels and QEMU that
 ## steps/knix/build links into WORKTREES_DIR/knix/nix, with the store, the
 ## kernel's modules and the home over virtiofs and a LAN between
@@ -38,7 +38,7 @@ HOME=$HOME envsubst "\$HOME" <"$files/guest/home.nix" >"$knix/guest/home.nix"
 install --mode=0755 "$files/tiny/init" "$knix/tiny/init"
 # The fast kernel boots through qboot, the other through QEMU's default
 # firmware.
-for vm in bootstrap:42:4:fast-kernel:qboot.rom peer:46:2:kernel:; do
+for vm in bootstrap-knix:49:4:fast-kernel:qboot.rom bootstrap-knix-peer:50:2:kernel:; do
 	IFS=: read -r name cid cpus kernel bios <<<"$vm"
 	knix=$knix cid=$cid cpus=$cpus kernel=$kernel \
 		firmware=${bios:+bios=$bios} \

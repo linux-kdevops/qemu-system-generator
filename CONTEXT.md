@@ -51,18 +51,14 @@ The repository's `steps/base` holds the defaults; a user's own base,
 given with `--base FILE`, sets only what it changes.
 _Avoid_: config, env file, profile
 
-**Workload type**:
-A kind of run named by the host resource it owns (the `bootstrap`
-machine); runs of one type are admitted one at a time, runs of different
-types may overlap. Carried by a Dagu queue.
-_Avoid_: lock
-
 ## Relationships
 
 - A **Guide** and its **Steps** are independent documents, kept by hand.
   Neither reads, includes or names the other; a file may be shared, but
   need not be.
 - A **DAG** runs **Steps**; a **Workflow** starts one **DAG**.
-- Every run writes to the same places: the **Workbench**,
-  `~/.config/qemu/systemd` and `~/.local/state/qemu-system`, so two runs
-  of one **Workload type** never overlap.
+- Every run of one **DAG** writes to the same places: its
+  **Worktree-group**, its machines' files in `~/.config/qemu/systemd` and
+  their state in `~/.local/state/qemu-system`, so two runs of one **DAG**
+  never overlap. Each guide's machines are its own, so runs of different
+  **DAGs** may.

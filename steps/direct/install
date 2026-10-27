@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: copyleft-next-0.3.1
 ## Usage: steps/direct/install --name VM [--base FILE]
 ##
-## Write the files of one microvm machine, bootstrap or peer: in
+## Write the files of one microvm machine, bootstrap-direct or bootstrap-direct-peer: in
 ## WORKTREES_DIR/direct/VM, a NixOS flake whose system closure, with the
 ## latest kernel, the public key of SSH_KEY for root and the machine's
 ## address on the LAN, the machine boots directly; and in
@@ -10,7 +10,7 @@
 ## store and the home over virtiofs and puts it on the LAN:
 ##
 ##   nix develop --ignore-env --keep-env-var HOME \
-##       --command steps/direct/install --name bootstrap
+##       --command steps/direct/install --name bootstrap-direct
 set -o errexit -o nounset -o pipefail
 
 while [ $# -gt 0 ]; do
@@ -30,8 +30,8 @@ files=$(realpath "$(dirname "$0")/files")
 
 # vsock context id, which also ends the LAN MAC and address, and CPUs
 case $name in
-bootstrap) cid=42 cpus=4 ;;
-peer) cid=46 cpus=2 ;;
+bootstrap-direct) cid=47 cpus=4 ;;
+bootstrap-direct-peer) cid=48 cpus=2 ;;
 *)
 	echo "steps/direct/install: no machine $name" >&2
 	exit 2

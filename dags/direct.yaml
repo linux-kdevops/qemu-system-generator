@@ -1,13 +1,11 @@
 # SPDX-License-Identifier: copyleft-next-0.3.1
 description: >-
   Build a NixOS closure with the latest kernel for each of the microvm
-  machines bootstrap and peer, boot it directly with the host's Nix store
-  over virtiofs, log in, pass a file each way through a share, and have each
-  machine ping the other.
+  machines bootstrap-direct and bootstrap-direct-peer, boot it directly with the
+  host's Nix store over virtiofs, log in, leave a file in the shared home,
+  and have each machine ping the other.
 working_dir: ..
 type: chain
-queue: bootstrap
-
 env:
   - XDG_RUNTIME_DIR: ${XDG_RUNTIME_DIR}
 
@@ -16,7 +14,7 @@ handler_on:
     # Stop every machine, even after one fails to stop.
     run: >-
       status=0;
-      for vm in bootstrap peer; do
+      for vm in bootstrap-direct bootstrap-direct-peer; do
       steps/machine/stop --name $vm || status=1; done;
       exit $status
 
@@ -33,36 +31,36 @@ steps:
   - id: generator_install
     run: steps/generator/install
 
-  - id: direct_install_bootstrap
-    run: steps/direct/install --name bootstrap
+  - id: direct_install_bootstrap_direct
+    run: steps/direct/install --name bootstrap-direct
 
-  - id: direct_build_bootstrap
-    run: steps/direct/build --name bootstrap
+  - id: direct_build_bootstrap_direct
+    run: steps/direct/build --name bootstrap-direct
 
-  - id: direct_install_peer
-    run: steps/direct/install --name peer
+  - id: direct_install_bootstrap_direct_peer
+    run: steps/direct/install --name bootstrap-direct-peer
 
-  - id: direct_build_peer
-    run: steps/direct/build --name peer
+  - id: direct_build_bootstrap_direct_peer
+    run: steps/direct/build --name bootstrap-direct-peer
 
   - id: generator_run
     run: steps/generator/run
 
-  - id: machine_start_bootstrap
-    run: steps/machine/start --name bootstrap
+  - id: machine_start_bootstrap_direct
+    run: steps/machine/start --name bootstrap-direct
 
-  - id: machine_start_peer
-    run: steps/machine/start --name peer
+  - id: machine_start_bootstrap_direct_peer
+    run: steps/machine/start --name bootstrap-direct-peer
 
   # The guest answers once its sshd runs; until then the step fails.
-  - id: machine_wait_bootstrap
-    run: steps/machine/wait --name bootstrap
+  - id: machine_wait_bootstrap_direct
+    run: steps/machine/wait --name bootstrap-direct
     retry_policy:
       limit: 60
       interval_sec: 5
 
-  - id: machine_wait_peer
-    run: steps/machine/wait --name peer
+  - id: machine_wait_bootstrap_direct_peer
+    run: steps/machine/wait --name bootstrap-direct-peer
     retry_policy:
       limit: 60
       interval_sec: 5

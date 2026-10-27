@@ -16,10 +16,3 @@ paths:
   # ~/.local/share/dagu and creates ~/.config/dagu for the base config.
   event_store_dir: ~/.local/state/qemu-system-generator/dagu/logs/admin/events
   base_config: ~/.local/state/qemu-system-generator/dagu/base.yaml
-# Runs that start the bootstrap machine own it, so a dagu enqueue admits
-# one at a time; dagu start ignores queues.
-queues:
-  enabled: true
-  config:
-    - name: bootstrap
-      max_concurrency: 1

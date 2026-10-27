@@ -1,18 +1,16 @@
 # SPDX-License-Identifier: copyleft-next-0.3.1
 description: >-
   Build a NixOS unified kernel image on an EFI system partition, boot it
-  as the bootstrap machine with OVMF and the host's Nix store over
+  as the bootstrap-uki machine with OVMF and the host's Nix store over
   virtiofs, log in, and pass a file each way through a share.
 working_dir: ..
 type: chain
-queue: bootstrap
-
 env:
   - XDG_RUNTIME_DIR: ${XDG_RUNTIME_DIR}
 
 handler_on:
   exit:
-    run: steps/machine/stop --name bootstrap
+    run: steps/machine/stop --name bootstrap-uki
 
 steps:
   - id: host_check
@@ -37,11 +35,11 @@ steps:
     run: steps/generator/run
 
   - id: machine_start
-    run: steps/machine/start --name bootstrap
+    run: steps/machine/start --name bootstrap-uki
 
   # The guest answers once its sshd runs; until then the step fails.
   - id: machine_wait
-    run: steps/machine/wait --name bootstrap
+    run: steps/machine/wait --name bootstrap-uki
     retry_policy:
       limit: 60
       interval_sec: 5

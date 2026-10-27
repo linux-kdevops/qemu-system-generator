@@ -6,12 +6,12 @@
   networking.hostName = "bootstrap";
   systemd.network.networks = {
     "10-lan-bootstrap" = {
-      matchConfig.MACAddress = "52:54:00:00:00:42";
-      address = [ "10.0.100.42/24" ];
+      matchConfig.MACAddress = "52:54:00:00:00:49";
+      address = [ "10.0.100.49/24" ];
     };
     "10-lan-peer" = {
-      matchConfig.MACAddress = "52:54:00:00:00:46";
-      address = [ "10.0.100.46/24" ];
+      matchConfig.MACAddress = "52:54:00:00:00:50";
+      address = [ "10.0.100.50/24" ];
     };
   };
   services.openssh.hostKeys = [

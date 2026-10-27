@@ -66,10 +66,10 @@ argument that tells two runs of that step in one DAG apart
 A DAG (`dags/<guide>.yaml`) is `type: chain`, takes no parameters, and
 holds the control flow: it retries `machine/wait` until the guest
 answers, and stops the machines from `handler_on: exit`, whether the run
-passed or failed. Every run writes to the same places, so the DAGs that
-start the `bootstrap` machine join the `bootstrap` queue in
-`config.yaml`, which admits one at a time under `dagu enqueue`;
-`dagu start` ignores it.
+passed or failed. Each guide's machines have names, vsock context ids,
+forwarded ports and a LAN group of their own, so runs of different DAGs
+may overlap; Dagu's default `max_active_runs` of 1 keeps two runs of one
+DAG apart.
 
 ## CI
 

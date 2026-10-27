@@ -10,7 +10,7 @@ serial=mon:stdio
 drive=if=pflash,format=raw,readonly=on,file=$WORKTREES_DIR/uki/ovmf-fd/FV/OVMF_CODE.fd
 drive=if=pflash,format=raw,snapshot=on,file=$WORKTREES_DIR/uki/ovmf-fd/FV/OVMF_VARS.fd
 nic=user,model=virtio-net-pci-non-transitional
-device=vhost-vsock-pci-non-transitional,guest-cid=42
+device=vhost-vsock-pci-non-transitional,guest-cid=46
 
 [virtiofsd]
 shared-dir=$WORKTREES_DIR/uki/result/
