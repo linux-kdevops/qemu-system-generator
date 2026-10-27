@@ -146,12 +146,12 @@ in.
 1. Your kernel
 ==============
 
-Create ``~/.config/qemu/systemd/bootstrap.qemu``. The kernel comes from
+Create ``~/.config/qemu/systemd/bootstrap-knix.qemu``. The kernel comes from
 your build, and three shares bring the store, ``/lib/modules`` and your
 home:
 
 .. code-block:: ini
-   :caption: ~/.config/qemu/systemd/bootstrap.qemu
+   :caption: ~/.config/qemu/systemd/bootstrap-knix.qemu
 
    [VM]
    SshPrivateKey=%h/bootstrap/system/ssh/id_ed25519
@@ -165,8 +165,8 @@ home:
    nographic=
    serial=mon:stdio
    kernel=%h/bootstrap/knix/linux-build/arch/x86/boot/bzImage
-   nic=user,model=virtio-net-pci-non-transitional,hostfwd=tcp:127.0.0.1:10022-:22
-   device=vhost-vsock-pci-non-transitional,guest-cid=42
+   nic=user,model=virtio-net-pci-non-transitional,hostfwd=tcp:127.0.0.1:10049-:22
+   device=vhost-vsock-pci-non-transitional,guest-cid=49
 
    [virtiofsd]
    shared-dir=/nix/store
@@ -198,17 +198,18 @@ off over SSH first (:ref:`SSH poweroff <host-poweroff>`), and each
 
 The initrd and ``init=`` name one build of the closure, and every
 :cmd:`nix build` makes a new one, so they go in a drop-in: the files in
-``bootstrap.qemu.d/`` are appended to ``bootstrap.qemu``. :cmd:`jq` writes
-it from ``boot.json``, and knix wants ``root=tmpfs`` on the command line:
+``bootstrap-knix.qemu.d/`` are appended to ``bootstrap-knix.qemu``.
+:cmd:`jq` writes it from ``boot.json``, and knix wants ``root=tmpfs`` on
+the command line:
 
 .. code-block:: shell
    :class: cmd-host
 
-   mkdir --parents ~/.config/qemu/systemd/bootstrap.qemu.d
+   mkdir --parents ~/.config/qemu/systemd/bootstrap-knix.qemu.d
    jq --raw-output '."org.nixos.bootspec.v1" |
        "[QEMU]\ninitrd=\(.initrd)\nappend=root=tmpfs console=ttyS0 init=\(.init)"' \
        ~/bootstrap/knix/guest/result/boot.json \
-       > ~/.config/qemu/systemd/bootstrap.qemu.d/10-closure.conf
+       > ~/.config/qemu/systemd/bootstrap-knix.qemu.d/10-closure.conf
 
 Regenerate and start it as :ref:`host-start` shows; the journal has the
 serial console.
@@ -219,9 +220,9 @@ look at the shares:
 .. code-block:: console
    :class: cmd-host
 
-   $ ssh bootstrap \
+   $ ssh bootstrap-knix \
        'uname --kernel-release; findmnt --noheadings --output=TARGET,SOURCE,FSTYPE --types=virtiofs'
-   Warning: Permanently added 'vsock/42' (ED25519) to the list of known hosts.
+   Warning: Permanently added 'vsock/49' (ED25519) to the list of known hosts.
    7.3.0
    /nix/store   store   virtiofs
    └─/nix/store store   virtiofs
@@ -242,7 +243,7 @@ the first word of :cmd:`ExecStart=`, where systemd expands ``%h`` to your
 home directory:
 
 .. code-block:: diff
-   :caption: ~/.config/qemu/systemd/bootstrap.qemu
+   :caption: ~/.config/qemu/systemd/bootstrap-knix.qemu
 
     [VM]
    +QemuBinary=%h/bootstrap/knix/qemu-install/bin/qemu-system-x86_64
@@ -254,8 +255,8 @@ Regenerate and restart, then check which binary runs:
    :class: cmd-host
 
    $ systemctl --user start qemu-system-generator.service
-   $ systemctl --user restart qemu-system@bootstrap.service
-   $ readlink /proc/$(systemctl --user show --property=MainPID --value qemu-system@bootstrap.service)/exe
+   $ systemctl --user restart qemu-system@bootstrap-knix.service
+   $ readlink /proc/$(systemctl --user show --property=MainPID --value qemu-system@bootstrap-knix.service)/exe
    /home/user/bootstrap/knix/qemu-install/bin/qemu-system-x86_64
 
 The guest boots in about 9 seconds and stops in 2.
@@ -265,9 +266,9 @@ The guest boots in about 9 seconds and stops in 2.
 3. A second machine on one network
 ==================================
 
-A second machine, ``peer``, joins ``bootstrap`` on a multicast segment
-and boots the same closure, which holds both machines' addresses
-(:doc:`network`):
+A second machine, ``bootstrap-knix-peer``, joins ``bootstrap-knix`` on a
+multicast segment and boots the same closure, which holds both machines'
+addresses (:doc:`network`):
 
 .. code-block:: diff
    :caption: ~/bootstrap/knix/guest/default.nix
@@ -275,12 +276,12 @@ and boots the same closure, which holds both machines' addresses
       networking.hostName = "bootstrap";
    +  systemd.network.networks = {
    +    "10-lan-bootstrap" = {
-   +      matchConfig.MACAddress = "52:54:00:00:00:42";
-   +      address = [ "10.0.100.42/24" ];
+   +      matchConfig.MACAddress = "52:54:00:00:00:49";
+   +      address = [ "10.0.100.49/24" ];
    +    };
    +    "10-lan-peer" = {
-   +      matchConfig.MACAddress = "52:54:00:00:00:46";
-   +      address = [ "10.0.100.46/24" ];
+   +      matchConfig.MACAddress = "52:54:00:00:00:50";
+   +      address = [ "10.0.100.50/24" ];
    +    };
    +  };
 
@@ -300,23 +301,24 @@ drop-in as in :ref:`step 1 <knix-kernel>`:
    jq --raw-output '."org.nixos.bootspec.v1" |
        "[QEMU]\ninitrd=\(.initrd)\nappend=root=tmpfs console=ttyS0 init=\(.init)"' \
        ~/bootstrap/knix/guest/result/boot.json \
-       > ~/.config/qemu/systemd/bootstrap.qemu.d/10-closure.conf
+       > ~/.config/qemu/systemd/bootstrap-knix.qemu.d/10-closure.conf
 
-Give ``bootstrap`` its card:
+Give ``bootstrap-knix`` its card:
 
 .. code-block:: diff
-   :caption: ~/.config/qemu/systemd/bootstrap.qemu
+   :caption: ~/.config/qemu/systemd/bootstrap-knix.qemu
 
-    nic=user,model=virtio-net-pci-non-transitional,hostfwd=tcp:127.0.0.1:10022-:22
-   +netdev=dgram,id=lan,remote.type=inet,remote.host=239.255.0.1,remote.port=5555,local.type=inet,local.host=127.0.0.1,local.port=0
-   +device=virtio-net-pci-non-transitional,netdev=lan,mac=52:54:00:00:00:42
-    device=vhost-vsock-pci-non-transitional,guest-cid=42
+    nic=user,model=virtio-net-pci-non-transitional,hostfwd=tcp:127.0.0.1:10049-:22
+   +netdev=dgram,id=lan,remote.type=inet,remote.host=239.255.0.1,remote.port=5557,local.type=inet,local.host=127.0.0.1,local.port=0
+   +device=virtio-net-pci-non-transitional,netdev=lan,mac=52:54:00:00:00:49
+    device=vhost-vsock-pci-non-transitional,guest-cid=49
 
-``peer`` needs the three shares the closure mounts, a context id of its
-own and no forwarded port, since ``bootstrap`` holds 10022:
+``bootstrap-knix-peer`` needs the three shares the closure mounts, a
+context id of its own and no forwarded port, since ``bootstrap-knix`` holds
+10049:
 
 .. code-block:: ini
-   :caption: ~/.config/qemu/systemd/peer.qemu
+   :caption: ~/.config/qemu/systemd/bootstrap-knix-peer.qemu
 
    [VM]
    QemuBinary=%h/bootstrap/knix/qemu-install/bin/qemu-system-x86_64
@@ -332,9 +334,9 @@ own and no forwarded port, since ``bootstrap`` holds 10022:
    serial=mon:stdio
    kernel=%h/bootstrap/knix/linux-build/arch/x86/boot/bzImage
    nic=user,model=virtio-net-pci-non-transitional
-   netdev=dgram,id=lan,remote.type=inet,remote.host=239.255.0.1,remote.port=5555,local.type=inet,local.host=127.0.0.1,local.port=0
-   device=virtio-net-pci-non-transitional,netdev=lan,mac=52:54:00:00:00:46
-   device=vhost-vsock-pci-non-transitional,guest-cid=46
+   netdev=dgram,id=lan,remote.type=inet,remote.host=239.255.0.1,remote.port=5557,local.type=inet,local.host=127.0.0.1,local.port=0
+   device=virtio-net-pci-non-transitional,netdev=lan,mac=52:54:00:00:00:50
+   device=vhost-vsock-pci-non-transitional,guest-cid=50
 
    [virtiofsd]
    shared-dir=/nix/store
@@ -363,30 +365,30 @@ hostname:
 .. code-block:: shell
    :class: cmd-host
 
-   mkdir --parents ~/.config/qemu/systemd/peer.qemu.d
+   mkdir --parents ~/.config/qemu/systemd/bootstrap-knix-peer.qemu.d
    jq --raw-output '."org.nixos.bootspec.v1" |
        "[QEMU]\ninitrd=\(.initrd)\nappend=root=tmpfs console=ttyS0 systemd.hostname=peer init=\(.init)"' \
        ~/bootstrap/knix/guest/result/boot.json \
-       > ~/.config/qemu/systemd/peer.qemu.d/10-closure.conf
+       > ~/.config/qemu/systemd/bootstrap-knix-peer.qemu.d/10-closure.conf
 
-Regenerate, restart ``bootstrap``, start ``peer``, and each reaches the
-other:
+Regenerate, restart ``bootstrap-knix``, start ``bootstrap-knix-peer``, and each
+reaches the other:
 
 .. code-block:: console
    :class: cmd-host
 
    $ systemctl --user start qemu-system-generator.service
-   $ systemctl --user restart qemu-system@bootstrap.service
-   $ systemctl --user start qemu-system@peer.service
-   $ ssh peer 'hostname; ping -c 1 10.0.100.42'
-   Warning: Permanently added 'vsock/46' (ED25519) to the list of known hosts.
+   $ systemctl --user restart qemu-system@bootstrap-knix.service
+   $ systemctl --user start qemu-system@bootstrap-knix-peer.service
+   $ ssh bootstrap-knix-peer 'hostname; ping -c 1 10.0.100.49'
+   Warning: Permanently added 'vsock/50' (ED25519) to the list of known hosts.
    peer
-   PING 10.0.100.42 (10.0.100.42) 56(84) bytes of data.
-   64 bytes from 10.0.100.42: icmp_seq=1 ttl=64 time=0.322 ms
+   PING 10.0.100.49 (10.0.100.49) 56(84) bytes of data.
+   64 bytes from 10.0.100.49: icmp_seq=1 ttl=64 time=0.322 ms
    ...
-   $ ssh bootstrap ping -c 1 10.0.100.46
-   PING 10.0.100.46 (10.0.100.46) 56(84) bytes of data.
-   64 bytes from 10.0.100.46: icmp_seq=1 ttl=64 time=0.185 ms
+   $ ssh bootstrap-knix ping -c 1 10.0.100.50
+   PING 10.0.100.50 (10.0.100.50) 56(84) bytes of data.
+   64 bytes from 10.0.100.50: icmp_seq=1 ttl=64 time=0.185 ms
    ...
 
 .. _knix-fast:
@@ -445,10 +447,10 @@ What this machine needs beyond them goes in a fragment of your own:
    CONFIG_KERNEL_ZSTD=y
 
 Merge it with the fragments for a systemd guest with virtiofs, virtio-net
-and vsock built in, into a build directory of its own so that ``peer``
-keeps the first kernel. ``merge_config.sh -n`` starts from
-``allnoconfig``, and ``-y`` keeps a ``=y`` from a ``builtin/`` fragment
-over a ``=m`` (`kfragments`_ has the rules):
+and vsock built in, into a build directory of its own so that
+``bootstrap-knix-peer`` keeps the first kernel. ``merge_config.sh -n``
+starts from ``allnoconfig``, and ``-y`` keeps a ``=y`` from a
+``builtin/`` fragment over a ``=m`` (`kfragments`_ has the rules):
 
 .. code-block:: console
    :class: cmd-host
@@ -474,7 +476,7 @@ It builds in about a minute and a half, into a 4.4 MB image. Point the
 machine at it and at its modules:
 
 .. code-block:: diff
-   :caption: ~/.config/qemu/systemd/bootstrap.qemu
+   :caption: ~/.config/qemu/systemd/bootstrap-knix.qemu
 
    -kernel=%h/bootstrap/knix/linux-build/arch/x86/boot/bzImage
    +kernel=%h/bootstrap/knix/linux-fast-build/arch/x86/boot/bzImage
@@ -497,7 +499,7 @@ The console
    jq --raw-output '."org.nixos.bootspec.v1" |
        "[QEMU]\ninitrd=\(.initrd)\nappend=root=tmpfs console=ttyS0 systemd.tty.term.console=vt220 systemd.tty.rows.console=24 systemd.tty.columns.console=80 init=\(.init)"' \
        ~/bootstrap/knix/guest/result/boot.json \
-       > ~/.config/qemu/systemd/bootstrap.qemu.d/10-closure.conf
+       > ~/.config/qemu/systemd/bootstrap-knix.qemu.d/10-closure.conf
 
 Regenerate and restart: 5.6 seconds.
 
@@ -507,7 +509,7 @@ The store
 :ref:`fast-store` explains why the store, and only the store.
 
 .. code-block:: diff
-   :caption: ~/.config/qemu/systemd/bootstrap.qemu
+   :caption: ~/.config/qemu/systemd/bootstrap-knix.qemu
 
     [virtiofsd]
     shared-dir=/nix/store
@@ -524,7 +526,7 @@ QEMU ships `qboot`_, "a simple x86 firmware that can boot Linux" from
 ``kernel=``, as ``qboot.rom``. It can replace `SeaBIOS`_ on q35:
 
 .. code-block:: diff
-   :caption: ~/.config/qemu/systemd/bootstrap.qemu
+   :caption: ~/.config/qemu/systemd/bootstrap-knix.qemu
 
     machine=q35
    +bios=qboot.rom
@@ -544,7 +546,7 @@ This kernel has virtiofs built in, so the limit can go
    jq --raw-output '."org.nixos.bootspec.v1" |
        "[QEMU]\ninitrd=\(.initrd)\nappend=root=tmpfs console=ttyS0 systemd.tty.term.console=vt220 systemd.tty.rows.console=24 systemd.tty.columns.console=80 SYSTEMD_DEFAULT_MOUNT_RATE_LIMIT_BURST=1000 init=\(.init)"' \
        ~/bootstrap/knix/guest/result/boot.json \
-       > ~/.config/qemu/systemd/bootstrap.qemu.d/10-closure.conf
+       > ~/.config/qemu/systemd/bootstrap-knix.qemu.d/10-closure.conf
 
 3.3 seconds, and the initrd's share falls from 1.6 to 0.7.
 
@@ -583,7 +585,7 @@ tells it this is not one (:cmd:`kernel-command-line(7)`).
    jq --raw-output '."org.nixos.bootspec.v1" |
        "[QEMU]\ninitrd=\(.initrd)\nappend=root=tmpfs console=ttyS0 systemd.tty.term.console=vt220 systemd.tty.rows.console=24 systemd.tty.columns.console=80 SYSTEMD_DEFAULT_MOUNT_RATE_LIMIT_BURST=1000 systemd.condition_first_boot=false init=\(.init)"' \
        ~/bootstrap/knix/guest/result/boot.json \
-       > ~/.config/qemu/systemd/bootstrap.qemu.d/10-closure.conf
+       > ~/.config/qemu/systemd/bootstrap-knix.qemu.d/10-closure.conf
 
 2.6 seconds.
 
@@ -598,7 +600,7 @@ Quiet
    jq --raw-output '."org.nixos.bootspec.v1" |
        "[QEMU]\ninitrd=\(.initrd)\nappend=root=tmpfs console=ttyS0 systemd.tty.term.console=vt220 systemd.tty.rows.console=24 systemd.tty.columns.console=80 SYSTEMD_DEFAULT_MOUNT_RATE_LIMIT_BURST=1000 systemd.condition_first_boot=false quiet init=\(.init)"' \
        ~/bootstrap/knix/guest/result/boot.json \
-       > ~/.config/qemu/systemd/bootstrap.qemu.d/10-closure.conf
+       > ~/.config/qemu/systemd/bootstrap-knix.qemu.d/10-closure.conf
 
 2.0 seconds.
 
@@ -658,7 +660,7 @@ tmpfs anyway. It leaves out ``init=`` too, so the kernel runs ``/init``:
 .. code-block:: shell
    :class: cmd-host
 
-   cat > ~/.config/qemu/systemd/bootstrap.qemu.d/10-closure.conf <<EOF
+   cat > ~/.config/qemu/systemd/bootstrap-knix.qemu.d/10-closure.conf <<EOF
    [QEMU]
    initrd=%h/bootstrap/knix/tiny.cpio
    append=console=ttyS0 systemd.tty.term.console=vt220 systemd.tty.rows.console=24 systemd.tty.columns.console=80 SYSTEMD_DEFAULT_MOUNT_RATE_LIMIT_BURST=1000 systemd.condition_first_boot=false quiet CLOSURE=$(readlink ~/bootstrap/knix/guest/result)
@@ -676,7 +678,7 @@ The kernel above allows 64 processors, so more vCPUs reach systemd's
 parallel start:
 
 .. code-block:: diff
-   :caption: ~/.config/qemu/systemd/bootstrap.qemu
+   :caption: ~/.config/qemu/systemd/bootstrap-knix.qemu
 
    -smp=2
    +smp=4

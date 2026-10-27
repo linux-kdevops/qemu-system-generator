@@ -87,10 +87,10 @@ the disk.
 1. A machine
 ============
 
-Create ``~/.config/qemu/systemd/bootstrap.qemu``:
+Create ``~/.config/qemu/systemd/bootstrap-disk.qemu``:
 
 .. code-block:: ini
-   :caption: ~/.config/qemu/systemd/bootstrap.qemu
+   :caption: ~/.config/qemu/systemd/bootstrap-disk.qemu
 
    [QEMU]
    machine=q35
@@ -147,7 +147,7 @@ Give the machine the disk. ``%h`` is your home directory, one of the
 `specifiers`_ systemd expands in a unit:
 
 .. code-block:: diff
-   :caption: ~/.config/qemu/systemd/bootstrap.qemu
+   :caption: ~/.config/qemu/systemd/bootstrap-disk.qemu
 
     nographic=
     serial=mon:stdio
@@ -180,7 +180,7 @@ takes 1.4 seconds:
 .. code-block:: console
    :class: cmd-host
 
-   $ systemctl --user stop qemu-system@bootstrap.service
+   $ systemctl --user stop qemu-system@bootstrap-disk.service
 
 .. _disk-uefi:
 
@@ -203,7 +203,7 @@ holds its variable store, which the firmware writes, so it takes
 ``snapshot=on`` too:
 
 .. code-block:: diff
-   :caption: ~/.config/qemu/systemd/bootstrap.qemu
+   :caption: ~/.config/qemu/systemd/bootstrap-disk.qemu
 
     serial=mon:stdio
    -drive=file=%h/bootstrap/disk/result/bootstrap.qcow2,if=virtio,format=qcow2,snapshot=on
@@ -235,10 +235,10 @@ which needs no privileges, and add the `vsock`_ device with the context id
 :ref:`host-ssh` names:
 
 .. code-block:: diff
-   :caption: ~/.config/qemu/systemd/bootstrap.qemu
+   :caption: ~/.config/qemu/systemd/bootstrap-disk.qemu
 
     drive=file=%h/bootstrap/disk/efi/bootstrap.qcow2,if=virtio,format=qcow2,snapshot=on
-   +nic=user,model=virtio-net-pci-non-transitional,hostfwd=tcp:127.0.0.1:10022-:22
+   +nic=user,model=virtio-net-pci-non-transitional,hostfwd=tcp:127.0.0.1:10042-:22
    +device=vhost-vsock-pci-non-transitional,guest-cid=42
 
 Regenerate and restart. :ref:`host-ssh` already names the machine by
@@ -248,10 +248,10 @@ forwarded port takes the key on the command line:
 .. code-block:: console
    :class: cmd-host
 
-   $ ssh bootstrap uname --kernel-release
+   $ ssh bootstrap-disk uname --kernel-release
    Warning: Permanently added 'vsock/42' (ED25519) to the list of known hosts.
    6.18.57
-   $ ssh -i ~/bootstrap/system/ssh/id_ed25519 -p 10022 root@127.0.0.1 \
+   $ ssh -i ~/bootstrap/system/ssh/id_ed25519 -p 10042 root@127.0.0.1 \
        uname --kernel-release
    6.18.57
 
@@ -267,9 +267,9 @@ instead.
 Share your home as :doc:`home` describes. Add its section to the file:
 
 .. code-block:: diff
-   :caption: ~/.config/qemu/systemd/bootstrap.qemu
+   :caption: ~/.config/qemu/systemd/bootstrap-disk.qemu
 
-    nic=user,model=virtio-net-pci-non-transitional,hostfwd=tcp:127.0.0.1:10022-:22
+    nic=user,model=virtio-net-pci-non-transitional,hostfwd=tcp:127.0.0.1:10042-:22
     device=vhost-vsock-pci-non-transitional,guest-cid=42
    +
    +[virtiofsd]
@@ -300,8 +300,8 @@ empty, and a file the guest writes belongs to you on the host:
 
    $ nix build .#efi --out-link efi
    $ systemctl --user start qemu-system-generator.service
-   $ systemctl --user restart qemu-system@bootstrap.service
-   $ ssh bootstrap 'pwd; ls --almost-all ~/.config/systemd ~/.local/share/systemd; touch ~/bootstrap/disk/from-guest'
+   $ systemctl --user restart qemu-system@bootstrap-disk.service
+   $ ssh bootstrap-disk 'pwd; ls --almost-all ~/.config/systemd ~/.local/share/systemd; touch ~/bootstrap/disk/from-guest'
    Warning: Permanently added 'vsock/42' (ED25519) to the list of known hosts.
    /home/user
    /home/user/.config/systemd:
@@ -402,7 +402,7 @@ More processors
 systemd starts what it can in parallel:
 
 .. code-block:: diff
-   :caption: ~/.config/qemu/systemd/bootstrap.qemu
+   :caption: ~/.config/qemu/systemd/bootstrap-disk.qemu
 
    -smp=2
    +smp=4

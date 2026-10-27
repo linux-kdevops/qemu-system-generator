@@ -102,12 +102,12 @@ boots, and its ``init`` is what the kernel runs once the store is mounted:
 1. A kernel
 ===========
 
-Create ``~/.config/qemu/systemd/bootstrap.qemu``, pointing QEMU at the
+Create ``~/.config/qemu/systemd/bootstrap-direct.qemu``, pointing QEMU at the
 closure's kernel and initrd. ``%h`` is your home directory, one of the
 `specifiers`_ systemd expands in a unit:
 
 .. code-block:: ini
-   :caption: ~/.config/qemu/systemd/bootstrap.qemu
+   :caption: ~/.config/qemu/systemd/bootstrap-direct.qemu
 
    [QEMU]
    machine=q35
@@ -162,7 +162,7 @@ which tells the initrd which system in the store to boot:
 Add both, with your own path in ``init=``:
 
 .. code-block:: diff
-   :caption: ~/.config/qemu/systemd/bootstrap.qemu
+   :caption: ~/.config/qemu/systemd/bootstrap-direct.qemu
 
     kernel=%h/bootstrap/direct/result/kernel
     initrd=%h/bootstrap/direct/result/initrd
@@ -196,24 +196,24 @@ The daemon came up with the machine:
 .. code-block:: console
    :class: cmd-host
 
-   $ systemctl --user list-units 'virtiofsd@bootstrap-*'
-     UNIT                              LOAD   ACTIVE SUB     DESCRIPTION
-     virtiofsd@bootstrap-store.service loaded active running virtiofsd Service for bootstrap-store
-     virtiofsd@bootstrap-store.socket  loaded active running virtiofsd Socket for bootstrap-store
+   $ systemctl --user list-units 'virtiofsd@bootstrap-direct-*'
+     UNIT                                     LOAD   ACTIVE SUB     DESCRIPTION
+     virtiofsd@bootstrap-direct-store.service loaded active running virtiofsd Service for bootstrap-direct-store
+     virtiofsd@bootstrap-direct-store.socket  loaded active running virtiofsd Socket for bootstrap-direct-store
 
 The guest answers the power button now, so stop it the normal way:
 
 .. code-block:: console
    :class: cmd-host
 
-   $ systemctl --user stop qemu-system@bootstrap.service
+   $ systemctl --user stop qemu-system@bootstrap-direct.service
 
 .. code-block:: console
    :class: cmd-guest
 
    [  OK  ] Reached target System Power Off.
    [   15.420532] reboot: Power down
-   Stopped qemu-system@bootstrap.service - QEMU System Virtual Machine bootstrap.
+   Stopped qemu-system@bootstrap-direct.service - QEMU System Virtual Machine bootstrap-direct.
 
 That took 1.7 seconds. The daemon stops with the machine, and its
 socket stays listening for the next start.
@@ -227,10 +227,10 @@ QEMU's `user-mode network`_ needs no privileges. Forward a local port to
 the guest's SSH:
 
 .. code-block:: diff
-   :caption: ~/.config/qemu/systemd/bootstrap.qemu
+   :caption: ~/.config/qemu/systemd/bootstrap-direct.qemu
 
     append=console=ttyS0 init=/nix/store/i7s2903dhm9g5z73vkcbpggmv1iqnvwy-nixos-system-bootstrap-26.11.20261020.02c087f/init
-   +nic=user,model=virtio-net-pci-non-transitional,hostfwd=tcp:127.0.0.1:10022-:22
+   +nic=user,model=virtio-net-pci-non-transitional,hostfwd=tcp:127.0.0.1:10047-:22
 
 Regenerate, restart with ``systemctl --user restart``, and log in with
 :cmd:`ssh`:
@@ -238,7 +238,7 @@ Regenerate, restart with ``systemctl --user restart``, and log in with
 .. code-block:: console
    :class: cmd-host
 
-   $ ssh -i ~/bootstrap/system/ssh/id_ed25519 -p 10022 root@127.0.0.1 \
+   $ ssh -i ~/bootstrap/system/ssh/id_ed25519 -p 10047 root@127.0.0.1 \
        uname --kernel-release
    6.18.57
 
@@ -251,10 +251,10 @@ A `vsock`_ device gives the guest a context id, a socket address the host
 can reach without any network:
 
 .. code-block:: diff
-   :caption: ~/.config/qemu/systemd/bootstrap.qemu
+   :caption: ~/.config/qemu/systemd/bootstrap-direct.qemu
 
-    nic=user,model=virtio-net-pci-non-transitional,hostfwd=tcp:127.0.0.1:10022-:22
-   +device=vhost-vsock-pci-non-transitional,guest-cid=42
+    nic=user,model=virtio-net-pci-non-transitional,hostfwd=tcp:127.0.0.1:10047-:22
+   +device=vhost-vsock-pci-non-transitional,guest-cid=47
 
 The machine registers with :cmd:`machined <systemd-machined>`
 (:ref:`host-machined`), which records the id:
@@ -263,8 +263,8 @@ The machine registers with :cmd:`machined <systemd-machined>`
    :class: cmd-host
 
    $ machinectl --user list
-   MACHINE   CLASS SERVICE     OS VERSION ADDRESSES
-   bootstrap vm    qemu-system -  -       -
+   MACHINE          CLASS SERVICE     OS VERSION ADDRESSES
+   bootstrap-direct vm    qemu-system -  -       -
 
 NixOS listens for SSH on vsock by itself, and :ref:`host-ssh` already
 names the machine by this context id:
@@ -272,8 +272,8 @@ names the machine by this context id:
 .. code-block:: console
    :class: cmd-host
 
-   $ ssh bootstrap systemctl is-system-running
-   Warning: Permanently added 'vsock/42' (ED25519) to the list of known hosts.
+   $ ssh bootstrap-direct systemctl is-system-running
+   Warning: Permanently added 'vsock/47' (ED25519) to the list of known hosts.
    running
 
 .. _direct-poweroff:
@@ -285,7 +285,7 @@ With :key:`SshPrivateKey=` in :key:`[VM]`, the stop powers the guest off
 over SSH first (:ref:`SSH poweroff <host-poweroff>`):
 
 .. code-block:: diff
-   :caption: ~/.config/qemu/systemd/bootstrap.qemu
+   :caption: ~/.config/qemu/systemd/bootstrap-direct.qemu
 
    +[VM]
    +SshPrivateKey=%h/bootstrap/system/ssh/id_ed25519
@@ -296,9 +296,9 @@ over SSH first (:ref:`SSH poweroff <host-poweroff>`):
 .. code-block:: console
    :class: cmd-host
 
-   $ systemctl --user stop qemu-system@bootstrap.service
+   $ systemctl --user stop qemu-system@bootstrap-direct.service
    ...
-   Connection to vsock/42 closed by remote host.
+   Connection to vsock/47 closed by remote host.
    ...
    [  OK  ] Reached target System Power Off.
    [   16.084116] reboot: Power down
@@ -314,12 +314,12 @@ the machine's runtime directory. ``%t`` is that directory's root and ``%i``
 the machine name:
 
 .. code-block:: diff
-   :caption: ~/.config/qemu/systemd/bootstrap.qemu
+   :caption: ~/.config/qemu/systemd/bootstrap-direct.qemu
 
    -append=console=ttyS0 init=/nix/store/i7s2903dhm9g5z73vkcbpggmv1iqnvwy-nixos-system-bootstrap-26.11.20261020.02c087f/init
    +append=console=ttyS0 console=hvc0 init=/nix/store/i7s2903dhm9g5z73vkcbpggmv1iqnvwy-nixos-system-bootstrap-26.11.20261020.02c087f/init
-    nic=user,model=virtio-net-pci-non-transitional,hostfwd=tcp:127.0.0.1:10022-:22
-    device=vhost-vsock-pci-non-transitional,guest-cid=42
+    nic=user,model=virtio-net-pci-non-transitional,hostfwd=tcp:127.0.0.1:10047-:22
+    device=vhost-vsock-pci-non-transitional,guest-cid=47
    +device=virtio-serial-pci-non-transitional
    +chardev=socket,id=console0,path=%t/qemu-system/%i/console.sock,server=on,wait=off
    +device=virtconsole,chardev=console0
@@ -330,7 +330,7 @@ as root with no password, and leave with Ctrl-O:
 .. code-block:: console
    :class: cmd-host
 
-   $ socat -,rawer,escape=0x0f UNIX-CONNECT:$XDG_RUNTIME_DIR/qemu-system/bootstrap/console.sock
+   $ socat -,rawer,escape=0x0f UNIX-CONNECT:$XDG_RUNTIME_DIR/qemu-system/bootstrap-direct/console.sock
 
    bootstrap login: root
    [root@bootstrap:~]# uname --kernel-release
@@ -343,22 +343,22 @@ as root with no password, and leave with Ctrl-O:
 
 ``kernel=`` and ``initrd=`` follow the ``result`` link, but ``init=`` names one
 build, and every ``nix build`` makes a new one. Move ``append=`` to a
-drop-in: the files in ``bootstrap.qemu.d/`` are appended to
-``bootstrap.qemu``, so a command can rewrite that one line without
+drop-in: the files in ``bootstrap-direct.qemu.d/`` are appended to
+``bootstrap-direct.qemu``, so a command can rewrite that one line without
 touching the file you edit by hand.
 
 .. code-block:: diff
-   :caption: ~/.config/qemu/systemd/bootstrap.qemu
+   :caption: ~/.config/qemu/systemd/bootstrap-direct.qemu
 
     initrd=%h/bootstrap/direct/result/initrd
    -append=console=ttyS0 console=hvc0 init=/nix/store/i7s2903dhm9g5z73vkcbpggmv1iqnvwy-nixos-system-bootstrap-26.11.20261020.02c087f/init
-    nic=user,model=virtio-net-pci-non-transitional,hostfwd=tcp:127.0.0.1:10022-:22
+    nic=user,model=virtio-net-pci-non-transitional,hostfwd=tcp:127.0.0.1:10047-:22
 
 .. code-block:: shell
    :class: cmd-host
 
-   mkdir --parents ~/.config/qemu/systemd/bootstrap.qemu.d
-   cat > ~/.config/qemu/systemd/bootstrap.qemu.d/10-closure.conf <<EOF
+   mkdir --parents ~/.config/qemu/systemd/bootstrap-direct.qemu.d
+   cat > ~/.config/qemu/systemd/bootstrap-direct.qemu.d/10-closure.conf <<EOF
    [QEMU]
    append=console=ttyS0 console=hvc0 init=$(readlink ~/bootstrap/direct/result)/init
    EOF
@@ -370,13 +370,13 @@ two files without writing anything:
    :class: cmd-host
 
    $ qemu-system-generator --user --dryrun
-   ---qemu-system@bootstrap.service---
+   ---qemu-system@bootstrap-direct.service---
    ...
        -append "console=ttyS0 console=hvc0 init=/nix/store/i7s2903dhm9g5z73vkcbpggmv1iqnvwy-nixos-system-bootstrap-26.11.20261020.02c087f/init" \
    ...
-   ---virtiofsd@bootstrap-store.socket---
+   ---virtiofsd@bootstrap-direct-store.socket---
    ...
-   ---virtiofsd@bootstrap-store.service---
+   ---virtiofsd@bootstrap-direct-store.service---
    ...
 
 The path unit does not watch the drop-in directory, so regenerate by
@@ -393,7 +393,7 @@ the machine takes a description, `resource limits`_ and an install target
 the way a hand-written unit does:
 
 .. code-block:: diff
-   :caption: ~/.config/qemu/systemd/bootstrap.qemu
+   :caption: ~/.config/qemu/systemd/bootstrap-direct.qemu
 
     gid-map=:0:%G:1:
    +
@@ -410,9 +410,9 @@ the way a hand-written unit does:
 .. code-block:: console
    :class: cmd-host
 
-   $ systemctl --user status qemu-system@bootstrap.service
-   ● qemu-system@bootstrap.service - NixOS bootstrap guest
-        Loaded: loaded (/home/user/.config/qemu/systemd/bootstrap.qemu; enabled-runtime; preset: enabled)
+   $ systemctl --user status qemu-system@bootstrap-direct.service
+   ● qemu-system@bootstrap-direct.service - NixOS bootstrap guest
+        Loaded: loaded (/home/user/.config/qemu/systemd/bootstrap-direct.qemu; enabled-runtime; preset: enabled)
         Active: active (running) since Thu 2026-10-22 16:46:55 CEST; 13s ago
         Memory: 340.4M (max: 3G, available: 2.6G, peak: 341.5M)
 
@@ -429,7 +429,7 @@ machines.target`` stops all of them, not only this one.
 Share your home as :doc:`home` describes. Add its section to the file:
 
 .. code-block:: diff
-   :caption: ~/.config/qemu/systemd/bootstrap.qemu
+   :caption: ~/.config/qemu/systemd/bootstrap-direct.qemu
 
     gid-map=:0:%G:1:
 
@@ -462,8 +462,8 @@ host:
 .. code-block:: console
    :class: cmd-host
 
-   $ ssh bootstrap 'pwd; ls --almost-all ~/.config/systemd ~/.local/share/systemd; touch ~/bootstrap/direct/from-guest'
-   Warning: Permanently added 'vsock/42' (ED25519) to the list of known hosts.
+   $ ssh bootstrap-direct 'pwd; ls --almost-all ~/.config/systemd ~/.local/share/systemd; touch ~/bootstrap/direct/from-guest'
+   Warning: Permanently added 'vsock/47' (ED25519) to the list of known hosts.
    /home/user
    /home/user/.config/systemd:
 
@@ -518,7 +518,7 @@ RTC probe fails, and ``/init`` started at 1.66 seconds instead of 0.49
 here:
 
 .. code-block:: diff
-   :caption: ~/.config/qemu/systemd/bootstrap.qemu
+   :caption: ~/.config/qemu/systemd/bootstrap-direct.qemu
 
    -machine=q35
    +machine=microvm,rtc=on
@@ -530,13 +530,13 @@ here:
     serial=mon:stdio
     kernel=%h/bootstrap/direct/result/kernel
     initrd=%h/bootstrap/direct/result/initrd
-   -nic=user,model=virtio-net-pci-non-transitional,hostfwd=tcp:127.0.0.1:10022-:22
-   -device=vhost-vsock-pci-non-transitional,guest-cid=42
+   -nic=user,model=virtio-net-pci-non-transitional,hostfwd=tcp:127.0.0.1:10047-:22
+   -device=vhost-vsock-pci-non-transitional,guest-cid=47
    -device=virtio-serial-pci-non-transitional
    +global=virtio-mmio.force-legacy=false
-   +netdev=user,id=net0,hostfwd=tcp:127.0.0.1:10022-:22
+   +netdev=user,id=net0,hostfwd=tcp:127.0.0.1:10047-:22
    +device=virtio-net-device,netdev=net0
-   +device=vhost-vsock-device,guest-cid=42
+   +device=vhost-vsock-device,guest-cid=47
    +device=virtio-serial-device
 
 Keep `ACPI`_, microvm's default. With ``acpi=off`` the guest cannot power
@@ -558,7 +558,7 @@ closure and that option:
 .. code-block:: shell
    :class: cmd-host
 
-   cat > ~/.config/qemu/systemd/bootstrap.qemu.d/10-closure.conf <<EOF
+   cat > ~/.config/qemu/systemd/bootstrap-direct.qemu.d/10-closure.conf <<EOF
    [QEMU]
    append=console=ttyS0 console=hvc0 systemd.ssh_listen=vsock::22 init=$(readlink ~/bootstrap/direct/result)/init
    EOF
@@ -569,9 +569,9 @@ Regenerate, restart and log in:
    :class: cmd-host
 
    $ systemctl --user start qemu-system-generator.service
-   $ systemctl --user restart qemu-system@bootstrap.service
-   $ ssh bootstrap uname --kernel-release
-   Warning: Permanently added 'vsock/42' (ED25519) to the list of known hosts.
+   $ systemctl --user restart qemu-system@bootstrap-direct.service
+   $ ssh bootstrap-direct uname --kernel-release
+   Warning: Permanently added 'vsock/47' (ED25519) to the list of known hosts.
    7.3.0
 
 On this guest the kernel reached ``/init`` at 0.49 seconds against 0.75
@@ -585,9 +585,9 @@ kernel, so the other guides keep q35.
 11. A second machine on one network
 ===================================
 
-A second machine, ``peer``, joins ``bootstrap`` on a multicast segment
-and boots the same closure, which holds both machines' addresses
-(:doc:`network`):
+A second machine, ``bootstrap-direct-peer``, joins ``bootstrap-direct`` on a
+multicast segment and boots the same closure, which holds both machines'
+addresses (:doc:`network`):
 
 .. code-block:: diff
    :caption: ~/bootstrap/direct/configuration.nix
@@ -596,12 +596,12 @@ and boots the same closure, which holds both machines' addresses
    +  networking.useNetworkd = true;
    +  systemd.network.networks = {
    +    "10-lan-bootstrap" = {
-   +      matchConfig.MACAddress = "52:54:00:00:00:42";
-   +      address = [ "10.0.100.42/24" ];
+   +      matchConfig.MACAddress = "52:54:00:00:00:47";
+   +      address = [ "10.0.100.47/24" ];
    +    };
    +    "10-lan-peer" = {
-   +      matchConfig.MACAddress = "52:54:00:00:00:46";
-   +      address = [ "10.0.100.46/24" ];
+   +      matchConfig.MACAddress = "52:54:00:00:00:48";
+   +      address = [ "10.0.100.48/24" ];
    +    };
    +  };
       services.openssh.enable = true;
@@ -621,28 +621,28 @@ before it. Rebuild, and rewrite the drop-in as in
 .. code-block:: shell
    :class: cmd-host
 
-   cat > ~/.config/qemu/systemd/bootstrap.qemu.d/10-closure.conf <<EOF
+   cat > ~/.config/qemu/systemd/bootstrap-direct.qemu.d/10-closure.conf <<EOF
    [QEMU]
    append=console=ttyS0 console=hvc0 systemd.ssh_listen=vsock::22 init=$(readlink ~/bootstrap/direct/result)/init
    EOF
 
-Give ``bootstrap`` its card:
+Give ``bootstrap-direct`` its card:
 
 .. code-block:: diff
-   :caption: ~/.config/qemu/systemd/bootstrap.qemu
+   :caption: ~/.config/qemu/systemd/bootstrap-direct.qemu
 
-    netdev=user,id=net0,hostfwd=tcp:127.0.0.1:10022-:22
+    netdev=user,id=net0,hostfwd=tcp:127.0.0.1:10047-:22
     device=virtio-net-device,netdev=net0
-   +netdev=dgram,id=lan,remote.type=inet,remote.host=239.255.0.1,remote.port=5555,local.type=inet,local.host=127.0.0.1,local.port=0
-   +device=virtio-net-device,netdev=lan,mac=52:54:00:00:00:42
-    device=vhost-vsock-device,guest-cid=42
+   +netdev=dgram,id=lan,remote.type=inet,remote.host=239.255.0.1,remote.port=5556,local.type=inet,local.host=127.0.0.1,local.port=0
+   +device=virtio-net-device,netdev=lan,mac=52:54:00:00:00:47
+    device=vhost-vsock-device,guest-cid=47
 
-``peer`` needs the store and the home, which the closure mounts, a
-context id of its own and no forwarded port, since ``bootstrap`` holds
-10022:
+``bootstrap-direct-peer`` needs the store and the home, which the closure
+mounts, a context id of its own and no forwarded port, since
+``bootstrap-direct`` holds 10047:
 
 .. code-block:: ini
-   :caption: ~/.config/qemu/systemd/peer.qemu
+   :caption: ~/.config/qemu/systemd/bootstrap-direct-peer.qemu
 
    [VM]
    SshPrivateKey=%h/bootstrap/system/ssh/id_ed25519
@@ -660,9 +660,9 @@ context id of its own and no forwarded port, since ``bootstrap`` holds
    global=virtio-mmio.force-legacy=false
    netdev=user,id=net0
    device=virtio-net-device,netdev=net0
-   netdev=dgram,id=lan,remote.type=inet,remote.host=239.255.0.1,remote.port=5555,local.type=inet,local.host=127.0.0.1,local.port=0
-   device=virtio-net-device,netdev=lan,mac=52:54:00:00:00:46
-   device=vhost-vsock-device,guest-cid=46
+   netdev=dgram,id=lan,remote.type=inet,remote.host=239.255.0.1,remote.port=5556,local.type=inet,local.host=127.0.0.1,local.port=0
+   device=virtio-net-device,netdev=lan,mac=52:54:00:00:00:48
+   device=vhost-vsock-device,guest-cid=48
 
    [virtiofsd]
    shared-dir=/nix/store
@@ -684,30 +684,30 @@ hostname:
 .. code-block:: shell
    :class: cmd-host
 
-   mkdir --parents ~/.config/qemu/systemd/peer.qemu.d
-   cat > ~/.config/qemu/systemd/peer.qemu.d/10-closure.conf <<EOF
+   mkdir --parents ~/.config/qemu/systemd/bootstrap-direct-peer.qemu.d
+   cat > ~/.config/qemu/systemd/bootstrap-direct-peer.qemu.d/10-closure.conf <<EOF
    [QEMU]
    append=console=ttyS0 systemd.hostname=peer systemd.ssh_listen=vsock::22 init=$(readlink ~/bootstrap/direct/result)/init
    EOF
 
-Regenerate, restart ``bootstrap``, start ``peer``, and each reaches the
-other:
+Regenerate, restart ``bootstrap-direct``, start ``bootstrap-direct-peer``,
+and each reaches the other:
 
 .. code-block:: console
    :class: cmd-host
 
    $ systemctl --user start qemu-system-generator.service
-   $ systemctl --user restart qemu-system@bootstrap.service
-   $ systemctl --user start qemu-system@peer.service
-   $ ssh peer 'hostname; ping -c 1 10.0.100.42'
-   Warning: Permanently added 'vsock/46' (ED25519) to the list of known hosts.
+   $ systemctl --user restart qemu-system@bootstrap-direct.service
+   $ systemctl --user start qemu-system@bootstrap-direct-peer.service
+   $ ssh bootstrap-direct-peer 'hostname; ping -c 1 10.0.100.47'
+   Warning: Permanently added 'vsock/48' (ED25519) to the list of known hosts.
    peer
-   PING 10.0.100.42 (10.0.100.42) 56(84) bytes of data.
-   64 bytes from 10.0.100.42: icmp_seq=1 ttl=64 time=0.501 ms
+   PING 10.0.100.47 (10.0.100.47) 56(84) bytes of data.
+   64 bytes from 10.0.100.47: icmp_seq=1 ttl=64 time=0.501 ms
    ...
-   $ ssh bootstrap ping -c 1 10.0.100.46
-   PING 10.0.100.46 (10.0.100.46) 56(84) bytes of data.
-   64 bytes from 10.0.100.46: icmp_seq=1 ttl=64 time=0.276 ms
+   $ ssh bootstrap-direct ping -c 1 10.0.100.48
+   PING 10.0.100.48 (10.0.100.48) 56(84) bytes of data.
+   64 bytes from 10.0.100.48: icmp_seq=1 ttl=64 time=0.276 ms
    ...
 
 .. _direct-fast:
@@ -729,7 +729,7 @@ Add them to the drop-in:
 .. code-block:: shell
    :class: cmd-host
 
-   cat > ~/.config/qemu/systemd/bootstrap.qemu.d/10-closure.conf <<EOF
+   cat > ~/.config/qemu/systemd/bootstrap-direct.qemu.d/10-closure.conf <<EOF
    [QEMU]
    append=console=ttyS0 console=hvc0 systemd.ssh_listen=vsock::22 systemd.tty.term.console=vt220 systemd.tty.rows.console=24 systemd.tty.columns.console=80 init=$(readlink ~/bootstrap/direct/result)/init
    EOF
@@ -743,7 +743,7 @@ The store
 :ref:`fast-store` explains why the store, and only the store.
 
 .. code-block:: diff
-   :caption: ~/.config/qemu/systemd/bootstrap.qemu
+   :caption: ~/.config/qemu/systemd/bootstrap-direct.qemu
 
     [virtiofsd]
     shared-dir=/nix/store
@@ -786,13 +786,13 @@ Rebuild, and rewrite the drop-in with the new closure:
 .. code-block:: shell
    :class: cmd-host
 
-   cat > ~/.config/qemu/systemd/bootstrap.qemu.d/10-closure.conf <<EOF
+   cat > ~/.config/qemu/systemd/bootstrap-direct.qemu.d/10-closure.conf <<EOF
    [QEMU]
    append=console=ttyS0 console=hvc0 systemd.ssh_listen=vsock::22 systemd.tty.term.console=vt220 systemd.tty.rows.console=24 systemd.tty.columns.console=80 init=$(readlink ~/bootstrap/direct/result)/init
    EOF
 
-5.1 seconds. ``peer`` keeps the closure its own drop-in names until you
-rewrite that one too.
+5.1 seconds. ``bootstrap-direct-peer`` keeps the closure its own drop-in
+names until you rewrite that one too.
 
 More processors
 ---------------
@@ -800,7 +800,7 @@ More processors
 systemd starts what it can in parallel:
 
 .. code-block:: diff
-   :caption: ~/.config/qemu/systemd/bootstrap.qemu
+   :caption: ~/.config/qemu/systemd/bootstrap-direct.qemu
 
    -smp=2
    +smp=4
@@ -815,7 +815,7 @@ Quiet
 .. code-block:: shell
    :class: cmd-host
 
-   cat > ~/.config/qemu/systemd/bootstrap.qemu.d/10-closure.conf <<EOF
+   cat > ~/.config/qemu/systemd/bootstrap-direct.qemu.d/10-closure.conf <<EOF
    [QEMU]
    append=console=ttyS0 console=hvc0 systemd.ssh_listen=vsock::22 systemd.tty.term.console=vt220 systemd.tty.rows.console=24 systemd.tty.columns.console=80 quiet init=$(readlink ~/bootstrap/direct/result)/init
    EOF

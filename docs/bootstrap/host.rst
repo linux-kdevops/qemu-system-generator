@@ -49,7 +49,7 @@ way:
 
    Include ~/bootstrap/system/ssh/config.d/*.conf
 
-   Host bootstrap
+   Host bootstrap-disk
        HostName vsock/42
    Host cloud-debian
        HostName vsock/43
@@ -57,10 +57,18 @@ way:
        HostName vsock/44
    Host cloud-ubuntu
        HostName vsock/45
-   Host peer
+   Host bootstrap-uki
        HostName vsock/46
+   Host bootstrap-direct
+       HostName vsock/47
+   Host bootstrap-direct-peer
+       HostName vsock/48
+   Host bootstrap-knix
+       HostName vsock/49
+   Host bootstrap-knix-peer
+       HostName vsock/50
 
-   Host bootstrap cloud-debian cloud-fedora cloud-ubuntu peer
+   Host bootstrap-* cloud-*
        ProxyCommand /usr/lib/systemd/systemd-ssh-proxy %h %p
        ProxyUseFdpass yes
        IdentityFile ~/bootstrap/system/ssh/id_ed25519
@@ -96,7 +104,7 @@ the guides' configuration near its top yourself, before any ``Host`` or
 
    Include ~/bootstrap/system/ssh/config
 
-Then ``ssh bootstrap`` reaches the guest named ``bootstrap`` once it runs.
+Then ``ssh bootstrap-disk`` reaches the disk guide's machine once it runs.
 A guest listens for SSH on vsock by itself through
 :cmd:`systemd-ssh-generator(8)`, which `NixOS`_ and the cloud images have.
 
@@ -120,8 +128,8 @@ hand before starting a machine; the start waits until the reload is done.
    :class: cmd-host
 
    $ systemctl --user start qemu-system-generator.service
-   $ systemctl --user start qemu-system@bootstrap.service
-   $ journalctl --user-unit=qemu-system@bootstrap.service --follow
+   $ systemctl --user start qemu-system@bootstrap-disk.service
+   $ journalctl --user-unit=qemu-system@bootstrap-disk.service --follow
 
 "Regenerate and restart" in a guide means the first line, then
 ``systemctl --user restart``.
@@ -145,7 +153,7 @@ exits on ``SIGTERM``:
 .. code-block:: console
    :class: cmd-host
 
-   $ systemctl --user kill qemu-system@bootstrap.service
+   $ systemctl --user kill qemu-system@bootstrap-disk.service
 
 .. _host-machined:
 

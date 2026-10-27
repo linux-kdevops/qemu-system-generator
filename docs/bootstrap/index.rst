@@ -61,15 +61,6 @@ relative path in its ``.qemu`` file resolves:
 (:cmd:`systemd.exec(5)`). The `NixOS`_ guests boot read-only store paths and
 keep nothing there; the cloud guests keep their disks there.
 
-The NixOS guides and the `knix`_ guide all write the machine ``bootstrap``,
-in ``~/.config/qemu/systemd/bootstrap.qemu``; before following a second
-one, remove that file and ``bootstrap.qemu.d/``. The direct and knix
-guides end with a second machine, ``peer``, on one network with
-``bootstrap`` (:ref:`direct <direct-peer>`, :ref:`knix <knix-peer>`),
-so remove ``peer.qemu`` and ``peer.qemu.d/`` too. The cloud guide writes
-``cloud-debian``, ``cloud-fedora`` and ``cloud-ubuntu`` beside them, and
-ends by :ref:`joining two of them on one network <cloud-network>`.
-
 .. toctree::
    :maxdepth: 1
 

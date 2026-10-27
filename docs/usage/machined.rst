@@ -27,10 +27,10 @@ machinectl
    :class: cmd-host
 
    $ machinectl --user list
-   MACHINE   CLASS SERVICE     OS VERSION ADDRESSES
-   bootstrap vm    qemu-system -  -       -
-   $ machinectl --user status bootstrap
-   $ machinectl --user show bootstrap
+   MACHINE          CLASS SERVICE     OS VERSION ADDRESSES
+   bootstrap-direct vm    qemu-system -  -       -
+   $ machinectl --user status bootstrap-direct
+   $ machinectl --user show bootstrap-direct
 
 ``show`` prints the registration, ``VSockCID=42`` among it. The OS,
 version and address columns stay empty for a virtual machine, which
@@ -91,12 +91,12 @@ all ssh still needs:
 .. code-block:: console
    :class: cmd-host
 
-   $ ssh -i ~/bootstrap/system/ssh/id_ed25519 machine/bootstrap
+   $ ssh -i ~/bootstrap/system/ssh/id_ed25519 machine/bootstrap-direct
 
-The same snippet routes ``vsock/42``, by context id. The bootstrap guides
+The same snippet routes ``vsock/47``, by context id. The bootstrap guides
 name each machine in ``~/bootstrap/system/ssh/config`` instead
 (:ref:`host-ssh`), which works without the snippet and keeps
-``ssh bootstrap`` short.
+``ssh bootstrap-direct`` short.
 
 .. _usage-varlink:
 
@@ -113,8 +113,8 @@ calls a method with JSON parameters:
 
    $ varlinkctl list-methods $XDG_RUNTIME_DIR/systemd/machine/io.systemd.Machine
    $ varlinkctl introspect $XDG_RUNTIME_DIR/systemd/machine/io.systemd.Machine io.systemd.Machine
-   $ varlinkctl call $XDG_RUNTIME_DIR/systemd/machine/io.systemd.Machine io.systemd.Machine.List '{"name":"bootstrap"}'
-   {"name":"bootstrap","class":"vm","service":"qemu-system",...,"vSockCid":42,"UID":1000}
+   $ varlinkctl call $XDG_RUNTIME_DIR/systemd/machine/io.systemd.Machine io.systemd.Machine.List '{"name":"bootstrap-direct"}'
+   {"name":"bootstrap-direct","class":"vm","service":"qemu-system",...,"vSockCid":47,"UID":1000}
 
 ``List`` with ``'{}'`` returns every machine, one JSON object each, but
 only with ``--more``; ``--json=pretty`` indents them:

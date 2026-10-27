@@ -24,7 +24,7 @@ the commands and prints the replies:
    :class: cmd-host
 
    $ printf '%s\n' '{"execute":"qmp_capabilities"}' '{"execute":"query-status"}' |
-       socat - UNIX-CONNECT:$XDG_RUNTIME_DIR/qemu-system/bootstrap/qmp.sock
+       socat - UNIX-CONNECT:$XDG_RUNTIME_DIR/qemu-system/bootstrap-direct/qmp.sock
    {"QMP": {"version": {"qemu": {"micro": 2, "minor": 1, "major": 11}, "package": "v11.1.2"}, "capabilities": ["oob"]}}
    {"return": {}}
    {"return": {"status": "running", "running": true}}

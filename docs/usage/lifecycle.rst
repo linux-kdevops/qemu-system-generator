@@ -33,7 +33,7 @@ are the end of the serial console:
 .. code-block:: console
    :class: cmd-host
 
-   $ systemctl --user status qemu-system@bootstrap.service
+   $ systemctl --user status qemu-system@bootstrap-direct.service
 
 ``systemctl --user cat`` prints the unit the generator wrote,
 ``systemctl --user show`` every property, and ``--property=`` one of
@@ -47,9 +47,9 @@ Starting and stopping
 .. code-block:: console
    :class: cmd-host
 
-   $ systemctl --user start qemu-system@bootstrap.service
-   $ systemctl --user stop qemu-system@bootstrap.service
-   $ systemctl --user restart qemu-system@bootstrap.service
+   $ systemctl --user start qemu-system@bootstrap-direct.service
+   $ systemctl --user stop qemu-system@bootstrap-direct.service
+   $ systemctl --user restart qemu-system@bootstrap-direct.service
 
 A start returns as soon as QEMU runs; the guest boots after that. A stop
 asks the guest to power off, first over SSH, then with the power button,
@@ -70,9 +70,9 @@ next start, or until you clear it:
 .. code-block:: console
    :class: cmd-host
 
-   $ systemctl --user kill qemu-system@bootstrap.service
-   $ systemctl --user kill --signal=SIGKILL qemu-system@bootstrap.service
-   $ systemctl --user reset-failed qemu-system@bootstrap.service
+   $ systemctl --user kill qemu-system@bootstrap-direct.service
+   $ systemctl --user kill --signal=SIGKILL qemu-system@bootstrap-direct.service
+   $ systemctl --user reset-failed qemu-system@bootstrap-direct.service
 
 Stop a machine with ``systemctl``. ``machinectl poweroff`` kills QEMU
 outright (:ref:`machined-verbs`).
@@ -86,7 +86,7 @@ so the service stays active with the same process:
 .. code-block:: console
    :class: cmd-host
 
-   $ ssh bootstrap systemctl reboot
+   $ ssh bootstrap-direct systemctl reboot
 
 `QMP`_ resets a hung guest from the host, as the reset button would
 (:ref:`usage-qmp`). A machine whose file has ``no-reboot=`` in
@@ -103,8 +103,8 @@ included, until ``thaw``:
 .. code-block:: console
    :class: cmd-host
 
-   $ systemctl --user freeze qemu-system@bootstrap.service
-   $ systemctl --user thaw qemu-system@bootstrap.service
+   $ systemctl --user freeze qemu-system@bootstrap-direct.service
+   $ systemctl --user thaw qemu-system@bootstrap-direct.service
 
 While frozen, nothing answers: not the guest, not SSH, not the QMP
 socket. A stop or restart thaws the unit first. To pause only the guest's

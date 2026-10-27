@@ -31,18 +31,18 @@ defaults to its fastest boot, one change at a time.
 Measuring
 =========
 
-The time that matters is from starting the unit to the first command
-that runs over :cmd:`ssh`. :cmd:`systemd-analyze(1)` in the guest
-splits the guest's part into kernel, `initrd`_ and userspace, but it cannot
-see `QEMU`_ or the firmware, so time the whole of it from the host. Stop the
-machine first. The ``timeout`` covers a `vsock`_ connection that does not
-answer yet:
+The time that matters is from starting the unit to the first command that
+runs over :cmd:`ssh`. :cmd:`systemd-analyze(1)` in the guest splits the
+guest's part into kernel, `initrd`_ and userspace, but it cannot see
+`QEMU`_ or the firmware, so time the whole of it from the host. Stop the
+machine first, ``bootstrap-disk`` here. The ``timeout`` covers a `vsock`_
+connection that does not answer yet:
 
 .. code-block:: console
    :class: cmd-host
 
-   $ systemctl --user stop qemu-system@bootstrap.service
-   $ time sh -c 'systemctl --user start qemu-system@bootstrap.service; until timeout 2 ssh bootstrap true; do sleep 0.1; done' 2>/dev/null
+   $ systemctl --user stop qemu-system@bootstrap-disk.service
+   $ time sh -c 'systemctl --user start qemu-system@bootstrap-disk.service; until timeout 2 ssh bootstrap-disk true; do sleep 0.1; done' 2>/dev/null
 
 Each time in the guides is the middle of three boots on the host they
 were written on, an AMD Ryzen 7 PRO 8700GE. Each step keeps the ones

@@ -6,7 +6,7 @@ The home share
 
 Every guide shares your home directory with its guests and mounts it at
 the same path, so a path names the same file on the host and in the
-guest. In the `NixOS`_ guests it is also root's home, and ``ssh bootstrap``
+guest. In the `NixOS`_ guests it is also root's home, and ``ssh`` to one
 lands in your files. The examples show the home as ``/home/user``; write
 your own wherever it appears in a guest's configuration.
 

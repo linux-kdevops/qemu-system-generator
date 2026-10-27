@@ -123,10 +123,10 @@ The firmware is a package output named ``fd``, so its link is ``ovmf-fd``.
 1. The firmware and the UKI
 ===========================
 
-Create ``~/.config/qemu/systemd/bootstrap.qemu``:
+Create ``~/.config/qemu/systemd/bootstrap-uki.qemu``:
 
 .. code-block:: ini
-   :caption: ~/.config/qemu/systemd/bootstrap.qemu
+   :caption: ~/.config/qemu/systemd/bootstrap-uki.qemu
 
    [QEMU]
    machine=q35
@@ -192,7 +192,7 @@ Nothing in the guest answers the power button yet, so
 Share the host's store under the tag ``store``:
 
 .. code-block:: diff
-   :caption: ~/.config/qemu/systemd/bootstrap.qemu
+   :caption: ~/.config/qemu/systemd/bootstrap-uki.qemu
 
     uid-map=:0:%U:1:
     gid-map=:0:%G:1:
@@ -224,7 +224,7 @@ takes 1.8 seconds:
 .. code-block:: console
    :class: cmd-host
 
-   $ systemctl --user stop qemu-system@bootstrap.service
+   $ systemctl --user stop qemu-system@bootstrap-uki.service
 
 .. _uki-ssh:
 
@@ -236,11 +236,11 @@ which needs no privileges, and add the `vsock`_ device with the context id
 :ref:`host-ssh` names:
 
 .. code-block:: diff
-   :caption: ~/.config/qemu/systemd/bootstrap.qemu
+   :caption: ~/.config/qemu/systemd/bootstrap-uki.qemu
 
     drive=if=pflash,format=raw,snapshot=on,file=%h/bootstrap/uki/ovmf-fd/FV/OVMF_VARS.fd
-   +nic=user,model=virtio-net-pci-non-transitional,hostfwd=tcp:127.0.0.1:10022-:22
-   +device=vhost-vsock-pci-non-transitional,guest-cid=42
+   +nic=user,model=virtio-net-pci-non-transitional,hostfwd=tcp:127.0.0.1:10046-:22
+   +device=vhost-vsock-pci-non-transitional,guest-cid=46
 
 Regenerate and restart. :ref:`host-ssh` already names the machine by
 this context id; without that ``Include`` in your ``~/.ssh/config``, the
@@ -249,10 +249,10 @@ forwarded port takes the key on the command line:
 .. code-block:: console
    :class: cmd-host
 
-   $ ssh bootstrap uname --kernel-release
-   Warning: Permanently added 'vsock/42' (ED25519) to the list of known hosts.
+   $ ssh bootstrap-uki uname --kernel-release
+   Warning: Permanently added 'vsock/46' (ED25519) to the list of known hosts.
    6.18.57
-   $ ssh -i ~/bootstrap/system/ssh/id_ed25519 -p 10022 root@127.0.0.1 \
+   $ ssh -i ~/bootstrap/system/ssh/id_ed25519 -p 10046 root@127.0.0.1 \
        uname --kernel-release
    6.18.57
 
@@ -266,7 +266,7 @@ A change to the guest is a rebuild and a restart. Sharing your home, as
 file, and a module in the guest. Add the section:
 
 .. code-block:: diff
-   :caption: ~/.config/qemu/systemd/bootstrap.qemu
+   :caption: ~/.config/qemu/systemd/bootstrap-uki.qemu
 
     shared-dir=/nix/store
     tag=store
@@ -303,9 +303,9 @@ the host:
    $ cd ~/bootstrap/uki
    $ nix build
    $ systemctl --user start qemu-system-generator.service
-   $ systemctl --user restart qemu-system@bootstrap.service
-   $ ssh bootstrap 'pwd; ls --almost-all ~/.config/systemd ~/.local/share/systemd; touch ~/bootstrap/uki/from-guest'
-   Warning: Permanently added 'vsock/42' (ED25519) to the list of known hosts.
+   $ systemctl --user restart qemu-system@bootstrap-uki.service
+   $ ssh bootstrap-uki 'pwd; ls --almost-all ~/.config/systemd ~/.local/share/systemd; touch ~/bootstrap/uki/from-guest'
+   Warning: Permanently added 'vsock/46' (ED25519) to the list of known hosts.
    /home/user
    /home/user/.config/systemd:
 
@@ -362,7 +362,7 @@ The store
 :ref:`fast-store` explains why the store, and only the store.
 
 .. code-block:: diff
-   :caption: ~/.config/qemu/systemd/bootstrap.qemu
+   :caption: ~/.config/qemu/systemd/bootstrap-uki.qemu
 
     [virtiofsd]
     shared-dir=/nix/store
@@ -407,7 +407,7 @@ More processors
 systemd starts what it can in parallel:
 
 .. code-block:: diff
-   :caption: ~/.config/qemu/systemd/bootstrap.qemu
+   :caption: ~/.config/qemu/systemd/bootstrap-uki.qemu
 
    -smp=2
    +smp=4

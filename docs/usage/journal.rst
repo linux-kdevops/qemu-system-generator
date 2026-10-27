@@ -20,10 +20,10 @@ under ``qemu-system@name``. Follow it live, or read it back:
 .. code-block:: console
    :class: cmd-host
 
-   $ journalctl --user-unit=qemu-system@bootstrap.service --follow
-   $ journalctl --user-unit=qemu-system@bootstrap.service --boot
-   $ journalctl --user-unit=qemu-system@bootstrap.service --invocation=0
-   $ journalctl --user-unit=qemu-system@bootstrap.service --list-invocations
+   $ journalctl --user-unit=qemu-system@bootstrap-direct.service --follow
+   $ journalctl --user-unit=qemu-system@bootstrap-direct.service --boot
+   $ journalctl --user-unit=qemu-system@bootstrap-direct.service --invocation=0
+   $ journalctl --user-unit=qemu-system@bootstrap-direct.service --list-invocations
 
 ``--boot`` limits it to the host's current boot. Each start of the
 service is an invocation; ``--invocation=0`` shows the latest,
@@ -36,7 +36,7 @@ A pattern names several units, such as a machine's `virtiofsd`_ daemons:
 .. code-block:: console
    :class: cmd-host
 
-   $ journalctl --user-unit='virtiofsd@bootstrap-*'
+   $ journalctl --user-unit='virtiofsd@bootstrap-direct-*'
 
 Use ``--user-unit=``, not ``--user --unit=``. ``--user`` reads only your
 own journal files, and :cmd:`journald <systemd-journald.service(8)>` writes
@@ -57,12 +57,12 @@ can read any journal:
 .. code-block:: console
    :class: cmd-host
 
-   $ ssh bootstrap journalctl --boot
-   $ ssh bootstrap journalctl --dmesg
-   $ ssh bootstrap journalctl --list-boots
-   $ ssh bootstrap journalctl --boot --priority=err
-   $ ssh bootstrap journalctl --unit=sshd.service --follow
-   $ ssh bootstrap systemd-analyze blame
+   $ ssh bootstrap-direct journalctl --boot
+   $ ssh bootstrap-direct journalctl --dmesg
+   $ ssh bootstrap-direct journalctl --list-boots
+   $ ssh bootstrap-direct journalctl --boot --priority=err
+   $ ssh bootstrap-direct journalctl --unit=sshd.service --follow
+   $ ssh bootstrap-direct systemd-analyze blame
 
 ``--dmesg`` shows only the kernel's messages. ``--list-boots`` lists the
 boots the guest still has: a guest whose root file system is new at
