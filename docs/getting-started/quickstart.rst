@@ -259,6 +259,8 @@ console. ``systemctl --user stop`` presses the guest's power button over
          $ journalctl --user-unit=qemu-system@cloud-ubuntu.service --follow
          $ systemctl --user stop qemu-system@cloud-ubuntu.service
 
+:ref:`usage-remove` takes the machine and its image away again.
+
 Next
 ====
 

@@ -136,6 +136,26 @@ enable it for yourself without root:
 The machines then stop when the host shuts down, each as
 ``systemctl --user stop`` would stop it.
 
+.. _usage-remove:
+
+Removing a machine
+==================
+
+Stop the machine, delete its state directory while its unit still
+loads, then remove its file and drop-in directory and regenerate:
+
+.. code-block:: console
+   :class: cmd-host
+
+   $ systemctl --user stop qemu-system@bootstrap-direct.service
+   $ systemctl --user clean --what=state qemu-system@bootstrap-direct.service
+   $ rm --recursive --force ~/.config/qemu/systemd/bootstrap-direct.qemu ~/.config/qemu/systemd/bootstrap-direct.qemu.d
+   $ systemctl --user start qemu-system-generator.service
+
+``clean --what=state`` deletes the state directory with everything in it,
+disk images included (:cmd:`systemctl`); leave it out to keep them.
+The generator deletes the units it wrote for a file that is gone.
+
 .. _systemd: https://systemd.io
 .. _virtiofsd: https://gitlab.com/virtio-fs/virtiofsd
 .. _QMP: https://www.qemu.org/docs/master/interop/qmp-spec.html
