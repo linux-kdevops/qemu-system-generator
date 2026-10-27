@@ -1,9 +1,8 @@
 # SPDX-License-Identifier: copyleft-next-0.3.1
-{ lib, modulesPath, pkgs, ... }:
+{ lib, modulesPath, ... }:
 {
   imports = [ (modulesPath + "/profiles/qemu-guest.nix") ];
 
-  boot.kernelPackages = pkgs.linuxPackages_latest;
   networking.hostName = "$name";
   networking.useNetworkd = true;
   systemd.network.networks."10-lan" = {
