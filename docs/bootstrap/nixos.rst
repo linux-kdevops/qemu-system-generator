@@ -31,18 +31,20 @@ The guests run the kernel NixOS picks by default, 6.18.57 here. The
 `boot.kernelPackages`_ option picks another, and
 ``pkgs.linuxPackages_latest`` follows the newest release, 7.3 here, which
 :cmd:`nix build` fetches from the binary cache like the default
-(`Linux kernel`_ in the NixOS manual). The disk and uki guides keep the
-default; the direct guide switches for its `microvm`_ stage. To switch,
-take ``pkgs`` among the arguments of ``configuration.nix`` and set the
-option:
+(`Linux kernel`_ in the NixOS manual). The guides keep the default. To
+switch, take ``pkgs`` among the arguments of ``configuration.nix`` and set
+the option:
 
 .. code-block:: diff
+   :caption: configuration.nix
 
    -{ modulesPath, ... }:
    +{ modulesPath, pkgs, ... }:
     {
       imports = [ (modulesPath + "/profiles/qemu-guest.nix") ];
+
    +  boot.kernelPackages = pkgs.linuxPackages_latest;
+      networking.hostName = "bootstrap";
 
 .. _NixOS: https://nixos.org/manual/nixos/stable/
 .. _knix: https://github.com/linux-kdevops/knix

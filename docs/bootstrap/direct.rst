@@ -474,29 +474,23 @@ host:
 
 QEMU's `microvm`_ machine type has no PCI bus and no firmware to run: its
 devices sit on virtio-mmio, and the kernel reaches its ``/init`` sooner.
-It needs the newest kernel here. On 6.18.57, three or more virtio-mmio
-devices stop the boot at ``ACPI: Core revision``, and this machine has
-five. Switch the guest to ``pkgs.linuxPackages_latest``, as
-:ref:`nixos-kernel` shows:
 
-.. code-block:: diff
-   :caption: ~/bootstrap/direct/configuration.nix
-
-   -{ modulesPath, ... }:
-   +{ modulesPath, pkgs, ... }:
-    {
-      imports = [ (modulesPath + "/profiles/qemu-guest.nix") ];
-   +  boot.kernelPackages = pkgs.linuxPackages_latest;
-
-And rebuild:
+microvm reserves no room for its `ACPI`_ tables when it loads the initrd:
+``microvm_memory_init()`` in ``hw/i386/microvm.c`` passes
+``x86_load_linux()`` an ``acpi_data_size`` of 0, where the PC machines
+pass ``PC_FW_DATA``. An initrd that does not end on a page boundary can
+end over the tables, in the top page of RAM, and the guest stops at
+``ACPI: Core revision``, depending on the initrd's size and the number of
+devices. Boot a copy padded to whole pages, and make it again after every
+build:
 
 .. code-block:: console
    :class: cmd-host
 
    $ cd ~/bootstrap/direct
-   $ nix build
-   $ readlink result/kernel
-   /nix/store/sby4x25d1wl7nn915c62jps8nr65sncj-linux-7.3/bzImage
+   $ cp --dereference --force result/initrd initrd
+   $ chmod u+w initrd
+   $ truncate --size=%4096 initrd
 
 Then change the machine. On microvm the virtio devices take their
 ``-device`` names instead of the ``-pci-non-transitional`` ones. The
@@ -510,7 +504,7 @@ QEMU's virtio-mmio transport offer virtio 1.0, as a non-transitional PCI
 device does; QEMU defaults to the legacy transport (``force-legacy`` in
 ``hw/virtio/virtio-mmio.c``). Under `KVM`_, microvm leaves the RTC out unless
 ``rtc=on`` asks for it (``hw/i386/microvm.c``). Without it the kernel's
-RTC probe fails, and ``/init`` started at 1.66 seconds instead of 0.49
+RTC probe fails, and ``/init`` started at 1.56 seconds instead of 0.37
 here:
 
 .. code-block:: diff
@@ -525,7 +519,8 @@ here:
     nographic=
     serial=mon:stdio
     kernel=%h/bootstrap/direct/result/kernel
-    initrd=%h/bootstrap/direct/result/initrd
+   -initrd=%h/bootstrap/direct/result/initrd
+   +initrd=%h/bootstrap/direct/initrd
    -nic=user,model=virtio-net-pci-non-transitional,hostfwd=tcp:127.0.0.1:10047-:22
    -device=vhost-vsock-pci-non-transitional,guest-cid=47
    -device=virtio-serial-pci-non-transitional
@@ -568,13 +563,13 @@ Regenerate, restart and log in:
    $ systemctl --user restart qemu-system@bootstrap-direct.service
    $ ssh bootstrap-direct uname --kernel-release
    Warning: Permanently added 'vsock/47' (ED25519) to the list of known hosts.
-   7.3.0
+   6.18.58
 
-On this guest the kernel reached ``/init`` at 0.49 seconds against 0.75
-on q35 with the same kernel, but the initrd mounted the store later, at
-1.85 seconds against 1.14, and ``ssh`` answered after 8.9 to 9.1 seconds
-against 8.2 to 8.3. NixOS's userspace outweighs what microvm saves in the
-kernel, so the other guides keep q35.
+On this guest the kernel reached ``/init`` at 0.37 seconds against 0.68
+on q35, and the initrd mounted the store at 2.55 seconds against 2.92,
+but ``ssh`` answered after 9.1 to 9.5 seconds against 8.3 to 8.5. NixOS's
+userspace outweighs what microvm saves before it, so the other guides
+keep q35.
 
 .. _direct-peer:
 
@@ -613,6 +608,9 @@ before it. Rebuild, and rewrite the drop-in as in
 
    $ cd ~/bootstrap/direct
    $ nix build
+   $ cp --dereference --force result/initrd initrd
+   $ chmod u+w initrd
+   $ truncate --size=%4096 initrd
 
 .. code-block:: shell
    :class: cmd-host
@@ -652,7 +650,7 @@ mounts, a context id of its own and no forwarded port, since
    nographic=
    serial=mon:stdio
    kernel=%h/bootstrap/direct/result/kernel
-   initrd=%h/bootstrap/direct/result/initrd
+   initrd=%h/bootstrap/direct/initrd
    global=virtio-mmio.force-legacy=false
    netdev=user,id=net0
    device=virtio-net-device,netdev=net0
@@ -713,7 +711,7 @@ and each reaches the other:
 
 Each step is timed as :ref:`fast-measure` shows.
 
-The machine as it stands takes 8.9 to 9.4 seconds.
+The machine as it stands takes 9.0 to 9.2 seconds.
 
 The console
 -----------
@@ -730,7 +728,7 @@ Add them to the drop-in:
    append=console=ttyS0 console=hvc0 systemd.ssh_listen=vsock::22 systemd.tty.term.console=vt220 systemd.tty.rows.console=24 systemd.tty.columns.console=80 init=$(readlink ~/bootstrap/direct/result)/init
    EOF
 
-Regenerate and restart: 7.3 seconds, and the initrd's share falls from
+Regenerate and restart: 7.0 seconds, and the initrd's share falls from
 3.1 to 2.1.
 
 The store
@@ -747,7 +745,7 @@ The store
    +cache=always
     sandbox=namespace
 
-6.1 seconds.
+6.2 seconds.
 
 The closure
 -----------
@@ -757,8 +755,8 @@ The closure
 .. code-block:: diff
    :caption: ~/bootstrap/direct/configuration.nix
 
-   -{ modulesPath, pkgs, ... }:
-   +{ lib, modulesPath, pkgs, ... }:
+   -{ modulesPath, ... }:
+   +{ lib, modulesPath, ... }:
    ...
       services.openssh.enable = true;
    +  services.openssh.hostKeys = [
@@ -778,6 +776,9 @@ Rebuild, and rewrite the drop-in with the new closure:
 
    $ cd ~/bootstrap/direct
    $ nix build
+   $ cp --dereference --force result/initrd initrd
+   $ chmod u+w initrd
+   $ truncate --size=%4096 initrd
 
 .. code-block:: shell
    :class: cmd-host
