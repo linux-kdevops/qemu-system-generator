@@ -46,3 +46,6 @@ steps:
 
   - id: uki_check
     run: steps/uki/check
+
+  - id: machine_remove
+    run: steps/machine/remove --name bootstrap-uki

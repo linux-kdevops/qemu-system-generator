@@ -67,3 +67,9 @@ steps:
 
   - id: direct_check
     run: steps/direct/check
+
+  - id: machine_remove_bootstrap_direct
+    run: steps/machine/remove --name bootstrap-direct
+
+  - id: machine_remove_bootstrap_direct_peer
+    run: steps/machine/remove --name bootstrap-direct-peer

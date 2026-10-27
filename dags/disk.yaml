@@ -45,3 +45,6 @@ steps:
 
   - id: disk_check
     run: steps/disk/check
+
+  - id: machine_remove
+    run: steps/machine/remove --name bootstrap-disk

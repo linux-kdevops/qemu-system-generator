@@ -22,6 +22,12 @@ done
 : "${name:?}"
 
 set -o xtrace
+# steps/machine/remove may have removed it already.
+load=$(systemctl --user show --property=LoadState --value "qemu-system@$name.service")
+if [ "$load" = not-found ]; then
+	echo "$name: not installed"
+	exit 0
+fi
 start=$SECONDS
 systemctl --user stop "qemu-system@$name.service"
 echo "$name: stopped in $((SECONDS - start)) s"

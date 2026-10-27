@@ -171,3 +171,24 @@ steps:
 
   - id: machine_stop_cloud_ubuntu_peer
     run: steps/machine/stop --name cloud-ubuntu-peer
+
+  - id: machine_remove_cloud_debian
+    run: steps/machine/remove --name cloud-debian
+
+  - id: machine_remove_cloud_debian_peer
+    run: steps/machine/remove --name cloud-debian-peer
+
+  - id: machine_remove_cloud_fedora
+    run: steps/machine/remove --name cloud-fedora
+
+  - id: machine_remove_cloud_fedora_peer
+    run: steps/machine/remove --name cloud-fedora-peer
+
+  - id: machine_remove_cloud_ubuntu
+    run: steps/machine/remove --name cloud-ubuntu
+
+  - id: machine_remove_cloud_ubuntu_peer
+    run: steps/machine/remove --name cloud-ubuntu-peer
+
+  - id: cloud_remove_dropin
+    run: steps/cloud/remove_dropin

@@ -65,11 +65,13 @@ argument that tells two runs of that step in one DAG apart
 
 A DAG (`dags/<guide>.yaml`) is `type: chain`, takes no parameters, and
 holds the control flow: it retries `machine/wait` until the guest
-answers, and stops the machines from `handler_on: exit`, whether the run
-passed or failed. Each guide's machines have names, vsock context ids,
-forwarded ports and a LAN group of their own, so runs of different DAGs
-may overlap; Dagu's default `max_active_runs` of 1 keeps two runs of one
-DAG apart.
+answers, stops the machines from `handler_on: exit`, whether the run
+passed or failed, and ends by removing every machine it deployed, so a
+run that passed leaves no `.qemu` file or state directory behind and a
+failed one keeps them to look at. Each guide's machines have names,
+vsock context ids, forwarded ports and a LAN group of their own, so runs
+of different DAGs may overlap; Dagu's default `max_active_runs` of 1
+keeps two runs of one DAG apart.
 
 ## CI
 
