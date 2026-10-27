@@ -28,114 +28,20 @@ done
 . "$(dirname "$0")/../base"
 units=$HOME/.config/qemu/systemd
 knix=$WORKTREES_DIR/knix
+files=$(realpath "$(dirname "$0")/files")
 
 set -o xtrace
 mkdir --parents "$knix/guest" "$knix/tiny" "$units" "$SYSTEM_DIR/share"
-cat >"$knix/guest/flake.nix" <<'EOF'
-{
-  inputs.knix.url = "github:linux-kdevops/knix/0c95b7e564bda2d1ca91d5e8e832ea11508d97dd";
-  inputs.nixpkgs.follows = "knix/nixpkgs";
-
-  outputs =
-    {
-      self,
-      nixpkgs,
-      knix,
-      ...
-    }@inputs:
-    {
-      nixosConfigurations.vm = nixpkgs.lib.nixosSystem {
-        system = "x86_64-linux";
-        specialArgs = { inherit inputs knix; };
-        modules = [
-          knix.nixosModules.backends.imageless
-          knix.nixosModules.user
-          { nixpkgs.overlays = [ knix.overlays.default ]; }
-          ./default.nix
-        ];
-      };
-      packages.x86_64-linux.toplevel = self.nixosConfigurations.vm.config.system.build.toplevel;
-    };
-}
-EOF
-cat >"$knix/guest/default.nix" <<EOF
-{ lib, knix, ... }:
-{
-  imports = [ knix.nixosModules.mounts.shares ];
-  knix.shares."/mnt/host".tag = "host";
-
-  networking.hostName = "bootstrap";
-  systemd.network.networks = {
-    "10-lan-bootstrap" = {
-      matchConfig.MACAddress = "52:54:00:00:00:42";
-      address = [ "10.0.100.42/24" ];
-    };
-    "10-lan-peer" = {
-      matchConfig.MACAddress = "52:54:00:00:00:46";
-      address = [ "10.0.100.46/24" ];
-    };
-  };
-  services.openssh.hostKeys = [
-    { type = "ed25519"; path = "/etc/ssh/ssh_host_ed25519_key"; }
-  ];
-  security.pam.services.sshd.startSession = lib.mkForce false;
-  users.users.root.openssh.authorizedKeys.keys = [ "$(cat "$SSH_KEY.pub")" ];
-}
-EOF
-cat >"$knix/tiny/init" <<'EOF'
-#!/bin/busybox sh
-/bin/busybox mkdir -p /dev /proc /sys /nix/store
-/bin/busybox mount -t devtmpfs devtmpfs /dev
-/bin/busybox mount -t proc proc /proc
-/bin/busybox ln -s /proc/self/fd /dev/fd
-exec </dev/console >/dev/console 2>&1
-/bin/busybox mount -t virtiofs store /nix/store || exec /bin/busybox sh
-exec "$CLOSURE/prepare-root"
-EOF
-chmod 0755 "$knix/tiny/init"
+cp "$files/guest/flake.nix" "$knix/guest/flake.nix"
+key=$(cat "$SSH_KEY.pub") envsubst "\$key" <"$files/guest/default.nix" >"$knix/guest/default.nix"
+install --mode=0755 "$files/tiny/init" "$knix/tiny/init"
 # The fast kernel boots through qboot, the other through QEMU's default
 # firmware.
 for vm in bootstrap:42:4:fast-kernel:qboot.rom peer:46:2:kernel:; do
 	IFS=: read -r name cid cpus kernel bios <<<"$vm"
-	cat >"$units/$name.qemu" <<EOF
-[VM]
-QemuBinary=$knix/nix/qemu/bin/qemu-system-x86_64
-
-[QEMU]
-machine=q35
-${bios:+bios=$bios}
-accel=kvm
-cpu=host
-m=2G
-smp=$cpus
-nographic=
-serial=mon:stdio
-kernel=$knix/nix/$kernel/bzImage
-nic=user,model=virtio-net-pci-non-transitional
-netdev=dgram,id=lan,remote.type=inet,remote.host=239.255.0.1,remote.port=5555,local.type=inet,local.host=127.0.0.1,local.port=0
-device=virtio-net-pci-non-transitional,netdev=lan,mac=52:54:00:00:00:$cid
-device=vhost-vsock-pci-non-transitional,guest-cid=$cid
-
-[virtiofsd]
-shared-dir=/nix/store
-tag=store
-sandbox=namespace
-uid-map=:0:%U:1:
-gid-map=:0:%G:1:
-
-[virtiofsd]
-shared-dir=$knix/nix/$kernel-modules/lib/modules
-tag=modules
-sandbox=namespace
-uid-map=:0:%U:1:
-gid-map=:0:%G:1:
-
-[virtiofsd]
-shared-dir=$SYSTEM_DIR/share
-tag=host
-sandbox=namespace
-uid-map=:0:%U:1:
-gid-map=:0:%G:1:
-EOF
+	knix=$knix cid=$cid cpus=$cpus kernel=$kernel SYSTEM_DIR=$SYSTEM_DIR \
+		firmware=${bios:+bios=$bios} \
+		envsubst "\$knix \$cid \$cpus \$kernel \$SYSTEM_DIR \$firmware" \
+		<"$files/machine.qemu" >"$units/$name.qemu"
 	rm --recursive --force -- "$units/$name.qemu.d"
 done
