@@ -7,7 +7,7 @@ Bootstrap with your own kernel and QEMU
 This guide boots a `NixOS`_ guest under your user's `systemd`_ manager on a
 `Linux`_ kernel and a `QEMU`_ you build yourself. The system stays in the
 host's ``/nix/store``, shared over `virtiofs`_, and so do the kernel's
-modules. No step needs root.
+modules.
 
 Why knix
 ========
@@ -25,7 +25,7 @@ kernel in your tree with :cmd:`make` as usual, and the same closure boots
 every build. knix also provides the ``build-kernel`` and ``build-qemu``
 shells, which bring the toolchains.
 
-Prepare the host as :doc:`host` shows, once for every guide.
+Prepare the host as :doc:`host` shows.
 
 The kernel
 ----------
@@ -239,8 +239,7 @@ path unit does not watch the drop-in directory.
 ============
 
 :key:`QemuBinary=` replaces the QEMU the generator was built with. It becomes
-the first word of :cmd:`ExecStart=`, where systemd expands ``%h`` to your
-home directory:
+the first word of :cmd:`ExecStart=`:
 
 .. code-block:: diff
    :caption: ~/.config/qemu/systemd/bootstrap-knix.qemu
@@ -448,9 +447,8 @@ What this machine needs beyond them goes in a fragment of your own:
 
 Merge it with the fragments for a systemd guest with virtiofs, virtio-net
 and vsock built in, into a build directory of its own so that
-``bootstrap-knix-peer`` keeps the first kernel. ``merge_config.sh -n``
-starts from ``allnoconfig``, and ``-y`` keeps a ``=y`` from a
-``builtin/`` fragment over a ``=m`` (`kfragments`_ has the rules):
+``bootstrap-knix-peer`` keeps the first kernel (`kfragments`_ has the merge
+rules):
 
 .. code-block:: console
    :class: cmd-host
@@ -698,7 +696,6 @@ guest's userspace.
 .. _initrd: https://docs.kernel.org/filesystems/ramfs-rootfs-initramfs.html
 .. _bootspec: https://nixos.org/manual/nixos/stable/#sec-bootspec
 .. _knix: https://github.com/linux-kdevops/knix
-.. _kernel build documentation: https://docs.kernel.org/admin-guide/README.html
 .. _QEMU build system: https://www.qemu.org/docs/master/devel/build-system.html
 .. _virtiofs: https://virtio-fs.gitlab.io
 .. _user-mode network: https://www.qemu.org/docs/master/system/devices/net.html#using-the-user-mode-network-stack
@@ -712,3 +709,4 @@ guest's userspace.
 .. _OpenSSH: https://www.openssh.com
 .. _tmpfs: https://docs.kernel.org/filesystems/tmpfs.html
 .. _microvm: https://www.qemu.org/docs/master/system/i386/microvm.html
+.. _kernel build documentation: https://docs.kernel.org/admin-guide/README.html

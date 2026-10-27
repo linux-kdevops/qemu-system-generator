@@ -25,12 +25,9 @@ under ``qemu-system@name``. Follow it live, or read it back:
    $ journalctl --user-unit=qemu-system@bootstrap-direct.service --invocation=0
    $ journalctl --user-unit=qemu-system@bootstrap-direct.service --list-invocations
 
-``--boot`` limits it to the host's current boot. Each start of the
-service is an invocation; ``--invocation=0`` shows the latest,
-``--invocation=-1`` the one before, and ``--list-invocations`` lists them
-all. The usual filters work too, such as ``--since=-10min``,
-``--lines=50``, ``--grep=pattern``, and ``--output=cat`` for the
-console's text alone.
+Each start of the service is an invocation; ``--invocation=0`` shows
+the latest, ``--invocation=-1`` the one before, and
+``--list-invocations`` lists them all.
 A pattern names several units, such as a machine's `virtiofsd`_ daemons:
 
 .. code-block:: console
@@ -51,8 +48,7 @@ can read. Reading entries that landed in the system journal needs the
 The guest's journal
 ===================
 
-The guest's own journal is on the guest. Read it over SSH as root, who
-can read any journal:
+The guest's own journal is on the guest. Read it over SSH as root:
 
 .. code-block:: console
    :class: cmd-host
@@ -64,9 +60,9 @@ can read any journal:
    $ ssh bootstrap-direct journalctl --unit=sshd.service --follow
    $ ssh bootstrap-direct systemd-analyze blame
 
-``--dmesg`` shows only the kernel's messages. ``--list-boots`` lists the
-boots the guest still has: a guest whose root file system is new at
-every boot, as in the direct and `knix`_ guides, has only the current one.
+``--list-boots`` lists the boots the guest still has: a guest whose root
+file system is new at every boot, as in the direct and `knix`_ guides,
+has only the current one.
 
 .. _usage-forward:
 

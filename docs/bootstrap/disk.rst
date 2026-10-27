@@ -7,10 +7,9 @@ Bootstrap from a disk image
 This guide boots a `NixOS`_ guest in `QEMU`_ under your user's `systemd`_
 manager from a disk image that `nixpkgs`_ builds, through firmware and a
 boot loader, the way a physical machine boots: first `SeaBIOS`_ and `GRUB`_,
-then `OVMF`_ and `systemd-boot`_. Its :key:`.qemu` file grows by one feature
-per step, and no step needs root.
+then `OVMF`_ and `systemd-boot`_.
 
-Prepare the host as :doc:`host` shows, once for every guide.
+Prepare the host as :doc:`host` shows.
 
 The guest
 ---------
@@ -143,8 +142,7 @@ couple of minutes:
    $ ls result
    bootstrap.qcow2  nix-support
 
-Give the machine the disk. ``%h`` is your home directory, one of the
-`specifiers`_ systemd expands in a unit:
+Give the machine the disk. ``%h`` is your home directory (`specifiers`_):
 
 .. code-block:: diff
    :caption: ~/.config/qemu/systemd/bootstrap-disk.qemu
@@ -153,9 +151,8 @@ Give the machine the disk. ``%h`` is your home directory, one of the
     serial=mon:stdio
    +drive=file=%h/bootstrap/disk/result/bootstrap.qcow2,if=virtio,format=qcow2,snapshot=on
 
-The image is in the store, which is read-only. With ``snapshot=on``, QEMU
-writes to a temporary file instead, and what the guest wrote is gone
-when it stops.
+The image is in the store, which is read-only. With ``snapshot=on``,
+what the guest wrote is gone when it stops.
 
 Regenerate and start as in :ref:`step 1 <disk-machine>`. SeaBIOS finds
 the disk, GRUB loads the kernel and the `initrd`_ with the command line
@@ -187,9 +184,8 @@ takes 1.4 seconds:
 3. UEFI
 =======
 
-SeaBIOS is QEMU's default firmware. On the PC machines, a firmware in
-the first flash device replaces it. Build the OVMF firmware from
-`EDK II`_, and the image with an EFI system partition and systemd-boot:
+Build the OVMF firmware from `EDK II`_, and the image with an EFI system
+partition and systemd-boot:
 
 .. code-block:: console
    :class: cmd-host
@@ -198,9 +194,8 @@ the first flash device replaces it. Build the OVMF firmware from
    $ nix build .#efi --out-link efi
 
 The firmware is a package output named ``fd``, so its link is ``ovmf-fd``.
-The first flash device holds the firmware's code, read-only. The second
-holds its variable store, which the firmware writes, so it takes
-``snapshot=on`` too:
+The second flash device holds its variable store, which the firmware
+writes, so it takes ``snapshot=on`` too:
 
 .. code-block:: diff
    :caption: ~/.config/qemu/systemd/bootstrap-disk.qemu
@@ -231,8 +226,7 @@ menu counts down on the serial console:
 ======
 
 Forward a local port to the guest's SSH over QEMU's `user-mode network`_,
-which needs no privileges, and add the `vsock`_ device with the context id
-:ref:`host-ssh` names:
+and add the `vsock`_ device with the context id :ref:`host-ssh` names:
 
 .. code-block:: diff
    :caption: ~/.config/qemu/systemd/bootstrap-disk.qemu
@@ -438,8 +432,8 @@ Quiet
 .. _systemd-boot: https://www.freedesktop.org/software/systemd/man/latest/systemd-boot.html
 .. _initrd: https://docs.kernel.org/filesystems/ramfs-rootfs-initramfs.html
 .. _image modules: https://github.com/NixOS/nixpkgs/blob/master/nixos/modules/image/images.nix
-.. _specifiers: https://www.freedesktop.org/software/systemd/man/latest/systemd.unit.html#Specifiers
 .. _EDK II: https://github.com/tianocore/edk2
 .. _QEMU: https://www.qemu.org/docs/master/system/invocation.html
 .. _user-mode network: https://www.qemu.org/docs/master/system/devices/net.html#using-the-user-mode-network-stack
 .. _vsock: https://man7.org/linux/man-pages/man7/vsock.7.html
+.. _specifiers: https://www.freedesktop.org/software/systemd/man/latest/systemd.unit.html#Specifiers

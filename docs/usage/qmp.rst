@@ -4,9 +4,7 @@
 QMP and console
 ===============
 
-`systemd`_ sees a machine as a process; `QEMU`_ itself knows whether the guest
-runs, is paused or is reset. `QMP`_, the QEMU Machine Protocol, lets you
-ask it, and the generated unit gives every machine a QMP socket in its
+The generated unit gives every machine a `QMP`_ socket in its
 runtime directory, ``$XDG_RUNTIME_DIR/qemu-system/name/qmp.sock``, which
 the stop also uses (:doc:`qemu-systemd.unit(5)
 </man/qemu-systemd.unit.5>`).
@@ -16,9 +14,7 @@ the stop also uses (:doc:`qemu-systemd.unit(5)
 QMP
 ===
 
-QMP is one JSON object per line. QEMU greets each client, and answers
-nothing until the client sends ``qmp_capabilities``. :cmd:`socat` sends
-the commands and prints the replies:
+:cmd:`socat` sends the commands and prints the replies:
 
 .. code-block:: console
    :class: cmd-host
@@ -32,7 +28,7 @@ the commands and prints the replies:
 Replace ``query-status`` with another command of the `QMP reference`_:
 
 ``stop``, ``cont``
-   Pause the guest's processors and resume them. QEMU keeps running and
+   Pause the guest's processors and resume them. `QEMU`_ keeps running and
    answering, unlike after ``systemctl --user freeze``
    (:ref:`usage-pause`).
 ``system_reset``
@@ -49,9 +45,7 @@ Replace ``query-status`` with another command of the `QMP reference`_:
 
       {"execute":"human-monitor-command","arguments":{"command-line":"info status"}}
 
-``socat - UNIX-CONNECT:...`` alone opens an interactive session: type
-``{"execute":"qmp_capabilities"}``, then one command per line, and
-Ctrl-D to leave. QEMU serves one client at a time and makes the others
+QEMU serves one client at a time and makes the others
 wait, the stop's power button included, so do not keep a session open
 while you stop the machine.
 
@@ -69,5 +63,4 @@ guide adds one (:ref:`direct-console`).
 
 .. _QMP: https://www.qemu.org/docs/master/interop/qmp-spec.html
 .. _QMP reference: https://www.qemu.org/docs/master/interop/qemu-qmp-ref.html
-.. _systemd: https://systemd.io
 .. _QEMU: https://www.qemu.org/docs/master/system/invocation.html

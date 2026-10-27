@@ -26,18 +26,15 @@ Two commands list the machines, `systemd`_'s view and
 The first lists the units, failed ones included; the second the machines
 that registered, with their class and service (:doc:`machined`).
 
-``status`` shows a machine's state, its memory and CPU time, the `QEMU`_
-command line in its cgroup, and the last ten lines of its journal, which
-are the end of the serial console:
+``status`` shows a machine's state and the last ten lines of its
+journal, which are the end of the serial console:
 
 .. code-block:: console
    :class: cmd-host
 
    $ systemctl --user status qemu-system@bootstrap-direct.service
 
-``systemctl --user cat`` prints the unit the generator wrote,
-``systemctl --user show`` every property, and ``--property=`` one of
-them, such as ``MainPID`` for QEMU's process id.
+``systemctl --user cat`` prints the unit the generator wrote.
 
 .. _usage-start:
 
@@ -51,12 +48,11 @@ Starting and stopping
    $ systemctl --user stop qemu-system@bootstrap-direct.service
    $ systemctl --user restart qemu-system@bootstrap-direct.service
 
-A start returns as soon as QEMU runs; the guest boots after that. A stop
+A start returns as soon as `QEMU`_ runs; the guest boots after that. A stop
 asks the guest to power off, first over SSH, then with the power button,
-and waits for QEMU to exit (:ref:`SSH poweroff <host-poweroff>`). A
-restart is a stop and a start; the machine's `virtiofsd`_ daemons exit
-with the old QEMU and start again when the new one connects. Every
-command takes several names, or a pattern such as ``'qemu-system@*'``.
+and waits for QEMU to exit (:ref:`SSH poweroff <host-poweroff>`). On
+a restart, the machine's `virtiofsd`_ daemons exit with the old QEMU and
+start again when the new one connects.
 Stopping :cmd:`machines.target` stops every machine at once; starting it
 starts each one whose file names it in :cmd:`WantedBy=`
 (:ref:`direct-settings`).
@@ -118,9 +114,7 @@ At login and at boot
 
 A machine whose file has ``WantedBy=machines.target`` in ``[Install]``
 starts with :cmd:`machines.target`. systemd's presets enable that target
-for the system manager but not for yours, so enable it once. Its own
-``[Install]`` hooks it to ``default.target``, which your user manager
-reaches at login:
+for the system manager but not for yours, so enable it once:
 
 .. code-block:: console
    :class: cmd-host
@@ -128,10 +122,9 @@ reaches at login:
    $ systemctl --user enable machines.target
 
 A user manager runs only while you are logged in, and stops every
-machine when you log out. Lingering, set with :cmd:`loginctl`, keeps it
-running from boot to shutdown, logged in or not, so the machines start
-at boot. The default policy lets you enable it for yourself without
-root:
+machine when you log out. Lingering keeps it running from boot to
+shutdown, so the machines start at boot. The default policy lets you
+enable it for yourself without root:
 
 .. code-block:: console
    :class: cmd-host
@@ -144,6 +137,6 @@ The machines then stop when the host shuts down, each as
 ``systemctl --user stop`` would stop it.
 
 .. _systemd: https://systemd.io
-.. _QEMU: https://www.qemu.org/docs/master/system/invocation.html
 .. _virtiofsd: https://gitlab.com/virtio-fs/virtiofsd
 .. _QMP: https://www.qemu.org/docs/master/interop/qmp-spec.html
+.. _QEMU: https://www.qemu.org/docs/master/system/invocation.html

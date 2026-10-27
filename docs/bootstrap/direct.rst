@@ -7,10 +7,9 @@ Bootstrap from a kernel and an initrd
 This guide boots a `NixOS`_ guest under your user's `systemd`_ manager
 with no firmware and no disk. `QEMU`_ loads the guest's kernel and `initrd`_
 itself, the root file system is a `tmpfs`_, and ``/nix/store`` is the
-host's own, shared over `virtiofs`_. Its :key:`.qemu` file grows by one
-feature per step, and no step needs root.
+host's own, shared over `virtiofs`_.
 
-Prepare the host as :doc:`host` shows, once for every guide.
+Prepare the host as :doc:`host` shows.
 
 The guest
 ---------
@@ -102,9 +101,9 @@ boots, and its ``init`` is what the kernel runs once the store is mounted:
 1. A kernel
 ===========
 
-Create ``~/.config/qemu/systemd/bootstrap-direct.qemu``, pointing QEMU at the
-closure's kernel and initrd. ``%h`` is your home directory, one of the
-`specifiers`_ systemd expands in a unit:
+Create ``~/.config/qemu/systemd/bootstrap-direct.qemu``, pointing QEMU at
+the closure's kernel and initrd; ``%h`` is your home directory
+(`specifiers`_):
 
 .. code-block:: ini
    :caption: ~/.config/qemu/systemd/bootstrap-direct.qemu
@@ -223,8 +222,7 @@ socket stays listening for the next start.
 3. A network
 ============
 
-QEMU's `user-mode network`_ needs no privileges. Forward a local port to
-the guest's SSH:
+Forward a local port to the guest's SSH over QEMU's `user-mode network`_:
 
 .. code-block:: diff
    :caption: ~/.config/qemu/systemd/bootstrap-direct.qemu
@@ -247,8 +245,7 @@ Regenerate, restart with ``systemctl --user restart``, and log in with
 4. vsock
 ========
 
-A `vsock`_ device gives the guest a context id, a socket address the host
-can reach without any network:
+A `vsock`_ device gives the guest a context id:
 
 .. code-block:: diff
    :caption: ~/.config/qemu/systemd/bootstrap-direct.qemu
@@ -310,8 +307,7 @@ over SSH first (:ref:`SSH poweroff <host-poweroff>`):
 
 The serial console goes to the journal, which you read but cannot type
 into. Give the guest a second console, a virtio console on a socket in
-the machine's runtime directory. ``%t`` is that directory's root and ``%i``
-the machine name:
+the machine's runtime directory. ``%i`` is the machine name:
 
 .. code-block:: diff
    :caption: ~/.config/qemu/systemd/bootstrap-direct.qemu
@@ -363,8 +359,8 @@ touching the file you edit by hand.
    append=console=ttyS0 console=hvc0 init=$(readlink ~/bootstrap/direct/result)/init
    EOF
 
-:cmd:`readlink` fills in the path. To see what the generator makes of the
-two files without writing anything:
+To see what the generator makes of the two files without writing
+anything:
 
 .. code-block:: console
    :class: cmd-host
@@ -847,8 +843,6 @@ Notes
 .. _initrd: https://docs.kernel.org/filesystems/ramfs-rootfs-initramfs.html
 .. _tmpfs: https://docs.kernel.org/filesystems/tmpfs.html
 .. _virtiofs: https://virtio-fs.gitlab.io
-.. _specifiers: https://www.freedesktop.org/software/systemd/man/latest/systemd.unit.html#Specifiers
-.. _user-mode network: https://www.qemu.org/docs/master/system/devices/net.html#using-the-user-mode-network-stack
 .. _QEMU: https://www.qemu.org/docs/master/system/invocation.html
 .. _microvm: https://www.qemu.org/docs/master/system/i386/microvm.html
 .. _ACPI: https://uefi.org/specifications
@@ -856,3 +850,5 @@ Notes
 .. _resource limits: https://www.freedesktop.org/software/systemd/man/latest/systemd.resource-control.html
 .. _vsock: https://man7.org/linux/man-pages/man7/vsock.7.html
 .. _KVM: https://docs.kernel.org/virt/kvm/index.html
+.. _specifiers: https://www.freedesktop.org/software/systemd/man/latest/systemd.unit.html#Specifiers
+.. _user-mode network: https://www.qemu.org/docs/master/system/devices/net.html#using-the-user-mode-network-stack

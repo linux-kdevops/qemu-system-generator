@@ -9,16 +9,14 @@ This guide boots the cloud images of `Debian`_ testing, `Fedora`_ 44 and
 `systemd`_ manager. On first boot,
 `cloud-init`_ reads a seed image that names the machine and lets your key
 in for root. Each disk is the guest's own: what it writes stays across
-restarts. No step needs root.
+restarts.
 
 The three machines share most of their lines through a drop-in
 directory, so each :key:`.qemu` file holds only what differs. The file format
 is specified in :doc:`qemu-systemd.unit(5) </man/qemu-systemd.unit.5>` and
 the generator in :doc:`qemu-system-generator(8) </man/qemu-system-generator.8>`.
-The outputs below are real, trimmed to the lines that matter, with the
-home directory shown as ``/home/user``.
 
-Prepare the host as :doc:`host` shows, once for every guide.
+Prepare the host as :doc:`host` shows.
 
 The images
 ----------
@@ -38,8 +36,7 @@ Debian 14, has daily builds:
    $ curl --silent --location https://cloud.debian.org/images/cloud/forky/daily/latest/SHA512SUMS | sha512sum --check --ignore-missing
    debian-14-genericcloud-amd64-daily.qcow2: OK
 
-Fedora's checksum file is signed, so :cmd:`sha256sum` skips and counts the
-signature lines it cannot parse:
+Fedora's checksum file is signed:
 
 .. code-block:: console
    :class: cmd-host
@@ -66,10 +63,9 @@ is a qcow2 file despite its ``.img`` name:
 The seeds
 ---------
 
-cloud-init's `NoCloud`_ source reads its configuration from a file system
-labelled ``cidata``. ``~/bootstrap/cloud/user-data`` holds what every
-machine gets, with the public key from
-``~/bootstrap/system/ssh/id_ed25519.pub`` pasted in:
+Each machine reads its seed as a `NoCloud`_ source.
+``~/bootstrap/cloud/user-data`` holds what every machine gets, with the
+public key from ``~/bootstrap/system/ssh/id_ed25519.pub`` pasted in:
 
 .. code-block:: yaml
    :caption: ~/bootstrap/cloud/user-data
@@ -141,10 +137,9 @@ the part of the name up to a dash, ``cloud-.qemu.d/``, applies to every
    uid-map=:0:%U:1:
    gid-map=:0:%G:1:
 
-``%h`` is your home directory, one of the `specifiers`_ systemd expands
-in a unit, and the :key:`[virtiofsd]` section shares it
-(:ref:`home-host`). ``nic=`` gives the guest `QEMU`_'s
-`user-mode network`_, which needs no privileges. Then create
+``%h`` is your home directory (`specifiers`_), and the :key:`[virtiofsd]`
+section shares it (:ref:`home-host`). ``nic=`` gives the guest `QEMU`_'s
+`user-mode network`_. Then create
 ``~/.config/qemu/systemd/cloud-debian.qemu``, with the disk and a `vsock`_
 device whose context id is the machine's own:
 
@@ -169,8 +164,8 @@ the machine, and the unit after the file:
    $ systemctl --user start qemu-system@cloud-debian.service
    $ journalctl --user-unit=qemu-system@cloud-debian.service --follow
 
-:cmd:`journalctl` shows the serial console. `SeaBIOS`_, QEMU's default
-firmware, starts the image's `GRUB`_, and cloud-init reads the seed:
+:cmd:`journalctl` shows the serial console. `SeaBIOS`_ starts the
+image's `GRUB`_, and cloud-init reads the seed:
 
 .. code-block:: console
    :caption: guest
@@ -384,8 +379,6 @@ Regenerate and restart both, and each reaches the other:
 .. _Fedora: https://fedoraproject.org/cloud/download
 .. _Ubuntu: https://cloud-images.ubuntu.com
 .. _cloud-init: https://cloudinit.readthedocs.io
-.. _NoCloud: https://cloudinit.readthedocs.io/en/latest/reference/datasources/nocloud.html
-.. _specifiers: https://www.freedesktop.org/software/systemd/man/latest/systemd.unit.html#Specifiers
 .. _user-mode network: https://www.qemu.org/docs/master/system/devices/net.html#using-the-user-mode-network-stack
 .. _systemd: https://systemd.io
 .. _nixpkgs: https://github.com/NixOS/nixpkgs
@@ -395,3 +388,5 @@ Regenerate and restart both, and each reaches the other:
 .. _write_files: https://cloudinit.readthedocs.io/en/latest/reference/modules.html#write-files
 .. _runcmd: https://cloudinit.readthedocs.io/en/latest/reference/modules.html#runcmd
 .. _vsock: https://man7.org/linux/man-pages/man7/vsock.7.html
+.. _specifiers: https://www.freedesktop.org/software/systemd/man/latest/systemd.unit.html#Specifiers
+.. _NoCloud: https://cloudinit.readthedocs.io/en/latest/reference/datasources/nocloud.html

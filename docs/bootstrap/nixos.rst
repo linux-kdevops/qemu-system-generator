@@ -34,7 +34,7 @@ The guests run the kernel NixOS picks by default, 6.18.57 here. The
 (`Linux kernel`_ in the NixOS manual). The disk and uki guides keep the
 default; the direct guide switches for its `microvm`_ stage. To switch,
 take ``pkgs`` among the arguments of ``configuration.nix`` and set the
-option; the next build puts that kernel in the guest:
+option:
 
 .. code-block:: diff
 

@@ -4,9 +4,6 @@
 A faster boot
 =============
 
-Each `NixOS`_ guide ends with a section that takes its machine from the
-defaults to its fastest boot, one change at a time.
-
 .. list-table::
    :header-rows: 1
 
@@ -90,7 +87,7 @@ The guests forget everything when they stop, so every boot is a first
 boot, and four things on the way to a login are first-boot work or not
 needed here:
 
-- NixOS generates an RSA key of 4096 bits and an Ed25519 key for
+- `NixOS`_ generates an RSA key of 4096 bits and an Ed25519 key for
   :cmd:`sshd <sshd(8)>` (``services.openssh.hostKeys``), and the first
   login waits for ``sshd-keygen.service``. The RSA key takes most of the
   time, and the configuration from :ref:`host-ssh` accepts any host key.
@@ -138,11 +135,11 @@ nothing more in the `knix`_ guide.
 Quiet
 =====
 
-Every line on the serial console costs time: the kernel writes it a
-character at a time to an emulated UART. ``quiet`` turns off the kernel's
-log output and systemd's status output (:cmd:`systemd(1)`). The journal
-then shows the boot only when something fails, and ``journalctl --boot`` in
-the guest still has every line. Leave it out while a boot needs watching.
+Every line on the serial console costs time. ``quiet`` turns off the
+kernel's log output and systemd's status output (:cmd:`systemd(1)`). The
+journal then shows the boot only when something fails, and
+``journalctl --boot`` in the guest still has every line. Leave it out
+while a boot needs watching.
 
 .. _fast-mounts:
 

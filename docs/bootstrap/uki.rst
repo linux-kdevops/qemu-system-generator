@@ -9,10 +9,9 @@ manager with no disk image and no ``kernel=`` line. The `OVMF`_ firmware
 loads a `unified kernel image`_ (UKI), one EFI binary that holds the kernel,
 the `initrd`_ and the kernel command line, from a directory the host shares
 over `virtiofs`_. The system it boots stays in the host's ``/nix/store``,
-shared the same way. Its :key:`.qemu` file grows by one feature per step,
-and no step needs root.
+shared the same way.
 
-Prepare the host as :doc:`host` shows, once for every guide.
+Prepare the host as :doc:`host` shows.
 
 The guest
 ---------
@@ -149,10 +148,8 @@ Create ``~/.config/qemu/systemd/bootstrap-uki.qemu``:
 Regenerate and start it as :ref:`host-start` shows; the journal has the
 serial console.
 
-On the PC machines, a firmware in the first flash device replaces QEMU's
-default `SeaBIOS`_. The first flash device holds OVMF's code, read-only.
-The second holds its variable store, which the firmware writes; with
-``snapshot=on``, QEMU writes to a temporary file instead.
+The second flash device holds OVMF's variable store, which the firmware
+writes; with ``snapshot=on``, QEMU writes to a temporary file instead.
 
 The :key:`[virtiofsd]` section runs a daemon that shares the directory
 without root (:ref:`host-virtiofsd`).
@@ -232,8 +229,7 @@ takes 1.8 seconds:
 ======
 
 Forward a local port to the guest's SSH over QEMU's `user-mode network`_,
-which needs no privileges, and add the `vsock`_ device with the context id
-:ref:`host-ssh` names:
+and add the `vsock`_ device with the context id :ref:`host-ssh` names:
 
 .. code-block:: diff
    :caption: ~/.config/qemu/systemd/bootstrap-uki.qemu
@@ -312,10 +308,6 @@ the host:
    /home/user/.local/share/systemd:
    $ ls --format=long ~/bootstrap/uki/from-guest
    -rw-r--r-- 1 user user 0 Oct 27 13:47 /home/user/bootstrap/uki/from-guest
-
-:doc:`direct` boots the same kind of system without firmware and goes on
-to SSH poweroff, consoles and systemd settings, which work the same way
-here.
 
 .. _uki-fast:
 
@@ -444,7 +436,6 @@ and is not on the way to a login.
 .. _virtiofs: https://virtio-fs.gitlab.io
 .. _UKI module: https://github.com/NixOS/nixpkgs/blob/master/nixos/modules/system/boot/uki.nix
 .. _tmpfs: https://docs.kernel.org/filesystems/tmpfs.html
-.. _SeaBIOS: https://www.seabios.org/
 .. _EDK II: https://github.com/tianocore/edk2
 .. _QEMU: https://www.qemu.org/docs/master/system/invocation.html
 .. _user-mode network: https://www.qemu.org/docs/master/system/devices/net.html#using-the-user-mode-network-stack

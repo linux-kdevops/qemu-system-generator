@@ -5,10 +5,9 @@ Bootstrap
 =========
 
 Each guide below boots a guest under your user's `systemd`_ manager from
-:key:`.qemu` files, without root. Each starts from a host prepared once
-as :doc:`host` shows, and builds its file up one feature per step. They
-differ in how the guest boots, which decides what a change to the guest
-costs.
+:key:`.qemu` files. Each starts from a host prepared once as :doc:`host`
+shows. They differ in how the guest boots, which decides what a change to
+the guest costs.
 
 .. list-table::
    :header-rows: 1
@@ -49,9 +48,7 @@ defaults to the fastest configuration it can reach, one change at a time.
 
 The file format is specified in
 :doc:`qemu-systemd.unit(5) </man/qemu-systemd.unit.5>` and the generator in
-:doc:`qemu-system-generator(8) </man/qemu-system-generator.8>`. The outputs
-in the guides are real, trimmed to the lines that matter, with the home
-directory shown as ``/home/user``.
+:doc:`qemu-system-generator(8) </man/qemu-system-generator.8>`.
 
 What a machine writes lives where its
 generated unit's :cmd:`StateDirectory=` puts it, which is also where a

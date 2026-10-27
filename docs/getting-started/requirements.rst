@@ -15,11 +15,8 @@ systemd
 
 systemd must be the init system. :cmd:`systemctl is-system-running
 <systemctl>` prints the manager's state, ``running``, or ``degraded`` if
-a unit has failed, and ``offline`` where another program is PID 1. The
-test underneath, the one ``sd_booted()`` makes, is whether
-``/run/systemd/system/`` exists. Either of the first two will do: a
-``degraded`` host still runs systemd, with one unit or more failed,
-which :cmd:`systemctl --failed <systemctl>` lists:
+a unit has failed, and ``offline`` where another program is PID 1.
+Either of the first two will do:
 
 .. code-block:: console
    :caption: host
@@ -27,10 +24,6 @@ which :cmd:`systemctl --failed <systemctl>` lists:
 
    $ systemctl is-system-running
    degraded
-
-Machines of your own run under your user's manager, the one
-``systemctl --user`` talks to; every distribution that boots systemd
-starts one at login.
 
 Two parts of a machine's lifecycle need a recent systemd on the host.
 :cmd:`ssh` reaches a guest over `vsock`_ through :cmd:`systemd-ssh-proxy(1)`,

@@ -4,9 +4,8 @@
 machined, machinectl, varlink
 =============================
 
-:cmd:`systemd-machined` keeps a list of the virtual machines and
-containers that run on a host. Each user manager has one of its own,
-since `systemd`_ 259, and every machine the generator writes registers with
+Each user manager has its own :cmd:`systemd-machined`, since
+`systemd`_ 259, and every machine the generator writes registers with
 yours as it starts (:ref:`host-machined`): its name, class ``vm``,
 service ``qemu-system``, `QEMU`_'s process as its leader, the `vsock`_ context
 id from a ``vhost-vsock`` device, and the UUID from ``uuid=``.
@@ -104,9 +103,7 @@ varlinkctl
 ==========
 
 Your machined listens on ``io.systemd.Machine`` in
-``$XDG_RUNTIME_DIR/systemd/machine``. :cmd:`varlinkctl` lists what it
-offers, prints an interface with the documentation of each field, and
-calls a method with JSON parameters:
+``$XDG_RUNTIME_DIR/systemd/machine``:
 
 .. code-block:: console
    :class: cmd-host

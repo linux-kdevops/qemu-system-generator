@@ -20,8 +20,7 @@ checkout of `this repository`_:
 For your user
 =============
 
-Add it to your Nix profile with :cmd:`nix profile add`, from the checkout.
-The profile puts ``qemu-system-generator`` on ``PATH``:
+Add it to your Nix profile with :cmd:`nix profile add`, from the checkout:
 
 .. code-block:: console
    :class: cmd-host
@@ -80,10 +79,8 @@ at boot and on each ``daemon-reload`` (:cmd:`systemd.generator(7)`), and
 the build ships a link for each. Build it as yourself; then, as root,
 point a profile at the build and link both generators from it.
 
-Root needs the experimental features too. Nix reads ``/etc/nix/nix.conf``
-and the configuration directory of the user who runs it (`configuration
-file`_), and ``sudo`` sets ``HOME`` to root's, so the line in your own
-``~/.config/nix/nix.conf`` does not reach root. Enable them for every
+Root needs the experimental features too: the line in your own
+``~/.config/nix/nix.conf`` does not reach root (`configuration file`_). Enable them for every
 user:
 
 .. code-block:: console
@@ -109,8 +106,7 @@ Then build and install:
        /etc/systemd/user-generators/
    $ sudo systemctl daemon-reload
 
-``sudo`` needs the full path to ``nix`` because its ``PATH`` leaves out
-the Nix profile. The profile keeps the build from garbage collection, and
+The profile keeps the build from garbage collection, and
 running the first two commands again moves it to a newer build. A user
 manager picks the generator up at its next ``daemon-reload`` or login.
 Leave out the user units of :ref:`install-user`, or every machine's units
@@ -145,7 +141,7 @@ configuration, by name, as text or as a path.
 
 .. _this repository: https://github.com/linux-kdevops/qemu-system-generator
 .. _NixOS: https://nixos.org/manual/nixos/stable/
-.. _configuration file: https://nix.dev/manual/nix/latest/command-ref/conf-file.html#configuration-file
 .. _use-xdg-base-directories: https://nix.dev/manual/nix/latest/command-ref/conf-file.html#conf-use-xdg-base-directories
 .. _Nix: https://nix.dev/manual/nix/latest/
 .. _systemd: https://systemd.io
+.. _configuration file: https://nix.dev/manual/nix/latest/command-ref/conf-file.html#configuration-file

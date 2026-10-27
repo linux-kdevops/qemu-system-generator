@@ -39,10 +39,9 @@ The guides paste the public key,
 ``~/bootstrap/system/ssh/id_ed25519.pub``, into each guest's
 configuration.
 
-Every guest gets a `vsock`_ device with a context id of its own, a socket
-address the host reaches without any network. One configuration names
-every guide's machine by its context id and lets them all in the same
-way:
+Every guest gets a `vsock`_ device with a context id of its own. One
+configuration names every guide's machine by its context id and reaches
+it through :cmd:`systemd-ssh-proxy(1)`:
 
 .. code-block:: text
    :caption: ~/bootstrap/system/ssh/config
@@ -77,27 +76,7 @@ way:
        StrictHostKeyChecking accept-new
        UserKnownHostsFile /dev/null
 
-ssh takes the first value it finds for each keyword, so the two blocks
-for one name add up (:cmd:`ssh_config(5)`). A machine of your own gets a
-file of its own in ``config.d/``. The last block dials the context id
-through :cmd:`systemd-ssh-proxy(1)`, which `systemd`_ installs in its private
-library directory, ``/usr/lib/systemd/`` on most distributions;
-:cmd:`systemd-path system-library-private <systemd-path>` prints the
-prefix. ``ProxyUseFdpass`` has the proxy hand ssh the connected socket,
-and ``IdentitiesOnly`` keeps an agent's other keys from being offered
-first. A guest makes new host keys on a fresh root file system, so
-``UserKnownHostsFile /dev/null`` keeps them out of your ``known_hosts``,
-and each connection prints that it added one.
-
-ssh refuses a configuration file that anyone but you can write, and names
-it as having "Bad owner or permissions". With a ``umask`` of ``002``, run
-``chmod go-w`` on each file you create here.
-
-These guides never edit your ``~/.ssh/config``. Add an ``Include`` of
-the guides' configuration near its top yourself, before any ``Host`` or
-``Match`` line, which would make the ``Include`` conditional
-(:cmd:`ssh_config(5)`). Use the
-``~`` path, since ssh resolves a relative ``Include`` against ``~/.ssh``:
+Add this to your ``~/.ssh/config``:
 
 .. code-block:: text
    :caption: ~/.ssh/config
@@ -105,8 +84,8 @@ the guides' configuration near its top yourself, before any ``Host`` or
    Include ~/bootstrap/system/ssh/config
 
 Then ``ssh bootstrap-disk`` reaches the disk guide's machine once it runs.
-A guest listens for SSH on vsock by itself through
-:cmd:`systemd-ssh-generator(8)`, which `NixOS`_ and the cloud images have.
+The guests listen for SSH on vsock through
+:cmd:`systemd-ssh-generator(8)`.
 
 .. _host-start:
 
@@ -172,17 +151,13 @@ Shares
 
 Each :key:`[virtiofsd]` section runs one `virtiofsd`_ daemon for one shared
 directory. Its keys are the long options of ``virtiofsd --help`` without
-the dashes. The generator runs the daemon from its own socket unit and
-adds the QEMU lines that connect to it. ``sandbox=``, ``uid-map=`` and
-``gid-map=`` let it run without root: ``%U`` and ``%G`` are your user and
-group ids, which the guest's root maps to, and ``%h`` is your home
-directory, among the `specifiers`_ systemd expands in a unit. The guides
-share the host's ``/nix/store`` and your home this way; :doc:`home` has
-what the guest does with the home.
+the dashes. The generator runs the daemon from its own socket unit and adds
+the QEMU lines that connect to it. ``%U``, ``%G`` and ``%h`` are `systemd`_
+`specifiers`_. The guides share the host's ``/nix/store`` and
+your home this way; :doc:`home` has what the guest does with the home.
 
 .. _vsock: https://man7.org/linux/man-pages/man7/vsock.7.html
 .. _virtiofsd: https://gitlab.com/virtio-fs/virtiofsd
+.. _QMP: https://www.qemu.org/docs/master/interop/qmp-spec.html
 .. _specifiers: https://www.freedesktop.org/software/systemd/man/latest/systemd.unit.html#Specifiers
 .. _systemd: https://systemd.io
-.. _NixOS: https://nixos.org/manual/nixos/stable/
-.. _QMP: https://www.qemu.org/docs/master/interop/qmp-spec.html

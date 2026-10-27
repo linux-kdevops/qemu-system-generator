@@ -21,13 +21,11 @@ configuration language, and this one maps the file to QEMU's command line
 one to one.
 
 The format is specified in :doc:`man/qemu-systemd.unit.5` and the program
-in :doc:`man/qemu-system-generator.8`.
-:doc:`getting-started/requirements` and
-:doc:`getting-started/installation` prepare a host, and
+in :doc:`man/qemu-system-generator.8`. :doc:`getting-started/requirements`
+and :doc:`getting-started/installation` prepare a host, and
 :doc:`getting-started/quickstart` boots a disk image you already have.
-:doc:`bootstrap/index` boots a first guest without root, in five ways,
-one feature per step, and :doc:`usage/index` shows the commands that
-drive it once it runs.
+:doc:`bootstrap/index` boots a first guest in five ways, and
+:doc:`usage/index` shows the commands that drive it once it runs.
 
 Community
 =========
