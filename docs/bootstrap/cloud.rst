@@ -226,7 +226,7 @@ over SSH first (:ref:`SSH poweroff <host-poweroff>`), in 3.6 seconds:
 =========
 
 The drop-in already holds everything but the disk and the context id,
-which :ref:`host-ssh` already names:
+which :ref:`host-ssh` names:
 
 .. code-block:: ini
    :caption: ~/.config/qemu/systemd/cloud-fedora.qemu

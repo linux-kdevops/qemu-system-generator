@@ -8,7 +8,7 @@ Each machine's user-mode network belongs to its own `QEMU`_ process: the
 guests reach the internet through it, but not each other. A second card
 on QEMU's ``dgram`` network backend joins them, as an NFS server and its
 client would need. The cloud, direct and `knix`_ guides join two machines
-this way, with the lines below.
+this way.
 
 The segment
 ===========

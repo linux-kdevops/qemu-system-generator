@@ -73,7 +73,7 @@ systemd-vmspawn starts. Few of them fit a machine the generator writes:
    ``.qemu`` file.
 
 :cmd:`systemctl` ``--machine=`` and :cmd:`journalctl` ``--machine=``
-reach into containers only as well.
+also reach into containers only.
 
 .. _usage-ssh:
 

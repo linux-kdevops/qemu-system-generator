@@ -4,8 +4,8 @@
 Quick start
 ===========
 
-This boots a disk image as a machine of your user's
-manager, with the generator installed :ref:`for your user <install-user>`.
+Boot a disk image as a machine of your user's manager, with the
+generator installed :ref:`for your user <install-user>`.
 The image needs a guest that prints to its serial console and powers off
 when the `ACPI`_ power button is pressed, as most distributions do.
 

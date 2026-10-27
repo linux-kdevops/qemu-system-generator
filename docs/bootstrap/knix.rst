@@ -394,10 +394,8 @@ other:
 4. A faster boot
 ================
 
-Your own kernel and QEMU let this guide go further than the others: a
-kernel with only what this machine uses, a smaller firmware, and no
-initrd of its own. The other changes are the ones every NixOS guide
-makes.
+Your own kernel and QEMU allow three more changes: a kernel with only
+what this machine uses, a smaller firmware, and no initrd of its own.
 
 Each step is timed as :ref:`fast-measure` shows.
 

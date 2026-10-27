@@ -39,15 +39,13 @@ costs.
      - `Debian`_, `Fedora`_ and `Ubuntu`_ cloud images, set up by `cloud-init`_
      - Change it inside the guest, with its package manager
 
-:doc:`disk` is the closest to a physical machine. :doc:`direct` covers
-the most of the format: `vsock`_, SSH poweroff, consoles, drop-ins, systemd
+:doc:`disk` is the closest to a physical machine. :doc:`direct` covers most
+of the format: `vsock`_, SSH poweroff, consoles, drop-ins, systemd
 settings and shares, which work the same way in the others, and ends on
 `QEMU`_'s :ref:`microvm machine type <direct-microvm>`.
 
 Each NixOS guide ends with :doc:`a faster boot <fast>`, from the
 defaults to the fastest configuration it can reach, one change at a time.
-What the guides share is written once, on its own page: :doc:`host`,
-:doc:`home`, :doc:`nixos`, :doc:`network` and :doc:`fast`.
 
 The file format is specified in
 :doc:`qemu-systemd.unit(5) </man/qemu-systemd.unit.5>` and the generator in

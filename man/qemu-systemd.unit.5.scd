@@ -38,8 +38,8 @@ backend, *[QEMU]*, holds one QEMU option per line, spelled as *qemu-system*
 spells it; the generator never translates, validates or reorders those
 lines. What it adds is the lifecycle: directories, device access, the
 control socket it stops the machine through, the registration, and the
-daemons a virtiofs share needs. Everything else about systemd units,
-dependencies, resource control and sandboxing, is written in the usual
+daemons a virtiofs share needs. Everything else about systemd units
+(dependencies, resource control and sandboxing) is written in the usual
 *[Unit]*, *[Service]* and *[Install]* sections and handed to systemd
 unchanged.
 
@@ -69,10 +69,10 @@ literal percent sign is written *%%*, and *$NAME* standing alone is an
 environment variable, so a literal dollar sign is written *$$*. The
 generator quotes every argument as *systemd.syntax*(7) "Quoting" reads it
 back, so spaces, quotes and backslashes in a value need no escaping in the
-file. Specifiers are useful on purpose: *%i* is the machine name, *%t*
-the runtime directory root, *%S* the state directory root, *%h* the home
-directory, *%U* and *%G* the user and group id. See *systemd.unit*(5),
-"Specifiers".
+file. Specifiers are expanded on purpose: *%i* is the machine name,
+*%t* the runtime directory root, *%S* the state directory root, *%h* the
+home directory, *%U* and *%G* the user and group id. See
+*systemd.unit*(5), "Specifiers".
 
 ## Drop-ins
 
@@ -161,7 +161,7 @@ lines are read, but still emitted exactly as written:
 The generator appends its own lines after the file's: the virtiofs wiring
 described below and *-qmp* on the control socket. The ids _mem_ and
 _virtiofs\__tag_ are its; a file that defines them collides in QEMU. A
-second *-qmp* from the file is fine, QEMU serves several.
+second *-qmp* from the file is fine; QEMU serves several.
 
 A 9p share is two ordinary lines and needs no daemon:
 
@@ -181,10 +181,10 @@ flag, in file order; *virtiofsd --help* is the reference.
 	_.service_, and the mount tag the guest sees. Letters, digits, dot,
 	underscore and dash. Since both names may hold a dash, _a-b.qemu_ with
 	tag _c_ and _a.qemu_ with tag _b-c_ name the same units; the file
-	later in name order is reported and not generated. The line is passed to virtiofsd like any other;
-	its *--tag* advertises the same tag through the vhost-user CONFIG
-	feature, which QEMU 8.1 and later ignore and QEMU 7.1 to 8.0 cannot
-	handle.
+	later in name order is reported and not generated. The line is passed
+	to virtiofsd like any other; its *--tag* advertises the same tag
+	through the vhost-user CONFIG feature, which QEMU 8.1 and later ignore
+	and QEMU 7.1 to 8.0 cannot handle.
 
 *shared-dir=*
 	Read for *RequiresMountsFor=* on the daemon's unit when it is an
@@ -243,10 +243,9 @@ _$XDG_RUNTIME_DIR/systemd/generator/_ (*systemd.generator*(7)), where
 
 The service carries *SourcePath=* back to the file and *Documentation=*
 naming *qemu-system*(1), *systemd.service*(5) and *systemd.kill*(5), is
-part of and
-ordered before _machines.target_, after _network.target_ under the system
-manager, *Requires=* and *After=* each daemon's socket and *Requires=*
-its service, and then:
+part of and ordered before _machines.target_, after _network.target_
+under the system manager, *Requires=* and *After=* each daemon's socket
+and *Requires=* its service, and then:
 
 ```
 [Service]
@@ -298,10 +297,11 @@ service _qemu-system_. It is best effort: without
 
 The daemon's socket listens on _%t/virtiofsd/name-tag/virtiofsd.sock_,
 with *SocketMode=0660* so that only the manager's user and group can
-connect, and its service stops when nothing needs it (*StopWhenUnneeded=*). It is
-ordered *Before=* the machine so that it outlives the guest's unmount
-during shutdown. Both carry *Documentation=* naming virtiofsd's project
-page and *systemd.socket*(5) or *systemd.service*(5).
+connect, and its service stops when nothing needs it
+(*StopWhenUnneeded=*). It is ordered *Before=* the machine so that it
+outlives the guest's unmount during shutdown. Both carry
+*Documentation=* naming virtiofsd's project page and *systemd.socket*(5)
+or *systemd.service*(5).
 
 # EXAMPLES
 

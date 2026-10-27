@@ -181,8 +181,8 @@ stops where it looks for the store:
    ...
    You are in emergency mode. After logging in, type "journalctl -xb" to view
 
-Kill it, as :ref:`a guest that cannot answer the power button <host-kill>`
-needs.
+Nothing in the guest answers the power button yet, so
+:ref:`kill it <host-kill>`.
 
 .. _uki-store:
 

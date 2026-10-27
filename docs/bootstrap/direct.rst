@@ -142,8 +142,8 @@ store:
    ...
    You are in emergency mode. After logging in, type "journalctl -xb" to view
 
-Kill it, as :ref:`a guest that cannot answer the power button <host-kill>`
-needs.
+Nothing in the guest answers the power button yet, so
+:ref:`kill it <host-kill>`.
 
 .. _direct-store:
 
@@ -577,8 +577,8 @@ Regenerate, restart and log in:
 On this guest the kernel reached ``/init`` at 0.49 seconds against 0.75
 on q35 with the same kernel, but the initrd mounted the store later, at
 1.85 seconds against 1.14, and ``ssh`` answered after 8.9 to 9.1 seconds
-against 8.2 to 8.3. What microvm saves in the kernel, NixOS's userspace
-outweighs, so the other guides keep q35.
+against 8.2 to 8.3. NixOS's userspace outweighs what microvm saves in the
+kernel, so the other guides keep q35.
 
 .. _direct-peer:
 
@@ -608,8 +608,8 @@ and boots the same closure, which holds both machines' addresses
 
 With ``networking.useNetworkd``, NixOS asks for the user-mode card's
 address over DHCP through systemd-networkd too, from its
-``99-ethernet-default-dhcp`` network, which the two ``10-`` networks
-come before. Rebuild, and rewrite the drop-in as in
+``99-ethernet-default-dhcp`` network, and the two ``10-`` networks come
+before it. Rebuild, and rewrite the drop-in as in
 :ref:`step 10 <direct-microvm>`:
 
 .. code-block:: console

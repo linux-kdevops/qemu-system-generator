@@ -7,9 +7,8 @@ Machines
 Each machine the generator writes is an ordinary `systemd`_ service,
 registered with :cmd:`machined <systemd-machined>` and given its own `QMP`_
 socket. The tools that ship with systemd and `QEMU`_ drive it, and this
-project adds none. These pages show which command does what for a machine
-of your user manager, with a link to each command's upstream manual. The
-examples use the bootstrap guides' machine, ``bootstrap``.
+project adds none. The examples use the bootstrap guides' machine,
+``bootstrap``, under your user manager.
 
 .. list-table::
    :header-rows: 1

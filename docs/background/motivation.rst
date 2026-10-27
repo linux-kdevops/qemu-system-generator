@@ -11,7 +11,7 @@ against what it needs, collecting its output, limiting its resources and
 running the daemons that serve it. QEMU does the first, as a command line
 only, and leaves the second to whoever starts it.
 
-Dozens of tools fill the gap, each filling both halves in its own
+Dozens of tools fill the gap, and each does both halves in its own
 way; :doc:`wrappers` lists them. This project fills it without another
 vocabulary: the command line stays QEMU's own, one option per line, and
 `systemd`_ runs the lifecycle, through a generator modelled on `Podman`_'s
@@ -130,8 +130,7 @@ reorders none. QEMU is the validator and its manual the documentation.
 :doc:`/man/qemu-systemd.unit.5` specifies the format.
 
 The lifecycle is systemd's. The generator writes the units that start,
-stop, order and confine the machine. The next section lists everything
-it adds, so every exception to the one-to-one mapping is stated.
+stop, order and confine the machine.
 
 .. _from-quadlet:
 

@@ -5,9 +5,7 @@ A faster boot
 =============
 
 Each `NixOS`_ guide ends with a section that takes its machine from the
-defaults to its fastest boot, one change at a time. This page explains
-the changes they share; each guide's section has its own diffs and
-times.
+defaults to its fastest boot, one change at a time.
 
 .. list-table::
    :header-rows: 1

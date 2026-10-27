@@ -4,16 +4,13 @@
 QEMU wrappers
 =============
 
-On this page, a `QEMU`_ wrapper is a tool that writes the QEMU command line
-itself, from a configuration language or defaults of its own, so that you
-can start a virtual machine without writing that command line. A test
+A `QEMU`_ wrapper is a tool that writes the QEMU command line itself,
+from a configuration language or defaults of its own, so that you can
+start a virtual machine without writing that command line. A test
 runner that boots the kernel under test this way is one. A tool that
 reaches QEMU through a wrapper, or starts QEMU only as a step of another
 job, such as fuzzing or editing a disk image, is not one and is not
 listed. :doc:`motivation` explains why this project is not one more.
-
-Entries are grouped by what the tool is for, and a project's own
-description is quoted where it publishes one.
 
 The list began as the research behind `qemu-system-units`_ and its
 precursor, and every link was checked in October 2026.
