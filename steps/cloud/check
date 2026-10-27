@@ -1,35 +1,38 @@
 #!/usr/bin/env bash
 # SPDX-License-Identifier: copyleft-next-0.3.1
-## Usage: steps/cloud/check [--base FILE]
+## Usage: steps/cloud/check --name VM [--base FILE]
 ##
-## Log in to the three running cloud machines, print each one's host name
-## and kernel, check that root's home is the shared home with its
-## systemd directories and ~/.ssh masked, have each leave a file in
-## WORKTREES_DIR/cloud, which must lie in the home, and have Debian and Fedora
-## ping each other over their LAN:
+## Log in to the running cloud machine VM, print its host name and kernel,
+## check that root's home is the shared home with its systemd directories
+## and ~/.ssh masked, have it leave a file in WORKTREES_DIR/cloud, which
+## must lie in the home, and have it and its running peer, VM-peer, ping
+## each other over their LAN:
 ##
 ##   nix develop --ignore-env --keep-env-var HOME \
-##       --command steps/cloud/check
+##       --command steps/cloud/check --name cloud-debian
 set -o errexit -o nounset -o pipefail
 
 while [ $# -gt 0 ]; do
 	case $1 in
-	--base) base=$2 ;;
+	--name | --base) declare "${1#--}=$2" ;;
 	*) sed --quiet 's/^## \{0,1\}//p' "$0" >&2 && exit 2 ;;
 	esac
 	shift 2
 done
+: "${name:?}"
 # shellcheck source=/dev/null
 [ -z "${base-}" ] || . "$base"
 # shellcheck source=steps/base
 . "$(dirname "$0")/../base"
 
+# The LAN address ends in the vsock context id.
+cid=$(sed --quiet 's/.*guest-cid=//p' "$HOME/.config/qemu/systemd/$name.qemu")
+peer_cid=$(sed --quiet 's/.*guest-cid=//p' "$HOME/.config/qemu/systemd/$name-peer.qemu")
+
 set -o xtrace
-for vm in cloud-debian cloud-fedora cloud-ubuntu; do
-	rm --force -- "$WORKTREES_DIR/cloud/from-$vm"
-	ssh -F "$SSH_DIR/config" "$vm" \
-		"hostname; uname --kernel-release; pwd && findmnt --mountpoint ~/.config/systemd && findmnt --mountpoint ~/.local/share/systemd && findmnt --mountpoint ~/.ssh && touch $WORKTREES_DIR/cloud/from-$vm"
-	ls --format=long "$WORKTREES_DIR/cloud/from-$vm"
-done
-ssh -F "$SSH_DIR/config" cloud-debian ping -c 1 10.0.100.44
-ssh -F "$SSH_DIR/config" cloud-fedora ping -c 1 10.0.100.43
+rm --force -- "$WORKTREES_DIR/cloud/from-$name"
+ssh -F "$SSH_DIR/config" "$name" \
+	"hostname; uname --kernel-release; pwd && findmnt --mountpoint ~/.config/systemd && findmnt --mountpoint ~/.local/share/systemd && findmnt --mountpoint ~/.ssh && touch $WORKTREES_DIR/cloud/from-$name"
+ls --format=long "$WORKTREES_DIR/cloud/from-$name"
+ssh -F "$SSH_DIR/config" "$name" ping -c 1 "10.0.100.$peer_cid"
+ssh -F "$SSH_DIR/config" "$name-peer" ping -c 1 "10.0.100.$cid"

@@ -1,25 +1,25 @@
 #!/usr/bin/env bash
 # SPDX-License-Identifier: copyleft-next-0.3.1
-## Usage: steps/cloud/install --distro NAME --version VERSION [--base FILE]
+## Usage: steps/cloud/install --name VM --version VERSION [--base FILE]
 ##
-## For one release of steps/cloud/catalog, write the cloud-init user-data
-## that gives root the public key of SSH_KEY, and the network configuration
-## of a machine on the LAN, in WORKTREES_DIR/cloud; and in
-## ~/.config/qemu/systemd, the machine's .qemu file, the drop-in every cloud
-## machine shares, and the drop-in that puts a machine on the LAN:
+## For one machine of steps/cloud/catalog, write the cloud-init user-data
+## that gives root the public key of SSH_KEY, and the machine's network
+## configuration, in WORKTREES_DIR/cloud; and in ~/.config/qemu/systemd,
+## its .qemu file, the drop-in every cloud-* machine shares and the drop-in
+## that puts it on the LAN:
 ##
 ##   nix develop --ignore-env --keep-env-var HOME \
-##       --command steps/cloud/install --distro debian --version 14
+##       --command steps/cloud/install --name cloud-debian --version 14
 set -o errexit -o nounset -o pipefail
 
 while [ $# -gt 0 ]; do
 	case $1 in
-	--distro | --version | --base) declare "${1#--}=$2" ;;
+	--name | --version | --base) declare "${1#--}=$2" ;;
 	*) sed --quiet 's/^## \{0,1\}//p' "$0" >&2 && exit 2 ;;
 	esac
 	shift 2
 done
-: "${distro:?} ${version:?}"
+: "${name:?} ${version:?}"
 # shellcheck source=/dev/null
 [ -z "${base-}" ] || . "$base"
 # shellcheck source=steps/base
@@ -33,11 +33,9 @@ set -o xtrace
 mkdir --parents "$WORKTREES_DIR/cloud" "$units/cloud-.qemu.d"
 cd "$WORKTREES_DIR/cloud"
 key=$(cat "$SSH_KEY.pub") HOME=$HOME envsubst "\$key \$HOME" <"$files/user-data" >user-data
+cid=$cid envsubst "\$cid" <"$files/lan.network" >"$name.network"
+rm --recursive --force -- "$units/$name.qemu.d"
 cp "$files/10-cloud.conf" "$units/cloud-.qemu.d/10-cloud.conf"
 image=$image cid=$cid envsubst "\$image \$cid" <"$files/machine.qemu" >"$units/$name.qemu"
-rm --recursive --force -- "$units/$name.qemu.d"
-if $lan; then
-	cid=$cid envsubst "\$cid" <"$files/lan.network" >"$name.network"
-	mkdir --parents "$units/$name.qemu.d"
-	cid=$cid envsubst "\$cid" <"$files/20-lan.conf" >"$units/$name.qemu.d/20-lan.conf"
-fi
+mkdir --parents "$units/$name.qemu.d"
+cid=$cid envsubst "\$cid" <"$files/20-lan.conf" >"$units/$name.qemu.d/20-lan.conf"

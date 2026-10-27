@@ -1,8 +1,8 @@
 # SPDX-License-Identifier: copyleft-next-0.3.1
 description: >-
   Fetch the Debian, Fedora and Ubuntu cloud images, write their cloud-init
-  seeds, boot the three machines, log in, and have Debian and Fedora ping
-  each other.
+  seeds, and boot each distribution's machine with its peer, one pair at a
+  time: log in, and have the two ping each other.
 working_dir: ..
 type: chain
 
@@ -14,7 +14,8 @@ handler_on:
     # Stop every machine, even after one fails to stop.
     run: >-
       status=0;
-      for vm in cloud-debian cloud-fedora cloud-ubuntu; do
+      for vm in cloud-debian cloud-fedora cloud-ubuntu
+      cloud-debian-peer cloud-fedora-peer cloud-ubuntu-peer; do
       steps/machine/stop --name $vm || status=1; done;
       exit $status
 
@@ -31,32 +32,59 @@ steps:
   - id: generator_install
     run: steps/generator/install
 
-  - id: cloud_fetch_debian
-    run: steps/cloud/fetch --distro debian --version 14
+  - id: cloud_fetch_cloud_debian
+    run: steps/cloud/fetch --name cloud-debian --version 14
 
-  - id: cloud_install_debian
-    run: steps/cloud/install --distro debian --version 14
+  - id: cloud_install_cloud_debian
+    run: steps/cloud/install --name cloud-debian --version 14
 
-  - id: cloud_build_debian
-    run: steps/cloud/build --distro debian --version 14
+  - id: cloud_build_cloud_debian
+    run: steps/cloud/build --name cloud-debian --version 14
 
-  - id: cloud_fetch_fedora
-    run: steps/cloud/fetch --distro fedora --version 44
+  - id: cloud_fetch_cloud_debian_peer
+    run: steps/cloud/fetch --name cloud-debian-peer --version 14
 
-  - id: cloud_install_fedora
-    run: steps/cloud/install --distro fedora --version 44
+  - id: cloud_install_cloud_debian_peer
+    run: steps/cloud/install --name cloud-debian-peer --version 14
 
-  - id: cloud_build_fedora
-    run: steps/cloud/build --distro fedora --version 44
+  - id: cloud_build_cloud_debian_peer
+    run: steps/cloud/build --name cloud-debian-peer --version 14
 
-  - id: cloud_fetch_ubuntu
-    run: steps/cloud/fetch --distro ubuntu --version 26.10
+  - id: cloud_fetch_cloud_fedora
+    run: steps/cloud/fetch --name cloud-fedora --version 44
 
-  - id: cloud_install_ubuntu
-    run: steps/cloud/install --distro ubuntu --version 26.10
+  - id: cloud_install_cloud_fedora
+    run: steps/cloud/install --name cloud-fedora --version 44
 
-  - id: cloud_build_ubuntu
-    run: steps/cloud/build --distro ubuntu --version 26.10
+  - id: cloud_build_cloud_fedora
+    run: steps/cloud/build --name cloud-fedora --version 44
+
+  - id: cloud_fetch_cloud_fedora_peer
+    run: steps/cloud/fetch --name cloud-fedora-peer --version 44
+
+  - id: cloud_install_cloud_fedora_peer
+    run: steps/cloud/install --name cloud-fedora-peer --version 44
+
+  - id: cloud_build_cloud_fedora_peer
+    run: steps/cloud/build --name cloud-fedora-peer --version 44
+
+  - id: cloud_fetch_cloud_ubuntu
+    run: steps/cloud/fetch --name cloud-ubuntu --version 26.10
+
+  - id: cloud_install_cloud_ubuntu
+    run: steps/cloud/install --name cloud-ubuntu --version 26.10
+
+  - id: cloud_build_cloud_ubuntu
+    run: steps/cloud/build --name cloud-ubuntu --version 26.10
+
+  - id: cloud_fetch_cloud_ubuntu_peer
+    run: steps/cloud/fetch --name cloud-ubuntu-peer --version 26.10
+
+  - id: cloud_install_cloud_ubuntu_peer
+    run: steps/cloud/install --name cloud-ubuntu-peer --version 26.10
+
+  - id: cloud_build_cloud_ubuntu_peer
+    run: steps/cloud/build --name cloud-ubuntu-peer --version 26.10
 
   - id: generator_run
     run: steps/generator/run
@@ -64,11 +92,8 @@ steps:
   - id: machine_start_cloud_debian
     run: steps/machine/start --name cloud-debian
 
-  - id: machine_start_cloud_fedora
-    run: steps/machine/start --name cloud-fedora
-
-  - id: machine_start_cloud_ubuntu
-    run: steps/machine/start --name cloud-ubuntu
+  - id: machine_start_cloud_debian_peer
+    run: steps/machine/start --name cloud-debian-peer
 
   # The guest answers once its sshd runs; until then the step fails.
   # cloud-init's first boot grows the disk and makes the host keys.
@@ -78,11 +103,53 @@ steps:
       limit: 120
       interval_sec: 5
 
+  - id: machine_wait_cloud_debian_peer
+    run: steps/machine/wait --name cloud-debian-peer
+    retry_policy:
+      limit: 120
+      interval_sec: 5
+
+  - id: cloud_check_cloud_debian
+    run: steps/cloud/check --name cloud-debian
+
+  - id: machine_stop_cloud_debian
+    run: steps/machine/stop --name cloud-debian
+
+  - id: machine_stop_cloud_debian_peer
+    run: steps/machine/stop --name cloud-debian-peer
+
+  - id: machine_start_cloud_fedora
+    run: steps/machine/start --name cloud-fedora
+
+  - id: machine_start_cloud_fedora_peer
+    run: steps/machine/start --name cloud-fedora-peer
+
   - id: machine_wait_cloud_fedora
     run: steps/machine/wait --name cloud-fedora
     retry_policy:
       limit: 120
       interval_sec: 5
+
+  - id: machine_wait_cloud_fedora_peer
+    run: steps/machine/wait --name cloud-fedora-peer
+    retry_policy:
+      limit: 120
+      interval_sec: 5
+
+  - id: cloud_check_cloud_fedora
+    run: steps/cloud/check --name cloud-fedora
+
+  - id: machine_stop_cloud_fedora
+    run: steps/machine/stop --name cloud-fedora
+
+  - id: machine_stop_cloud_fedora_peer
+    run: steps/machine/stop --name cloud-fedora-peer
+
+  - id: machine_start_cloud_ubuntu
+    run: steps/machine/start --name cloud-ubuntu
+
+  - id: machine_start_cloud_ubuntu_peer
+    run: steps/machine/start --name cloud-ubuntu-peer
 
   - id: machine_wait_cloud_ubuntu
     run: steps/machine/wait --name cloud-ubuntu
@@ -90,5 +157,17 @@ steps:
       limit: 120
       interval_sec: 5
 
-  - id: cloud_check
-    run: steps/cloud/check
+  - id: machine_wait_cloud_ubuntu_peer
+    run: steps/machine/wait --name cloud-ubuntu-peer
+    retry_policy:
+      limit: 120
+      interval_sec: 5
+
+  - id: cloud_check_cloud_ubuntu
+    run: steps/cloud/check --name cloud-ubuntu
+
+  - id: machine_stop_cloud_ubuntu
+    run: steps/machine/stop --name cloud-ubuntu
+
+  - id: machine_stop_cloud_ubuntu_peer
+    run: steps/machine/stop --name cloud-ubuntu-peer

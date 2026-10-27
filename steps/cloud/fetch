@@ -1,24 +1,24 @@
 #!/usr/bin/env bash
 # SPDX-License-Identifier: copyleft-next-0.3.1
-## Usage: steps/cloud/fetch --distro NAME --version VERSION
+## Usage: steps/cloud/fetch --name VM --version VERSION
 ##
-## Download the cloud image of one distribution release into the state
-## directory of its machine, ~/.local/state/qemu-system/cloud-NAME, unless
-## the image already there passes its publisher's checksum. The releases
-## are those of steps/cloud/catalog:
+## Download the cloud image of one machine of steps/cloud/catalog, in the
+## distribution release VERSION, into its state directory,
+## ~/.local/state/qemu-system/VM, unless the image already there passes its
+## publisher's checksum:
 ##
 ##   nix develop --ignore-env --keep-env-var HOME \
-##       --command steps/cloud/fetch --distro debian --version 14
+##       --command steps/cloud/fetch --name cloud-debian --version 14
 set -o errexit -o nounset -o pipefail
 
 while [ $# -gt 0 ]; do
 	case $1 in
-	--distro | --version) declare "${1#--}=$2" ;;
+	--name | --version) declare "${1#--}=$2" ;;
 	*) sed --quiet 's/^## \{0,1\}//p' "$0" >&2 && exit 2 ;;
 	esac
 	shift 2
 done
-: "${distro:?} ${version:?}"
+: "${name:?} ${version:?}"
 
 # shellcheck source=steps/cloud/catalog
 . "$(dirname "$0")/catalog"

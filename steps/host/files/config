@@ -19,6 +19,12 @@ Host bootstrap-knix
     HostName vsock/49
 Host bootstrap-knix-peer
     HostName vsock/50
+Host cloud-debian-peer
+    HostName vsock/51
+Host cloud-fedora-peer
+    HostName vsock/52
+Host cloud-ubuntu-peer
+    HostName vsock/53
 
 Host bootstrap-* cloud-*
     ProxyCommand $proxy %h %p
