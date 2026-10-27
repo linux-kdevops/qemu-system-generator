@@ -47,7 +47,7 @@ settings and shares, which work the same way in the others, and ends on
 Each NixOS guide ends with :doc:`a faster boot <fast>`, from the
 defaults to the fastest configuration it can reach, one change at a time.
 What the guides share is written once, on its own page: :doc:`host`,
-:doc:`nixos`, :doc:`network` and :doc:`fast`.
+:doc:`home`, :doc:`nixos`, :doc:`network` and :doc:`fast`.
 
 The file format is specified in
 :doc:`qemu-systemd.unit(5) </man/qemu-systemd.unit.5>` and the generator in
@@ -81,6 +81,7 @@ ends by :ref:`joining two of them on one network <cloud-network>`.
    direct
    knix
    cloud
+   home
    nixos
    network
    fast

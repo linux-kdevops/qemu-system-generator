@@ -98,20 +98,19 @@ knix upstream:
    -    knix.url = "path:/path/to/knix";
    +    knix.url = "github:linux-kdevops/knix";
 
-Name the guest, mount a share of your own at ``/mnt/host``, and paste the
-public key from ``~/bootstrap/system/ssh/id_ed25519.pub`` into
-``default.nix``:
+Save :ref:`home.nix <home-guest>` as ``~/bootstrap/knix/guest/home.nix``,
+with your home in place of ``/home/user``, to share your home as
+:doc:`home` describes. Import it, name the guest, and paste the public
+key from ``~/bootstrap/system/ssh/id_ed25519.pub`` into ``default.nix``:
 
 .. code-block:: diff
    :caption: ~/bootstrap/knix/guest/default.nix
 
         #   knix.nixosModules.testSuites.blktests
-   +    knix.nixosModules.mounts.shares
+   +    ./home.nix
       ];
 
    -  networking.hostName = "vm";
-   +  knix.shares."/mnt/host".tag = "host";
-   +
    +  networking.hostName = "bootstrap";
 
    ...
@@ -147,17 +146,9 @@ in.
 1. Your kernel
 ==============
 
-Make a directory for the guest to share, and put a file in it:
-
-.. code-block:: console
-   :class: cmd-host
-
-   $ mkdir --parents ~/bootstrap/system/share
-   $ echo "hello from the host" > ~/bootstrap/system/share/hello.txt
-
 Create ``~/.config/qemu/systemd/bootstrap.qemu``. The kernel comes from
-your build, and three shares bring the store, ``/lib/modules`` and the
-directory above:
+your build, and three shares bring the store, ``/lib/modules`` and your
+home:
 
 .. code-block:: ini
    :caption: ~/.config/qemu/systemd/bootstrap.qemu
@@ -192,8 +183,8 @@ directory above:
    gid-map=:0:%G:1:
 
    [virtiofsd]
-   shared-dir=%h/bootstrap/system/share
-   tag=host
+   shared-dir=%h
+   tag=home
    sandbox=namespace
    uid-map=:0:%U:1:
    gid-map=:0:%G:1:
@@ -232,10 +223,10 @@ look at the shares:
        'uname --kernel-release; findmnt --noheadings --output=TARGET,SOURCE,FSTYPE --types=virtiofs'
    Warning: Permanently added 'vsock/42' (ED25519) to the list of known hosts.
    7.3.0
-   /lib/modules modules virtiofs
    /nix/store   store   virtiofs
    └─/nix/store store   virtiofs
-   /mnt/host    host    virtiofs
+   /lib/modules modules virtiofs
+   /home/user   home    virtiofs
 
 After a kernel rebuild, ``make modules_install`` again and restart. After
 a closure rebuild, rerun the ``jq`` command, regenerate and restart; the
@@ -360,8 +351,8 @@ own and no forwarded port, since ``bootstrap`` holds 10022:
    gid-map=:0:%G:1:
 
    [virtiofsd]
-   shared-dir=%h/bootstrap/system/share
-   tag=host
+   shared-dir=%h
+   tag=home
    sandbox=namespace
    uid-map=:0:%U:1:
    gid-map=:0:%G:1:

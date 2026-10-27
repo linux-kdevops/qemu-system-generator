@@ -14,8 +14,7 @@ The workspace
 
 Everything you write or build lives in ``~/bootstrap``: a directory per
 guide, and in ``system/`` what every guide shares, the SSH key and
-configuration in ``system/ssh/`` and the directory the guests share in
-``system/share/``:
+configuration in ``system/ssh/``:
 
 .. code-block:: console
    :caption: host
@@ -169,7 +168,8 @@ adds the QEMU lines that connect to it. ``sandbox=``, ``uid-map=`` and
 ``gid-map=`` let it run without root: ``%U`` and ``%G`` are your user and
 group ids, which the guest's root maps to, and ``%h`` is your home
 directory, among the `specifiers`_ systemd expands in a unit. The guides
-share the host's ``/nix/store`` and ``~/bootstrap/system/share`` this way.
+share the host's ``/nix/store`` and your home this way; :doc:`home` has
+what the guest does with the home.
 
 .. _vsock: https://man7.org/linux/man-pages/man7/vsock.7.html
 .. _virtiofsd: https://gitlab.com/virtio-fs/virtiofsd

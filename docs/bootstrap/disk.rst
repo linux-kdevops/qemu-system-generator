@@ -259,9 +259,60 @@ Every change to the guest means a new image with the whole system in
 it. :doc:`uki` and :doc:`direct` keep the system in the host's store
 instead.
 
+.. _disk-home:
+
+5. Your home
+============
+
+Share your home as :doc:`home` describes. Add its section to the file:
+
+.. code-block:: diff
+   :caption: ~/.config/qemu/systemd/bootstrap.qemu
+
+    nic=user,model=virtio-net-pci-non-transitional,hostfwd=tcp:127.0.0.1:10022-:22
+    device=vhost-vsock-pci-non-transitional,guest-cid=42
+   +
+   +[virtiofsd]
+   +shared-dir=%h
+   +tag=home
+   +sandbox=namespace
+   +uid-map=:0:%U:1:
+   +gid-map=:0:%G:1:
+
+Save :ref:`home.nix <home-guest>` as ``~/bootstrap/disk/home.nix``, with
+your home in place of ``/home/user``, and add it to the guest:
+
+.. code-block:: diff
+   :caption: ~/bootstrap/disk/flake.nix
+
+            modules = [
+              ./configuration.nix
+              ./disk.nix
+   +          ./home.nix
+            ];
+
+The mount is part of the image, so build a new one, then regenerate and
+restart. Root's home is now yours, with the two systemd directories
+empty, and a file the guest writes belongs to you on the host:
+
+.. code-block:: console
+   :class: cmd-host
+
+   $ nix build .#efi --out-link efi
+   $ systemctl --user start qemu-system-generator.service
+   $ systemctl --user restart qemu-system@bootstrap.service
+   $ ssh bootstrap 'pwd; ls --almost-all ~/.config/systemd ~/.local/share/systemd; touch ~/bootstrap/disk/from-guest'
+   Warning: Permanently added 'vsock/42' (ED25519) to the list of known hosts.
+   /home/user
+   /home/user/.config/systemd:
+
+   /home/user/.local/share/systemd:
+   $ ls --format=long ~/bootstrap/disk/from-guest
+   -rw-r--r-- 1 user user 0 Oct 27 13:47 /home/user/bootstrap/disk/from-guest
+
 .. _disk-fast:
 
-5. A faster boot
+6. A faster boot
 ================
 
 Each step is timed as :ref:`fast-measure` shows.

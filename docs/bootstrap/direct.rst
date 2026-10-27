@@ -423,19 +423,10 @@ machines.target`` stops all of them, not only this one.
 
 .. _direct-share:
 
-9. A share of your own
-======================
+9. Your home
+============
 
-Sharing a directory of your own takes another ``[virtiofsd]`` section.
-Make the directory and put a file in it:
-
-.. code-block:: console
-   :class: cmd-host
-
-   $ mkdir --parents ~/bootstrap/system/share
-   $ echo "hello from the host" > ~/bootstrap/system/share/hello.txt
-
-Then add the section:
+Share your home as :doc:`home` describes. Add its section to the file:
 
 .. code-block:: diff
    :caption: ~/.config/qemu/systemd/bootstrap.qemu
@@ -443,43 +434,42 @@ Then add the section:
     gid-map=:0:%G:1:
 
    +[virtiofsd]
-   +shared-dir=%h/bootstrap/system/share
-   +tag=host
+   +shared-dir=%h
+   +tag=home
    +sandbox=namespace
    +uid-map=:0:%U:1:
    +gid-map=:0:%G:1:
    +
     [Unit]
 
-The guest mounts it by tag, so ``virtiofs.nix`` changes too:
+Save :ref:`home.nix <home-guest>` as ``~/bootstrap/direct/home.nix``, with
+your home in place of ``/home/user``, and add it to the guest:
 
 .. code-block:: diff
-   :caption: ~/bootstrap/direct/virtiofs.nix
+   :caption: ~/bootstrap/direct/flake.nix
 
-      fileSystems."/nix/store" = {
-        device = "store";
-        fsType = "virtiofs";
-      };
-   +  fileSystems."/mnt/host" = {
-   +    device = "host";
-   +    fsType = "virtiofs";
-   +  };
+            modules = [
+              ./configuration.nix
+              ./virtiofs.nix
+   +          ./home.nix
+            ];
 
 Rebuild, rewrite the drop-in as in :ref:`step 7 <direct-drop-in>`,
-regenerate and restart:
+regenerate and restart. Root's home is now yours, with the two systemd
+directories empty, and a file the guest writes belongs to you on the
+host:
 
 .. code-block:: console
    :class: cmd-host
 
-   $ ssh bootstrap 'cat /mnt/host/hello.txt; touch /mnt/host/from-guest'
+   $ ssh bootstrap 'pwd; ls --almost-all ~/.config/systemd ~/.local/share/systemd; touch ~/bootstrap/direct/from-guest'
    Warning: Permanently added 'vsock/42' (ED25519) to the list of known hosts.
-   hello from the host
-   $ ls --format=long ~/bootstrap/system/share
-   -rw-r--r-- 1 user user  0 Oct 22 16:47 from-guest
-   -rw-rw-r-- 1 user user 20 Oct 22 16:47 hello.txt
+   /home/user
+   /home/user/.config/systemd:
 
-The guest's root wrote ``from-guest``, and on the host the file belongs
-to you.
+   /home/user/.local/share/systemd:
+   $ ls --format=long ~/bootstrap/direct/from-guest
+   -rw-r--r-- 1 user user 0 Oct 27 13:47 /home/user/bootstrap/direct/from-guest
 
 .. _direct-microvm:
 
@@ -558,7 +548,7 @@ follows the machine type for the virtiofs devices it adds:
 
    $ qemu-system-generator --user --dryrun | grep vhost-user-fs
        -device vhost-user-fs-device,queue-size=1024,chardev=virtiofs_store,tag=store \
-       -device vhost-user-fs-device,queue-size=1024,chardev=virtiofs_host,tag=host \
+       -device vhost-user-fs-device,queue-size=1024,chardev=virtiofs_home,tag=home \
 
 On microvm this guest's ``systemd-ssh-generator`` opens no vsock
 listener by itself, so ask for one on the kernel command line with
@@ -647,7 +637,7 @@ Give ``bootstrap`` its card:
    +device=virtio-net-device,netdev=lan,mac=52:54:00:00:00:42
     device=vhost-vsock-device,guest-cid=42
 
-``peer`` needs the store and the share, which the closure mounts, a
+``peer`` needs the store and the home, which the closure mounts, a
 context id of its own and no forwarded port, since ``bootstrap`` holds
 10022:
 
@@ -682,8 +672,8 @@ context id of its own and no forwarded port, since ``bootstrap`` holds
    gid-map=:0:%G:1:
 
    [virtiofsd]
-   shared-dir=%h/bootstrap/system/share
-   tag=host
+   shared-dir=%h
+   tag=home
    sandbox=namespace
    uid-map=:0:%U:1:
    gid-map=:0:%G:1:

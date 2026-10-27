@@ -258,20 +258,12 @@ forwarded port takes the key on the command line:
 
 .. _uki-share:
 
-4. A share of your own
-======================
+4. Your home
+============
 
-A change to the guest is a rebuild and a restart. Sharing a directory of
-your own takes both: another ``[virtiofsd]`` section in the file, and a
-mount in the guest. Make the directory and put a file in it:
-
-.. code-block:: console
-   :class: cmd-host
-
-   $ mkdir --parents ~/bootstrap/system/share
-   $ echo "hello from the host" > ~/bootstrap/system/share/hello.txt
-
-Add the section:
+A change to the guest is a rebuild and a restart. Sharing your home, as
+:doc:`home` describes, takes both: another ``[virtiofsd]`` section in the
+file, and a module in the guest. Add the section:
 
 .. code-block:: diff
    :caption: ~/.config/qemu/systemd/bootstrap.qemu
@@ -283,28 +275,27 @@ Add the section:
     gid-map=:0:%G:1:
    +
    +[virtiofsd]
-   +shared-dir=%h/bootstrap/system/share
-   +tag=host
+   +shared-dir=%h
+   +tag=home
    +sandbox=namespace
    +uid-map=:0:%U:1:
    +gid-map=:0:%G:1:
 
-Mount it by its tag:
+Save :ref:`home.nix <home-guest>` as ``~/bootstrap/uki/home.nix``, with
+your home in place of ``/home/user``, and add it to the guest:
 
 .. code-block:: diff
-   :caption: ~/bootstrap/uki/uki.nix
+   :caption: ~/bootstrap/uki/flake.nix
 
-      fileSystems."/nix/store" = {
-        device = "store";
-        fsType = "virtiofs";
-      };
-   +  fileSystems."/mnt/host" = {
-   +    device = "host";
-   +    fsType = "virtiofs";
-   +  };
-      systemd.services.systemd-boot-random-seed.enable = false;
+            modules = [
+              ./configuration.nix
+              ./uki.nix
+   +          ./home.nix
+            ];
 
-Rebuild, regenerate and restart:
+Rebuild, regenerate and restart. Root's home is now yours, with the two
+systemd directories empty, and a file the guest writes belongs to you on
+the host:
 
 .. code-block:: console
    :class: cmd-host
@@ -313,17 +304,18 @@ Rebuild, regenerate and restart:
    $ nix build
    $ systemctl --user start qemu-system-generator.service
    $ systemctl --user restart qemu-system@bootstrap.service
-   $ ssh bootstrap 'cat /mnt/host/hello.txt; touch /mnt/host/from-guest'
+   $ ssh bootstrap 'pwd; ls --almost-all ~/.config/systemd ~/.local/share/systemd; touch ~/bootstrap/uki/from-guest'
    Warning: Permanently added 'vsock/42' (ED25519) to the list of known hosts.
-   hello from the host
-   $ ls --format=long ~/bootstrap/system/share
-   -rw-r--r-- 1 user user  0 Oct 23 09:08 from-guest
-   -rw-rw-r-- 1 user user 20 Oct 23 09:08 hello.txt
+   /home/user
+   /home/user/.config/systemd:
 
-The guest's root wrote ``from-guest``, and on the host the file belongs
-to you. :doc:`direct` boots the same kind of system without firmware and
-goes on to SSH poweroff, consoles and systemd settings, which work the
-same way here.
+   /home/user/.local/share/systemd:
+   $ ls --format=long ~/bootstrap/uki/from-guest
+   -rw-r--r-- 1 user user 0 Oct 27 13:47 /home/user/bootstrap/uki/from-guest
+
+:doc:`direct` boots the same kind of system without firmware and goes on
+to SSH poweroff, consoles and systemd settings, which work the same way
+here.
 
 .. _uki-fast:
 

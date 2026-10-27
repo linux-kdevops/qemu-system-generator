@@ -80,8 +80,8 @@ again, so every lookup in the store goes back to the host. The store
 never changes under a path once written, which is the case ``cache=always``
 is for: the guest keeps what it read (``CachePolicy`` in virtiofsd's
 ``src/passthrough/mod.rs``). Set it on the store's share only. A
-directory you change from the host while the guest runs, such as
-``~/bootstrap/system/share``, keeps the default.
+directory you change from the host while the guest runs, such as your
+home, keeps the default.
 
 .. _fast-closure:
 

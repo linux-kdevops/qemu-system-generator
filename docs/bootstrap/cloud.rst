@@ -78,9 +78,21 @@ machine gets, with the public key from
    disable_root: false
    ssh_authorized_keys:
      - ssh-ed25519 AAAA... bootstrap
+   write_files:
+     - path: /etc/fstab
+       append: true
+       content: |
+         home /home/user virtiofs defaults 0 0
+   runcmd:
+     - [mount, --mkdir, /home/user]
 
 The images let only their default user in by default, and
-``disable_root: false`` gives root the key too. The meta-data names each
+``disable_root: false`` gives root the key too. The last lines mount your
+home at the same path, as :ref:`home-cloud` explains, with your home in
+place of ``/home/user``: `write_files`_ adds it to ``/etc/fstab``, which
+mounts it at every boot, and `runcmd`_ mounts it with
+:cmd:`mount --mkdir <mount(8)>` on the first, which cloud-init reaches
+after it has written the file. The meta-data names each
 machine; cloud-init configures a machine once per ``instance-id``.
 :cmd:`cloud-localds`, from `nixpkgs`_' ``cloud-utils``, writes one seed into
 each state directory:
@@ -122,9 +134,17 @@ the part of the name up to a dash, ``cloud-.qemu.d/``, applies to every
    drive=file=seed.iso,if=virtio,format=raw,readonly=on
    nic=user,model=virtio-net-pci-non-transitional
 
+   [virtiofsd]
+   shared-dir=%h
+   tag=home
+   sandbox=namespace
+   uid-map=:0:%U:1:
+   gid-map=:0:%G:1:
+
 ``%h`` is your home directory, one of the `specifiers`_ systemd expands
-in a unit. ``nic=`` gives the guest `QEMU`_'s `user-mode network`_, which
-needs no privileges. Then create
+in a unit, and the :key:`[virtiofsd]` section shares it
+(:ref:`home-host`). ``nic=`` gives the guest `QEMU`_'s
+`user-mode network`_, which needs no privileges. Then create
 ``~/.config/qemu/systemd/cloud-debian.qemu``, with the disk and a vsock
 device whose context id is the machine's own:
 
@@ -179,6 +199,18 @@ is an :cmd:`ssh` alias:
    Warning: Permanently added 'vsock/43' (ED25519) to the list of known hosts.
    cloud-debian
    7.2.11+deb14-cloud-amd64
+
+Your home is mounted, and a file root writes there belongs to you on the
+host:
+
+.. code-block:: console
+   :class: cmd-host
+
+   $ ssh cloud-debian 'findmnt --noheadings --output=TARGET,SOURCE,FSTYPE /home/user; touch /home/user/bootstrap/cloud/from-debian'
+   Warning: Permanently added 'vsock/43' (ED25519) to the list of known hosts.
+   /home/user home virtiofs
+   $ ls --format=long ~/bootstrap/cloud/from-debian
+   -rw-r--r-- 1 user user 0 Oct 27 13:47 /home/user/bootstrap/cloud/from-debian
 
 With :key:`SshPrivateKey=` from the drop-in, the stop powers the guest off
 over SSH first (:ref:`SSH poweroff <host-poweroff>`), in 3.6 seconds:
@@ -360,3 +392,5 @@ Regenerate and restart both, and each reaches the other:
 .. _QEMU: https://www.qemu.org/docs/master/system/invocation.html
 .. _GRUB: https://www.gnu.org/software/grub/manual/grub/grub.html
 .. _SeaBIOS: https://www.seabios.org/
+.. _write_files: https://cloudinit.readthedocs.io/en/latest/reference/modules.html#write-files
+.. _runcmd: https://cloudinit.readthedocs.io/en/latest/reference/modules.html#runcmd
