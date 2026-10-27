@@ -1,7 +1,7 @@
 # qemu-system-generator
 
 A [systemd] generator for `.qemu` files: one file per virtual machine,
-in systemd unit-file syntax, whose `[QEMU]` section is [QEMU]'s own
+in systemd [unit-file syntax], whose `[QEMU]` section is [QEMU]'s own
 command line passed through line by line. The generator runs at boot and
 on [`systemctl daemon-reload`][systemctl], writes
 `qemu-system@<name>.service` and the `virtiofsd@<name>-<tag>` socket and
@@ -157,6 +157,7 @@ On a remote host, forward the port first with
 `ssh -L 8001:127.0.0.1:8001 <host>`.
 
 [systemd]: https://systemd.io
+[unit-file syntax]: https://www.freedesktop.org/software/systemd/man/latest/systemd.syntax.html
 [QEMU]: https://www.qemu.org/docs/master/system/invocation.html
 [systemctl]: https://www.freedesktop.org/software/systemd/man/latest/systemctl.html
 [Podman]: https://podman.io

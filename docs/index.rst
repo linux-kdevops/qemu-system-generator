@@ -6,7 +6,7 @@ qemu-system-generator
 
 qemu-system-generator is a `systemd`_ generator
 (:cmd:`systemd.generator(7)`) for :key:`.qemu` files: one file per virtual
-machine, in systemd unit-file syntax, whose :key:`[QEMU]` section is
+machine, in systemd `unit-file syntax`_, whose :key:`[QEMU]` section is
 `QEMU`_'s own command line passed through line by line. The generator runs
 at boot and on :cmd:`systemctl daemon-reload <systemctl>`, writes the units
 that run the machine and the `virtiofsd`_ daemons it shares directories
@@ -74,6 +74,7 @@ These are linked from the icons in the top navigation bar too.
    man/index
 
 .. _systemd: https://systemd.io
+.. _unit-file syntax: https://www.freedesktop.org/software/systemd/man/latest/systemd.syntax.html
 .. _QEMU: https://www.qemu.org/docs/master/system/invocation.html
 .. _virtiofsd: https://gitlab.com/virtio-fs/virtiofsd
 .. _Podman: https://podman.io

@@ -121,7 +121,7 @@ but the templates still turned the command line into another dialect.
 This project
 ============
 
-A :key:`.qemu` file is in systemd's unit-file syntax, and its :key:`[QEMU]`
+A :key:`.qemu` file is in systemd's `unit-file syntax`_, and its :key:`[QEMU]`
 section maps to QEMU's command line one to one: the key is the option
 name without its dash, the value is the option's argument, verbatim, and
 the order is the file's. :key:`[virtiofsd]` does the same for virtiofsd.
@@ -222,6 +222,7 @@ in systemd.
 
 .. _QEMU: https://www.qemu.org/docs/master/system/invocation.html
 .. _systemd: https://systemd.io
+.. _unit-file syntax: https://www.freedesktop.org/software/systemd/man/latest/systemd.syntax.html
 .. _Podman: https://podman.io
 .. _Quadlet: https://github.com/podman-container-tools/podman/tree/main/pkg/systemd/quadlet
 .. _ACPI: https://uefi.org/specifications
