@@ -26,8 +26,14 @@ steps:
   - id: install_generator
     run: steps/generator/install
 
-  - id: fetch
-    run: steps/cloud/fetch
+  - id: fetch_debian
+    run: steps/cloud/fetch --distro debian --version 14
+
+  - id: fetch_fedora
+    run: steps/cloud/fetch --distro fedora --version 44
+
+  - id: fetch_ubuntu
+    run: steps/cloud/fetch --distro ubuntu --version 26.10
 
   - id: install
     run: steps/cloud/install

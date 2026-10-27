@@ -1,38 +1,55 @@
 #!/usr/bin/env bash
 # SPDX-License-Identifier: copyleft-next-0.3.1
-## Usage: steps/cloud/fetch
+## Usage: steps/cloud/fetch --distro NAME --version VERSION
 ##
-## Download the Debian, Fedora and Ubuntu cloud images into their machines'
-## state directories under ~/.local/state/qemu-system, unless the image
-## already there passes its publisher's checksum:
+## Download the cloud image of one distribution release into the state
+## directory of its machine, ~/.local/state/qemu-system/cloud-NAME, unless
+## the image already there passes its publisher's checksum. The releases:
+##
+##   debian 14     Debian testing's daily build
+##   fedora 44     Fedora 44
+##   ubuntu 26.10  Ubuntu 26.10's latest build
 ##
 ##   nix develop --ignore-env --keep-env-var HOME \
-##       --command steps/cloud/fetch
+##       --command steps/cloud/fetch --distro debian --version 14
 set -o errexit -o nounset -o pipefail
 
-if [ $# -gt 0 ]; then
-	sed --quiet 's/^## \{0,1\}//p' "$0" >&2 && exit 2
-fi
+while [ $# -gt 0 ]; do
+	case $1 in
+	--distro | --version) declare "${1#--}=$2" ;;
+	*) sed --quiet 's/^## \{0,1\}//p' "$0" >&2 && exit 2 ;;
+	esac
+	shift 2
+done
+: "${distro:?} ${version:?}"
 
-# name, image URL, checksum file URL, checksum command
-fetch() {
-	mkdir --parents "$HOME/.local/state/qemu-system/$1"
-	cd "$HOME/.local/state/qemu-system/$1"
-	curl --fail --silent --location "$3" >"$1.sums"
-	if ! [ -e "${2##*/}" ] || ! "$4" --check --ignore-missing "$1.sums"; then
-		curl --fail --location --remote-name "$2"
-		"$4" --check --ignore-missing "$1.sums"
-	fi
-	rm -- "$1.sums"
-}
+# image URL, checksum file URL, checksum command
+case $distro:$version in
+debian:14)
+	set -- https://cloud.debian.org/images/cloud/forky/daily/latest/debian-14-genericcloud-amd64-daily.qcow2 \
+		https://cloud.debian.org/images/cloud/forky/daily/latest/SHA512SUMS sha512sum
+	;;
+fedora:44)
+	set -- https://download.fedoraproject.org/pub/fedora/linux/releases/44/Cloud/x86_64/images/Fedora-Cloud-Base-Generic-44-1.7.x86_64.qcow2 \
+		https://download.fedoraproject.org/pub/fedora/linux/releases/44/Cloud/x86_64/images/Fedora-Cloud-44-1.7-x86_64-CHECKSUM sha256sum
+	;;
+ubuntu:26.10)
+	set -- https://cloud-images.ubuntu.com/stonking/current/stonking-server-cloudimg-amd64.img \
+		https://cloud-images.ubuntu.com/stonking/current/SHA256SUMS sha256sum
+	;;
+*)
+	echo "steps/cloud/fetch: no image for $distro $version" >&2
+	exit 2
+	;;
+esac
+state=$HOME/.local/state/qemu-system/cloud-$distro
 
 set -o xtrace
-fetch cloud-debian \
-	https://cloud.debian.org/images/cloud/forky/daily/latest/debian-14-genericcloud-amd64-daily.qcow2 \
-	https://cloud.debian.org/images/cloud/forky/daily/latest/SHA512SUMS sha512sum
-fetch cloud-fedora \
-	https://download.fedoraproject.org/pub/fedora/linux/releases/44/Cloud/x86_64/images/Fedora-Cloud-Base-Generic-44-1.7.x86_64.qcow2 \
-	https://download.fedoraproject.org/pub/fedora/linux/releases/44/Cloud/x86_64/images/Fedora-Cloud-44-1.7-x86_64-CHECKSUM sha256sum
-fetch cloud-ubuntu \
-	https://cloud-images.ubuntu.com/stonking/current/stonking-server-cloudimg-amd64.img \
-	https://cloud-images.ubuntu.com/stonking/current/SHA256SUMS sha256sum
+mkdir --parents "$state"
+cd "$state"
+curl --fail --silent --location "$2" >"$distro.sums"
+if ! [ -e "${1##*/}" ] || ! "$3" --check --ignore-missing "$distro.sums"; then
+	curl --fail --location --remote-name "$1"
+	"$3" --check --ignore-missing "$distro.sums"
+fi
+rm -- "$distro.sums"
