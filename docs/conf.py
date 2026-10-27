@@ -18,11 +18,10 @@ extensions = [
     "sphinx_design",
 ]
 
-# Show the "$ " host / "# " guest prompt but strip it (and follow "\"
-# continuations) on copy.
-copybutton_prompt_text = r"[$#] "
-copybutton_prompt_is_regexp = True
-copybutton_line_continuation_character = "\\"
+# Copy a console block without the prompts and output Pygments marks, so
+# a "# " comment in a file block is not taken for a root prompt.
+copybutton_exclude = ".linenos, .gp, .go"
+copybutton_prompt_text = ""
 
 # A guide includes the bootstrap/_*.rst fragments; they are no page of their own.
 exclude_patterns = [
