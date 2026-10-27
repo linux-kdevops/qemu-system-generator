@@ -1,34 +1,39 @@
 #!/usr/bin/env bash
 # SPDX-License-Identifier: copyleft-next-0.3.1
-## Usage: steps/cloud/build [--base FILE]
+## Usage: steps/cloud/build --distro NAME --version VERSION [--base FILE]
 ##
-## Write each machine's cloud-init seed into its state directory from the
-## files in WORKTREES_DIR/cloud: Debian and Fedora with their network
-## configuration, Ubuntu without:
+## Write the cloud-init seed of one release of steps/cloud/catalog into
+## its machine's state directory, from the files steps/cloud/install wrote
+## in WORKTREES_DIR/cloud, with the network configuration of a machine on
+## the LAN:
 ##
 ##   nix develop --ignore-env --keep-env-var HOME \
-##       --command steps/cloud/build
+##       --command steps/cloud/build --distro debian --version 14
 set -o errexit -o nounset -o pipefail
 
 while [ $# -gt 0 ]; do
 	case $1 in
-	--base) base=$2 ;;
+	--distro | --version | --base) declare "${1#--}=$2" ;;
 	*) sed --quiet 's/^## \{0,1\}//p' "$0" >&2 && exit 2 ;;
 	esac
 	shift 2
 done
+: "${distro:?} ${version:?}"
 # shellcheck source=/dev/null
 [ -z "${base-}" ] || . "$base"
 # shellcheck source=steps/base
 . "$(dirname "$0")/../base"
-state=$HOME/.local/state/qemu-system
+# shellcheck source=steps/cloud/catalog
+. "$(dirname "$0")/catalog"
+state=$HOME/.local/state/qemu-system/$name
 
 set -o xtrace
 cd "$WORKTREES_DIR/cloud"
-printf 'instance-id: %s\nlocal-hostname: %s\n' cloud-ubuntu cloud-ubuntu >meta-data
-cloud-localds "$state/cloud-ubuntu/seed.iso" user-data meta-data
-for name in cloud-debian cloud-fedora; do
-	printf 'instance-id: %s-lan\nlocal-hostname: %s\n' $name $name >meta-data
-	cloud-localds --network-config=$name.network \
-		"$state/$name/seed.iso" user-data meta-data
-done
+if $lan; then
+	printf 'instance-id: %s-lan\nlocal-hostname: %s\n' "$name" "$name" >"$name.meta-data"
+	cloud-localds --network-config="$name.network" \
+		"$state/seed.iso" user-data "$name.meta-data"
+else
+	printf 'instance-id: %s\nlocal-hostname: %s\n' "$name" "$name" >"$name.meta-data"
+	cloud-localds "$state/seed.iso" user-data "$name.meta-data"
+fi

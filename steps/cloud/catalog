@@ -1,0 +1,38 @@
+# SPDX-License-Identifier: copyleft-next-0.3.1
+# shellcheck shell=bash
+# The step that reads this file sets distro and version and uses the rest.
+# shellcheck disable=SC2034,SC2154
+# The distribution releases the cloud guide boots, looked up by $distro and
+# $version: where the image and its checksums are published, the command
+# that checks them, the machine's vsock context id, and whether it joins
+# the LAN.
+
+case $distro:$version in
+debian:14)
+	image_url=https://cloud.debian.org/images/cloud/forky/daily/latest/debian-14-genericcloud-amd64-daily.qcow2
+	sums_url=https://cloud.debian.org/images/cloud/forky/daily/latest/SHA512SUMS
+	sums=sha512sum
+	cid=43
+	lan=true
+	;;
+fedora:44)
+	image_url=https://download.fedoraproject.org/pub/fedora/linux/releases/44/Cloud/x86_64/images/Fedora-Cloud-Base-Generic-44-1.7.x86_64.qcow2
+	sums_url=https://download.fedoraproject.org/pub/fedora/linux/releases/44/Cloud/x86_64/images/Fedora-Cloud-44-1.7-x86_64-CHECKSUM
+	sums=sha256sum
+	cid=44
+	lan=true
+	;;
+ubuntu:26.10)
+	image_url=https://cloud-images.ubuntu.com/stonking/current/stonking-server-cloudimg-amd64.img
+	sums_url=https://cloud-images.ubuntu.com/stonking/current/SHA256SUMS
+	sums=sha256sum
+	cid=45
+	lan=false
+	;;
+*)
+	echo "steps/cloud/catalog: no release $distro $version" >&2
+	exit 2
+	;;
+esac
+image=${image_url##*/}
+name=cloud-$distro
