@@ -65,26 +65,15 @@ ssh machine/fedora
 systemctl --user stop qemu-system@fedora
 ```
 
-## Quick start
+## Getting started
 
-```shell
-cargo build --release
-sudo install --mode=0755 target/release/qemu-system-generator /usr/libexec/
-sudo ln --symbolic /usr/libexec/qemu-system-generator /usr/lib/systemd/system-generators/
-sudo ln --symbolic /usr/libexec/qemu-system-generator /usr/lib/systemd/user-generators/
-sudo mkdir --parents /usr/share/qemu/systemd
-sudo install --mode=0644 data/qmp-powerdown /usr/share/qemu/systemd/
-```
-
-Without root, a user runs it through two user units instead; see
-`qemu-system-generator(8)`. The guides in [docs/bootstrap/](docs/bootstrap/)
-boot a guest that way from a [NixOS] disk image, a [UKI], a kernel and an
-initrd, a kernel and a QEMU of your own, or a distribution's cloud image.
-
-The generated units call [`socat`][socat], [`varlinkctl`][varlinkctl] and
-[`ssh`][ssh] by name; the
-build environment can pin them, and the QEMU and virtiofsd binaries, to
-absolute paths (see `build.rs`).
+[docs/getting-started/](docs/getting-started/) has the host requirements
+(systemd and Nix), the three ways to install (for one user without root,
+for the whole host, or through the flake's NixOS module) and a quick start
+that boots a disk image you already have. The guides in
+[docs/bootstrap/](docs/bootstrap/) then boot a guest from a [NixOS] disk
+image, a [UKI], a kernel and an initrd, a kernel and a QEMU of your own,
+or a distribution's cloud image.
 
 Check a file before deploying it:
 
@@ -99,10 +88,6 @@ nix build
 nix run . -- --user --dryrun
 nix develop
 ```
-
-The flake exports a package, an overlay and a NixOS module
-(`virtualisation.qemu-system-generator.enable = true`, with `units` for
-files under `/etc/qemu/systemd/`).
 
 ## Layout
 
@@ -186,8 +171,5 @@ On a remote host, forward the port first with
 [virtiofs]: https://virtio-fs.gitlab.io
 [NixOS]: https://nixos.org/manual/nixos/stable/
 [UKI]: https://uapi-group.org/specifications/specs/unified_kernel_image/
-[socat]: http://www.dest-unreach.org/socat/doc/socat.html
-[varlinkctl]: https://www.freedesktop.org/software/systemd/man/latest/varlinkctl.html
-[ssh]: https://man7.org/linux/man-pages/man1/ssh.1.html
 [Nix]: https://nix.dev/manual/nix/latest/
 [systemd-analyze]: https://www.freedesktop.org/software/systemd/man/latest/systemd-analyze.html
