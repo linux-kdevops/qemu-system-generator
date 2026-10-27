@@ -1,0 +1,4 @@
+# SPDX-License-Identifier: copyleft-next-0.3.1
+[QEMU]
+drive=file=$image,if=virtio,format=qcow2
+device=vhost-vsock-pci-non-transitional,guest-cid=$cid

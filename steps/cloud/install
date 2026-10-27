@@ -27,51 +27,17 @@ done
 # shellcheck source=steps/cloud/catalog
 . "$(dirname "$0")/catalog"
 units=$HOME/.config/qemu/systemd
+files=$(realpath "$(dirname "$0")/files")
 
 set -o xtrace
 mkdir --parents "$WORKTREES_DIR/cloud" "$units/cloud-.qemu.d"
 cd "$WORKTREES_DIR/cloud"
-cat >user-data <<EOF
-#cloud-config
-disable_root: false
-ssh_authorized_keys:
-  - $(cat "$SSH_KEY.pub")
-EOF
-cat >"$units/cloud-.qemu.d/10-cloud.conf" <<'EOF'
-[QEMU]
-machine=q35
-accel=kvm
-cpu=host
-m=2G
-smp=2
-nographic=
-serial=mon:stdio
-drive=file=seed.iso,if=virtio,format=raw,readonly=on
-nic=user,model=virtio-net-pci-non-transitional
-EOF
-cat >"$units/$name.qemu" <<EOF
-[QEMU]
-drive=file=$image,if=virtio,format=qcow2
-device=vhost-vsock-pci-non-transitional,guest-cid=$cid
-EOF
+key=$(cat "$SSH_KEY.pub") envsubst "\$key" <"$files/user-data" >user-data
+cp "$files/10-cloud.conf" "$units/cloud-.qemu.d/10-cloud.conf"
+image=$image cid=$cid envsubst "\$image \$cid" <"$files/machine.qemu" >"$units/$name.qemu"
 rm --recursive --force -- "$units/$name.qemu.d"
 if $lan; then
-	cat >"$name.network" <<EOF
-version: 2
-ethernets:
-  user:
-    match:
-      macaddress: "52:54:00:12:34:56"
-    dhcp4: true
-  lan:
-    match:
-      macaddress: "52:54:00:00:00:$cid"
-    addresses: [10.0.100.$cid/24]
-EOF
+	cid=$cid envsubst "\$cid" <"$files/lan.network" >"$name.network"
 	mkdir --parents "$units/$name.qemu.d"
-	cat >"$units/$name.qemu.d/20-lan.conf" <<EOF
-[QEMU]
-netdev=dgram,id=lan,remote.type=inet,remote.host=239.255.0.1,remote.port=5555,local.type=inet,local.host=127.0.0.1,local.port=0
-device=virtio-net-pci-non-transitional,netdev=lan,mac=52:54:00:00:00:$cid
-EOF
+	cid=$cid envsubst "\$cid" <"$files/20-lan.conf" >"$units/$name.qemu.d/20-lan.conf"
 fi

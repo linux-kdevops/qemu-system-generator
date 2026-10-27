@@ -1,0 +1,11 @@
+# SPDX-License-Identifier: copyleft-next-0.3.1
+version: 2
+ethernets:
+  user:
+    match:
+      macaddress: "52:54:00:12:34:56"
+    dhcp4: true
+  lan:
+    match:
+      macaddress: "52:54:00:00:00:$cid"
+    addresses: [10.0.100.$cid/24]
