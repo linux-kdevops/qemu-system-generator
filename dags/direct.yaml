@@ -33,17 +33,17 @@ steps:
   - id: generator_install
     run: steps/generator/install
 
-  - id: kernel_install_bootstrap
-    run: steps/kernel/install --name bootstrap
+  - id: direct_install_bootstrap
+    run: steps/direct/install --name bootstrap
 
-  - id: kernel_build_bootstrap
-    run: steps/kernel/build --name bootstrap
+  - id: direct_build_bootstrap
+    run: steps/direct/build --name bootstrap
 
-  - id: kernel_install_peer
-    run: steps/kernel/install --name peer
+  - id: direct_install_peer
+    run: steps/direct/install --name peer
 
-  - id: kernel_build_peer
-    run: steps/kernel/build --name peer
+  - id: direct_build_peer
+    run: steps/direct/build --name peer
 
   - id: generator_run
     run: steps/generator/run
@@ -67,5 +67,5 @@ steps:
       limit: 60
       interval_sec: 5
 
-  - id: kernel_check
-    run: steps/kernel/check
+  - id: direct_check
+    run: steps/direct/check

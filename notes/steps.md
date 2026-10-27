@@ -16,7 +16,7 @@ that runs it by hand. It takes the happy path, with as few options as
 possible, and decides nothing a DAG can decide for it: no retry loop, no
 waiting, no branching on an earlier step's result.
 
-A subsystem is a guide (`disk`, `uki`, `kernel`, `knix`, `cloud`) or a
+A subsystem is a guide (`disk`, `uki`, `direct`, `knix`, `cloud`) or a
 concern the guides share (`host`, `ssh`, `generator`, `machine`,
 `github`). A step is named for its action in the imperative,
 `verb_object` in snake_case when it takes an object (`generate_key`).

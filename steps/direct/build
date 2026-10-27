@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
 # SPDX-License-Identifier: copyleft-next-0.3.1
-## Usage: steps/kernel/build --name VM [--base FILE]
+## Usage: steps/direct/build --name VM [--base FILE]
 ##
-## Build the system closure of one machine in WORKTREES_DIR/kernel/VM,
+## Build the system closure of one machine in WORKTREES_DIR/direct/VM,
 ## linked as result, and write the drop-in that hands its init to the
 ## machine on the kernel command line:
 ##
 ##   nix develop --ignore-env --keep-env-var HOME \
-##       --command steps/kernel/build --name bootstrap
+##       --command steps/direct/build --name bootstrap
 set -o errexit -o nounset -o pipefail
 
 while [ $# -gt 0 ]; do
@@ -26,7 +26,7 @@ units=$HOME/.config/qemu/systemd
 files=$(realpath "$(dirname "$0")/files")
 
 set -o xtrace
-cd "$WORKTREES_DIR/kernel/$name"
+cd "$WORKTREES_DIR/direct/$name"
 nix build
 mkdir --parents "$units/$name.qemu.d"
 init=$(readlink result)/init envsubst "\$init" \

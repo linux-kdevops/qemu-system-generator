@@ -34,7 +34,7 @@ The whole area the steps work in (`WORKBENCH_DIR`, default `~/bootstrap`).
 _Avoid_: workspace, bootstrap directory
 
 **Worktree-group**:
-One guide's directory of work (`~/bootstrap/kernel`), under
+One guide's directory of work (`~/bootstrap/disk`), under
 `WORKTREES_DIR`, which defaults to `WORKBENCH_DIR`.
 _Avoid_: guide directory, workbench
 

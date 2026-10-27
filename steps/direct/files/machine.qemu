@@ -7,8 +7,8 @@ m=2G
 smp=$cpus
 nographic=
 serial=mon:stdio
-kernel=$WORKTREES_DIR/kernel/$name/result/kernel
-initrd=$WORKTREES_DIR/kernel/$name/result/initrd
+kernel=$WORKTREES_DIR/direct/$name/result/kernel
+initrd=$WORKTREES_DIR/direct/$name/result/initrd
 global=virtio-mmio.force-legacy=false
 netdev=user,id=net0
 device=virtio-net-device,netdev=net0
