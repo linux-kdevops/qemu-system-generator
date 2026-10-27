@@ -8,5 +8,12 @@ write_files:
     append: true
     content: |
       home $HOME virtiofs defaults 0 0
+      none $HOME/.config/systemd tmpfs ro,nosuid,nodev,mode=0555 0 0
+      none $HOME/.local/share/systemd tmpfs ro,nosuid,nodev,mode=0555 0 0
+      /root/.ssh $HOME/.ssh none bind 0 0
 runcmd:
   - [mount, --mkdir, $HOME]
+  - [mount, --mkdir, $HOME/.config/systemd]
+  - [mount, --mkdir, $HOME/.local/share/systemd]
+  - [mount, --mkdir, $HOME/.ssh]
+  - [sed, --in-place, --regexp-extended, 's|^(root:([^:]*:){4})/root:|\1$HOME:|', /etc/passwd]
