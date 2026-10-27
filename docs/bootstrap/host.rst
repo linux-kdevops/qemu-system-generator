@@ -4,32 +4,10 @@
 Prepare the host
 ================
 
-Every guide starts from a host prepared once, as below: the device
-access, the SSH key and configuration, and the generator.
-
-What you need
-=============
-
-- A host whose kernel has `KVM`_, where your user can open ``/dev/kvm``.
-- systemd with a user manager, which is what
-  :cmd:`systemctl` ``--user`` talks to.
-- `Nix`_ with flakes enabled.
-- A checkout of `this repository`_.
-
-Two of these need root, once. systemd's udev rules give ``/dev/kvm`` and
-``/dev/vhost-vsock`` to the ``kvm`` group, and the vsock device needs the
-``vhost_vsock`` module, loaded at every boot from then on:
-
-.. code-block:: console
-   :caption: host
-   :class: cmd-host
-
-   $ sudo usermod --append --groups kvm "$(whoami)"
-   $ echo vhost_vsock | sudo tee /etc/modules-load.d/vhost_vsock.conf
-   $ sudo modprobe vhost_vsock
-
-Log out and back in for the group to take effect. Nothing else in these
-guides runs as root.
+Every guide starts from a host that meets the
+:doc:`/getting-started/requirements`, with the generator installed
+:ref:`for your user <install-user>`, and from the workspace and SSH
+configuration below. Nothing in these guides runs as root.
 
 The workspace
 =============
@@ -40,6 +18,7 @@ configuration in ``system/ssh/`` and the directory the guests share in
 ``system/share/``:
 
 .. code-block:: console
+   :caption: host
    :class: cmd-host
 
    $ mkdir --parents ~/bootstrap/system/ssh/config.d
@@ -121,42 +100,6 @@ Then ``ssh bootstrap`` reaches the guest named ``bootstrap`` once it runs.
 A guest listens for SSH on vsock by itself through
 :cmd:`systemd-ssh-generator(8)`, which NixOS and the cloud images have.
 
-.. _host-generator:
-
-The generator
-=============
-
-Add it to your Nix profile with :cmd:`nix profile add`, from the checkout
-of this repository:
-
-.. code-block:: console
-   :class: cmd-host
-
-   $ nix profile add .
-
-The profile puts ``qemu-system-generator`` on ``PATH``. systemd runs user
-generators only from root-owned directories
-(:cmd:`systemd.generator(7)`), so a user manager never runs this one on its
-own. Two user units do it instead. Enable them through the profile's
-link, ``~/.nix-profile`` (``~/.local/state/nix/profile`` with
-`use-xdg-base-directories`_):
-
-.. code-block:: console
-   :class: cmd-host
-
-   $ systemctl --user enable --now \
-       ~/.nix-profile/lib/systemd/user/qemu-system-generator.service \
-       ~/.nix-profile/lib/systemd/user/qemu-system-generator.path
-
-``systemctl`` links the units by the path it is given, not by the store
-path behind it. After
-:cmd:`nix profile upgrade qemu-system-generator <nix profile upgrade>`, a
-``systemctl --user daemon-reload`` loads the new generation's units.
-
-The service turns every ``.qemu`` file in ``~/.config/qemu/systemd/`` into
-units and reloads the manager; it runs at login, and the
-:cmd:`systemd.path(5)` unit runs it again whenever that directory changes.
-
 .. _host-start:
 
 Starting and stopping a machine
@@ -228,10 +171,6 @@ group ids, which the guest's root maps to, and ``%h`` is your home
 directory, among the `specifiers`_ systemd expands in a unit. The guides
 share the host's ``/nix/store`` and ``~/bootstrap/system/share`` this way.
 
-.. _KVM: https://docs.kernel.org/virt/kvm/index.html
-.. _Nix: https://nix.dev/manual/nix/latest/
 .. _vsock: https://man7.org/linux/man-pages/man7/vsock.7.html
-.. _this repository: https://github.com/linux-kdevops/qemu-system-generator
-.. _use-xdg-base-directories: https://nix.dev/manual/nix/latest/command-ref/conf-file.html#conf-use-xdg-base-directories
 .. _virtiofsd: https://gitlab.com/virtio-fs/virtiofsd
 .. _specifiers: https://www.freedesktop.org/software/systemd/man/latest/systemd.unit.html#Specifiers
