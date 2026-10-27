@@ -37,9 +37,10 @@ systemctl --user enable --now qemu-system-generator.service qemu-system-generato
 
 The service runs the generator with _$XDG_RUNTIME_DIR/systemd/user/_ as
 _normal-dir_, after removing what an earlier run wrote there, and then
-*systemctl --user daemon-reload*. It starts at login and whenever the
-path unit sees a change in _$XDG_CONFIG_HOME/qemu/systemd/_. Changes in
-a drop-in directory are not seen; start the service by hand after those.
+*systemctl --user daemon-reload*, even when a file failed. It starts at
+login and whenever the path unit sees a change in
+_$XDG_CONFIG_HOME/qemu/systemd/_. Changes in a drop-in directory are not
+seen; start the service by hand after those.
 
 With *--dryrun* nothing is written: every generated file is printed after
 a *---path---* line, and every symlink as *---path -> target---*. Together
