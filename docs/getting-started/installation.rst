@@ -4,8 +4,8 @@
 Installation
 ============
 
-The generator installs for one user without root, for the whole host
-from a build of its own, or through a `NixOS`_ module. Each starts from a
+The generator is built with `Nix`_ and installs for one user without root,
+for the whole host, or through a `NixOS`_ module. Each starts from a
 checkout of `this repository`_:
 
 .. code-block:: console
@@ -20,7 +20,7 @@ checkout of `this repository`_:
 For your user
 =============
 
-Add it to your `Nix`_ profile with :cmd:`nix profile add`, from the checkout:
+Add it to your Nix profile with :cmd:`nix profile add`, from the checkout:
 
 .. code-block:: console
    :class: cmd-host
@@ -53,22 +53,52 @@ units and reloads the manager; it runs at login, and the
 For the whole host
 ==================
 
-A build installed under ``/usr/lib/systemd/`` runs as the generator of
-both the system manager and every user manager, at boot and on each
-``daemon-reload``, with no user units. Without Nix, it needs `Cargo`_ to
-build and the distribution's `QEMU`_, `virtiofsd`_ and :cmd:`socat` to run: the
-units call ``/usr/bin/qemu-system-<arch>``, ``/usr/libexec/virtiofsd``
-and ``socat`` unless the build sets other paths (``build.rs``).
+On a distribution other than NixOS, the same build serves the system
+manager and every user manager. systemd runs a generator linked from
+``/etc/systemd/system-generators/`` or ``/etc/systemd/user-generators/``
+at boot and on each ``daemon-reload`` (:cmd:`systemd.generator(7)`), and
+the build ships a link for each. Build it as yourself; then, as root,
+point a profile at the build and link both generators from it.
+
+Root needs the experimental features too. Nix reads ``/etc/nix/nix.conf``
+and the configuration directory of the user who runs it (`configuration
+file`_), and ``sudo`` sets ``HOME`` to root's, so the line in your own
+``~/.config/nix/nix.conf`` does not reach root. Enable them for every
+user:
 
 .. code-block:: console
    :class: cmd-host
 
-   $ cargo build --release
-   $ sudo install --mode=0755 target/release/qemu-system-generator /usr/libexec/
-   $ sudo ln --symbolic /usr/libexec/qemu-system-generator /usr/lib/systemd/system-generators/
-   $ sudo ln --symbolic /usr/libexec/qemu-system-generator /usr/lib/systemd/user-generators/
-   $ sudo mkdir --parents /usr/share/qemu/systemd
-   $ sudo install --mode=0644 data/qmp-powerdown /usr/share/qemu/systemd/
+   $ echo 'experimental-features = nix-command flakes' \
+       | sudo tee --append /etc/nix/nix.conf
+
+Then build and install:
+
+.. code-block:: console
+   :class: cmd-host
+
+   $ out=$(nix build --print-out-paths --no-link)
+   $ sudo "$(command -v nix)" build \
+       --profile /nix/var/nix/profiles/qemu-system-generator "$out"
+   $ sudo mkdir --parents /etc/systemd/system-generators /etc/systemd/user-generators
+   $ sudo ln --symbolic --force \
+       /nix/var/nix/profiles/qemu-system-generator/lib/systemd/system-generators/qemu-system-generator \
+       /etc/systemd/system-generators/
+   $ sudo ln --symbolic --force \
+       /nix/var/nix/profiles/qemu-system-generator/lib/systemd/user-generators/qemu-system-generator \
+       /etc/systemd/user-generators/
+   $ sudo systemctl daemon-reload
+
+``sudo`` needs the full path to ``nix`` because its ``PATH`` leaves out
+the Nix profile. The profile keeps the build from garbage collection, and
+running the first two commands again moves it to a newer build. A user
+manager picks the generator up at its next ``daemon-reload`` or login.
+Leave out the user units of :ref:`install-user`, or every machine's units
+are generated twice.
+
+At boot, systemd runs generators before it mounts most file systems
+(:cmd:`systemd.generator(7)`), so ``/nix`` must be on the root file system,
+as the Nix installer puts it.
 
 The system manager reads ``.qemu`` files from ``/etc/qemu/systemd/``, and a
 user's manager from ``~/.config/qemu/systemd/``;
@@ -94,10 +124,8 @@ enable it:
 configuration, by name, as text or as a path.
 
 .. _this repository: https://github.com/linux-kdevops/qemu-system-generator
-.. _Cargo: https://doc.rust-lang.org/cargo/
 .. _NixOS: https://nixos.org/manual/nixos/stable/
+.. _configuration file: https://nix.dev/manual/nix/latest/command-ref/conf-file.html#configuration-file
 .. _use-xdg-base-directories: https://nix.dev/manual/nix/latest/command-ref/conf-file.html#conf-use-xdg-base-directories
 .. _Nix: https://nix.dev/manual/nix/latest/
 .. _systemd: https://systemd.io
-.. _QEMU: https://www.qemu.org/docs/master/system/invocation.html
-.. _virtiofsd: https://gitlab.com/virtio-fs/virtiofsd
