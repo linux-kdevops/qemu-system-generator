@@ -6,7 +6,7 @@ Getting started
 
 :doc:`requirements` lists what the host needs, :doc:`installation`
 installs the generator for one user, the whole host or `NixOS`_, and
-:doc:`quickstart` boots a disk image you already have.
+:doc:`quickstart` boots a distribution's cloud image.
 
 .. toctree::
    :maxdepth: 1

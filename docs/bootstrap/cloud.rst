@@ -4,61 +4,80 @@
 Bootstrap from a cloud image
 ============================
 
-This guide boots the cloud images of `Debian`_ testing, `Fedora`_ 44 and
-`Ubuntu`_ 26.10, unmodified, each a machine of its own under your user's
-`systemd`_ manager. On first boot,
+This guide boots the cloud image of `Debian`_ testing, `Fedora`_ 44 or
+`Ubuntu`_ 26.10, unmodified, as a machine under your user's `systemd`_
+manager; the tabs follow the distribution you pick. On first boot,
 `cloud-init`_ reads a seed image that names the machine and lets your key
 in for root. Each disk is the guest's own: what it writes stays across
 restarts.
 
-The three machines share most of their lines through a drop-in
-directory, so each :key:`.qemu` file holds only what differs. The file format
+Every ``cloud-*`` machine shares most of its lines through a drop-in
+directory, so its :key:`.qemu` file holds only what differs. The file format
 is specified in :doc:`qemu-systemd.unit(5) </man/qemu-systemd.unit.5>` and
 the generator in :doc:`qemu-system-generator(8) </man/qemu-system-generator.8>`.
+The :doc:`/getting-started/quickstart` boots the same machine without a
+seed; carry on from it at :ref:`cloud-seeds`.
 
 Prepare the host as :doc:`host` shows.
+
+.. _cloud-images:
 
 The images
 ----------
 
 A relative path in a ``.qemu`` file resolves in the machine's state
 directory, ``~/.local/state/qemu-system/<name>/`` under a user manager.
-Download each image there with :cmd:`curl`, and check it against the
-checksums its distribution publishes. Debian testing, which becomes
-Debian 14, has daily builds:
+Download the image there with :cmd:`curl`, and check it against the
+checksums its distribution publishes:
 
-.. code-block:: console
-   :class: cmd-host
+.. tab-set::
+   :sync-group: distro
 
-   $ mkdir --parents ~/.local/state/qemu-system/cloud-debian
-   $ cd ~/.local/state/qemu-system/cloud-debian
-   $ curl --location --remote-name https://cloud.debian.org/images/cloud/forky/daily/latest/debian-14-genericcloud-amd64-daily.qcow2
-   $ curl --silent --location https://cloud.debian.org/images/cloud/forky/daily/latest/SHA512SUMS | sha512sum --check --ignore-missing
-   debian-14-genericcloud-amd64-daily.qcow2: OK
+   .. tab-item:: Debian
+      :sync: debian
 
-Fedora's checksum file is signed:
+      Debian testing, which becomes Debian 14, has daily builds:
 
-.. code-block:: console
-   :class: cmd-host
+      .. code-block:: console
+         :class: cmd-host
 
-   $ mkdir --parents ~/.local/state/qemu-system/cloud-fedora
-   $ cd ~/.local/state/qemu-system/cloud-fedora
-   $ curl --location --remote-name https://download.fedoraproject.org/pub/fedora/linux/releases/44/Cloud/x86_64/images/Fedora-Cloud-Base-Generic-44-1.7.x86_64.qcow2
-   $ curl --silent --location https://download.fedoraproject.org/pub/fedora/linux/releases/44/Cloud/x86_64/images/Fedora-Cloud-44-1.7-x86_64-CHECKSUM | sha256sum --check --ignore-missing
-   Fedora-Cloud-Base-Generic-44-1.7.x86_64.qcow2: OK
-   sha256sum: WARNING: 17 lines are improperly formatted
+         $ curl --location --remote-name --create-dirs --output-dir ~/.local/state/qemu-system/cloud-debian \
+             https://cloud.debian.org/images/cloud/forky/daily/latest/debian-14-genericcloud-amd64-daily.qcow2
+         $ cd ~/.local/state/qemu-system/cloud-debian
+         $ curl --silent --location https://cloud.debian.org/images/cloud/forky/daily/latest/SHA512SUMS | sha512sum --check --ignore-missing
+         debian-14-genericcloud-amd64-daily.qcow2: OK
 
-Ubuntu's ``current`` directory holds the latest build of 26.10. The image
-is a qcow2 file despite its ``.img`` name:
+   .. tab-item:: Fedora
+      :sync: fedora
 
-.. code-block:: console
-   :class: cmd-host
+      Fedora's checksum file is signed:
 
-   $ mkdir --parents ~/.local/state/qemu-system/cloud-ubuntu
-   $ cd ~/.local/state/qemu-system/cloud-ubuntu
-   $ curl --location --remote-name https://cloud-images.ubuntu.com/stonking/current/stonking-server-cloudimg-amd64.img
-   $ curl --silent --location https://cloud-images.ubuntu.com/stonking/current/SHA256SUMS | sha256sum --check --ignore-missing
-   stonking-server-cloudimg-amd64.img: OK
+      .. code-block:: console
+         :class: cmd-host
+
+         $ curl --location --remote-name --create-dirs --output-dir ~/.local/state/qemu-system/cloud-fedora \
+             https://download.fedoraproject.org/pub/fedora/linux/releases/44/Cloud/x86_64/images/Fedora-Cloud-Base-Generic-44-1.7.x86_64.qcow2
+         $ cd ~/.local/state/qemu-system/cloud-fedora
+         $ curl --silent --location https://download.fedoraproject.org/pub/fedora/linux/releases/44/Cloud/x86_64/images/Fedora-Cloud-44-1.7-x86_64-CHECKSUM | sha256sum --check --ignore-missing
+         Fedora-Cloud-Base-Generic-44-1.7.x86_64.qcow2: OK
+         sha256sum: WARNING: 17 lines are improperly formatted
+
+   .. tab-item:: Ubuntu
+      :sync: ubuntu
+
+      Ubuntu's ``current`` directory holds the latest build of 26.10. The
+      image is a qcow2 file despite its ``.img`` name:
+
+      .. code-block:: console
+         :class: cmd-host
+
+         $ curl --location --remote-name --create-dirs --output-dir ~/.local/state/qemu-system/cloud-ubuntu \
+             https://cloud-images.ubuntu.com/stonking/current/stonking-server-cloudimg-amd64.img
+         $ cd ~/.local/state/qemu-system/cloud-ubuntu
+         $ curl --silent --location https://cloud-images.ubuntu.com/stonking/current/SHA256SUMS | sha256sum --check --ignore-missing
+         stonking-server-cloudimg-amd64.img: OK
+
+.. _cloud-seeds:
 
 The seeds
 ---------
@@ -74,39 +93,66 @@ public key from ``~/bootstrap/system/ssh/id_ed25519.pub`` pasted in:
    disable_root: false
    ssh_authorized_keys:
      - ssh-ed25519 AAAA... bootstrap
-   write_files:
-     - path: /etc/fstab
-       append: true
-       content: |
-         home /home/user virtiofs defaults 0 0
-   runcmd:
-     - [mount, --mkdir, /home/user]
 
-The images let only their default user in by default, and
-``disable_root: false`` gives root the key too. The last lines mount your
-home at the same path, as :ref:`home-cloud` explains, with your home in
-place of ``/home/user``: `write_files`_ adds it to ``/etc/fstab``, which
-mounts it at every boot, and `runcmd`_ mounts it with
-:cmd:`mount --mkdir <mount(8)>` on the first, which cloud-init reaches
-after it has written the file. The meta-data names each
-machine; cloud-init configures a machine once per ``instance-id``.
-:cmd:`cloud-localds`, from `nixpkgs`_' ``cloud-utils``, writes one seed into
-each state directory:
+``disable_root: false`` gives root the key, and cloud-init's `module
+reference`_ documents each key. Each machine's meta-data names it, and
+:cmd:`cloud-localds` writes its seed into its state directory:
 
-.. code-block:: shell
-   :class: cmd-host
+.. tab-set::
+   :sync-group: distro
 
-   cd ~/bootstrap/cloud
-   for name in cloud-debian cloud-fedora cloud-ubuntu; do
-     printf 'instance-id: %s\nlocal-hostname: %s\n' $name $name > meta-data
-     nix shell nixpkgs#cloud-utils --command \
-       cloud-localds ~/.local/state/qemu-system/$name/seed.iso user-data meta-data
-   done
+   .. tab-item:: Debian
+      :sync: debian
 
-.. _cloud-debian:
+      .. code-block:: yaml
+         :caption: ~/bootstrap/cloud/cloud-debian.meta-data
 
-1. Debian testing
-=================
+         instance-id: cloud-debian
+         local-hostname: cloud-debian
+
+      .. code-block:: console
+         :class: cmd-host
+
+         $ nix shell nixpkgs#cloud-utils --command \
+             cloud-localds ~/.local/state/qemu-system/cloud-debian/seed.iso \
+             ~/bootstrap/cloud/user-data ~/bootstrap/cloud/cloud-debian.meta-data
+
+   .. tab-item:: Fedora
+      :sync: fedora
+
+      .. code-block:: yaml
+         :caption: ~/bootstrap/cloud/cloud-fedora.meta-data
+
+         instance-id: cloud-fedora
+         local-hostname: cloud-fedora
+
+      .. code-block:: console
+         :class: cmd-host
+
+         $ nix shell nixpkgs#cloud-utils --command \
+             cloud-localds ~/.local/state/qemu-system/cloud-fedora/seed.iso \
+             ~/bootstrap/cloud/user-data ~/bootstrap/cloud/cloud-fedora.meta-data
+
+   .. tab-item:: Ubuntu
+      :sync: ubuntu
+
+      .. code-block:: yaml
+         :caption: ~/bootstrap/cloud/cloud-ubuntu.meta-data
+
+         instance-id: cloud-ubuntu
+         local-hostname: cloud-ubuntu
+
+      .. code-block:: console
+         :class: cmd-host
+
+         $ nix shell nixpkgs#cloud-utils --command \
+             cloud-localds ~/.local/state/qemu-system/cloud-ubuntu/seed.iso \
+             ~/bootstrap/cloud/user-data ~/bootstrap/cloud/cloud-ubuntu.meta-data
+
+.. _cloud-first:
+
+1. The machine
+==============
 
 The lines every machine shares go in a drop-in. A directory named after
 the part of the name up to a dash, ``cloud-.qemu.d/``, applies to every
@@ -130,25 +176,43 @@ the part of the name up to a dash, ``cloud-.qemu.d/``, applies to every
    drive=file=seed.iso,if=virtio,format=raw,readonly=on
    nic=user,model=virtio-net-pci-non-transitional
 
-   [virtiofsd]
-   shared-dir=%h
-   tag=home
-   sandbox=namespace
-   uid-map=:0:%U:1:
-   gid-map=:0:%G:1:
+``%h`` is your home directory (`specifiers`_). ``nic=`` gives the guest
+`QEMU`_'s `user-mode network`_. The machine's own file keeps only its disk
+and a `vsock`_ device whose context id is the machine's own, as
+:ref:`host-ssh` names it; it replaces the quick start's file:
 
-``%h`` is your home directory (`specifiers`_), and the :key:`[virtiofsd]`
-section shares it (:ref:`home-host`). ``nic=`` gives the guest `QEMU`_'s
-`user-mode network`_. Then create
-``~/.config/qemu/systemd/cloud-debian.qemu``, with the disk and a `vsock`_
-device whose context id is the machine's own:
+.. tab-set::
+   :sync-group: distro
 
-.. code-block:: ini
-   :caption: ~/.config/qemu/systemd/cloud-debian.qemu
+   .. tab-item:: Debian
+      :sync: debian
 
-   [QEMU]
-   drive=file=debian-14-genericcloud-amd64-daily.qcow2,if=virtio,format=qcow2
-   device=vhost-vsock-pci-non-transitional,guest-cid=43
+      .. code-block:: ini
+         :caption: ~/.config/qemu/systemd/cloud-debian.qemu
+
+         [QEMU]
+         drive=file=debian-14-genericcloud-amd64-daily.qcow2,if=virtio,format=qcow2
+         device=vhost-vsock-pci-non-transitional,guest-cid=43
+
+   .. tab-item:: Fedora
+      :sync: fedora
+
+      .. code-block:: ini
+         :caption: ~/.config/qemu/systemd/cloud-fedora.qemu
+
+         [QEMU]
+         drive=file=Fedora-Cloud-Base-Generic-44-1.7.x86_64.qcow2,if=virtio,format=qcow2
+         device=vhost-vsock-pci-non-transitional,guest-cid=44
+
+   .. tab-item:: Ubuntu
+      :sync: ubuntu
+
+      .. code-block:: ini
+         :caption: ~/.config/qemu/systemd/cloud-ubuntu.qemu
+
+         [QEMU]
+         drive=file=stonking-server-cloudimg-amd64.img,if=virtio,format=qcow2
+         device=vhost-vsock-pci-non-transitional,guest-cid=45
 
 The file's lines come first, so the disk is the first drive and the seed
 the second. Each line of :key:`[QEMU]` is one QEMU option with its dash
@@ -157,223 +221,702 @@ with an empty value is the bare flag ``-nographic``.
 :cmd:`qemu-system-x86_64(1)` documents them all. The file is named after
 the machine, and the unit after the file:
 
-.. code-block:: console
-   :class: cmd-host
+.. tab-set::
+   :sync-group: distro
 
-   $ systemctl --user start qemu-system-generator.service
-   $ systemctl --user start qemu-system@cloud-debian.service
-   $ journalctl --user-unit=qemu-system@cloud-debian.service --follow
+   .. tab-item:: Debian
+      :sync: debian
+
+      .. code-block:: console
+         :class: cmd-host
+
+         $ systemctl --user start qemu-system-generator.service
+         $ systemctl --user start qemu-system@cloud-debian.service
+         $ journalctl --user-unit=qemu-system@cloud-debian.service --follow
+
+   .. tab-item:: Fedora
+      :sync: fedora
+
+      .. code-block:: console
+         :class: cmd-host
+
+         $ systemctl --user start qemu-system-generator.service
+         $ systemctl --user start qemu-system@cloud-fedora.service
+         $ journalctl --user-unit=qemu-system@cloud-fedora.service --follow
+
+   .. tab-item:: Ubuntu
+      :sync: ubuntu
+
+      .. code-block:: console
+         :class: cmd-host
+
+         $ systemctl --user start qemu-system-generator.service
+         $ systemctl --user start qemu-system@cloud-ubuntu.service
+         $ journalctl --user-unit=qemu-system@cloud-ubuntu.service --follow
 
 :cmd:`journalctl` shows the serial console. `SeaBIOS`_ starts the
 image's `GRUB`_, and cloud-init reads the seed:
 
-.. code-block:: console
-   :caption: guest
-   :class: cmd-guest
+.. tab-set::
+   :sync-group: distro
 
-   SeaBIOS (version rel-1.17.0-0-gb52ca86e094d-prebuilt.qemu.org)
-   Booting from Hard Disk...
-   GRUB loading.
-   Welcome to GRUB!
-     Booting `Debian GNU/Linux'
-   ...
-   Welcome to Debian GNU/Linux forky/sid!
-   ...
-   [    9.239455] cloud-init[420]: Cloud-init v. 26.2 finished at Fri, 23 Oct 2026 07:14:43 +0000. Datasource DataSourceNoCloud [seed=/dev/vdb].  Up 9.23 seconds
-   ...
-   Try contacting this VM's SSH server via 'ssh vsock%43' from host.
+   .. tab-item:: Debian
+      :sync: debian
+
+      .. code-block:: console
+         :caption: guest
+         :class: cmd-guest
+
+         SeaBIOS (version rel-1.17.0-0-gb52ca86e094d-prebuilt.qemu.org)
+         Booting from Hard Disk...
+         GRUB loading.
+         Welcome to GRUB!
+           Booting `Debian GNU/Linux'
+         ...
+         Welcome to Debian GNU/Linux forky/sid!
+         ...
+         [    9.239455] cloud-init[420]: Cloud-init v. 26.2 finished at Fri, 23 Oct 2026 07:14:43 +0000. Datasource DataSourceNoCloud [seed=/dev/vdb].  Up 9.23 seconds
+         ...
+         Try contacting this VM's SSH server via 'ssh vsock%43' from host.
+
+   .. tab-item:: Fedora
+      :sync: fedora
+
+      .. code-block:: console
+         :caption: guest
+         :class: cmd-guest
+
+         SeaBIOS (version rel-1.17.0-0-gb52ca86e094d-prebuilt.qemu.org)
+         Booting from Hard Disk...
+         GRUB loading.......
+         Welcome to GRUB!
+           Booting `Fedora Linux (6.19.10-300.fc44.x86_64) 44 (Cloud Edition)'
+         ...
+         Welcome to Fedora Linux 44 (Cloud Edition)!
+         ...
+         [    7.195740] cloud-init[889]: Cloud-init v. 25.3 finished at Tue, 27 Oct 2026 15:21:32 +0000. Datasource DataSourceNoCloud [seed=/dev/vdb].  Up 7.19 seconds
+         ...
+         Try contacting this VM's SSH server via 'ssh vsock%44' from host.
+
+   .. tab-item:: Ubuntu
+      :sync: ubuntu
+
+      Ubuntu's GRUB prints nothing to the console:
+
+      .. code-block:: console
+         :caption: guest
+         :class: cmd-guest
+
+         SeaBIOS (version rel-1.17.0-0-gb52ca86e094d-prebuilt.qemu.org)
+         Booting from Hard Disk...
+         ...
+         Welcome to Ubuntu 26.10!
+         ...
+         [   11.260189] cloud-init[810]: Cloud-init v. 26.2-0ubuntu2 finished at Tue, 27 Oct 2026 15:20:59 +0000. Datasource DataSourceNoCloud [seed=/dev/vdb].  Up 11.25 seconds
+         ...
+         Try contacting this VM's SSH server via 'ssh vsock%45' from host.
 
 The guest's :cmd:`systemd-ssh-generator(8)` listens for SSH on vsock.
 :ref:`host-ssh` already names the machine by its context id, so its name
 is an :cmd:`ssh` alias:
 
-.. code-block:: console
-   :class: cmd-host
+.. tab-set::
+   :sync-group: distro
 
-   $ ssh cloud-debian 'hostname; uname --kernel-release'
-   Warning: Permanently added 'vsock/43' (ED25519) to the list of known hosts.
-   cloud-debian
-   7.2.11+deb14-cloud-amd64
+   .. tab-item:: Debian
+      :sync: debian
 
-Your home is mounted, and a file root writes there belongs to you on the
-host:
+      .. code-block:: console
+         :class: cmd-host
 
-.. code-block:: console
-   :class: cmd-host
+         $ ssh cloud-debian 'hostname; uname --kernel-release'
+         Warning: Permanently added 'vsock/43' (ED25519) to the list of known hosts.
+         cloud-debian
+         7.2.11+deb14-cloud-amd64
 
-   $ ssh cloud-debian 'findmnt --noheadings --output=TARGET,SOURCE,FSTYPE /home/user; touch /home/user/bootstrap/cloud/from-debian'
-   Warning: Permanently added 'vsock/43' (ED25519) to the list of known hosts.
-   /home/user home virtiofs
-   $ ls --format=long ~/bootstrap/cloud/from-debian
-   -rw-r--r-- 1 user user 0 Oct 27 13:47 /home/user/bootstrap/cloud/from-debian
+   .. tab-item:: Fedora
+      :sync: fedora
+
+      .. code-block:: console
+         :class: cmd-host
+
+         $ ssh cloud-fedora 'hostname; uname --kernel-release'
+         Warning: Permanently added 'vsock/44' (ED25519) to the list of known hosts.
+         cloud-fedora
+         6.19.10-300.fc44.x86_64
+
+   .. tab-item:: Ubuntu
+      :sync: ubuntu
+
+      .. code-block:: console
+         :class: cmd-host
+
+         $ ssh cloud-ubuntu 'hostname; uname --kernel-release'
+         Warning: Permanently added 'vsock/45' (ED25519) to the list of known hosts.
+         cloud-ubuntu
+         7.3.0-9-generic
 
 With :key:`SshPrivateKey=` from the drop-in, the stop powers the guest off
-over SSH first (:ref:`SSH poweroff <host-poweroff>`), in 3.6 seconds:
+over SSH first (:ref:`SSH poweroff <host-poweroff>`):
 
-.. code-block:: console
-   :class: cmd-host
+.. tab-set::
+   :sync-group: distro
 
-   $ systemctl --user stop qemu-system@cloud-debian.service
+   .. tab-item:: Debian
+      :sync: debian
 
-.. _cloud-fedora:
+      .. code-block:: console
+         :class: cmd-host
 
-2. Fedora
-=========
+         $ systemctl --user stop qemu-system@cloud-debian.service
 
-The drop-in already holds everything but the disk and the context id,
-which :ref:`host-ssh` names:
+   .. tab-item:: Fedora
+      :sync: fedora
 
-.. code-block:: ini
-   :caption: ~/.config/qemu/systemd/cloud-fedora.qemu
+      .. code-block:: console
+         :class: cmd-host
 
-   [QEMU]
-   drive=file=Fedora-Cloud-Base-Generic-44-1.7.x86_64.qcow2,if=virtio,format=qcow2
-   device=vhost-vsock-pci-non-transitional,guest-cid=44
+         $ systemctl --user stop qemu-system@cloud-fedora.service
 
-.. code-block:: console
-   :class: cmd-host
+   .. tab-item:: Ubuntu
+      :sync: ubuntu
 
-   $ systemctl --user start qemu-system-generator.service
-   $ systemctl --user start qemu-system@cloud-fedora.service
-   $ ssh cloud-fedora 'hostname; uname --kernel-release'
-   Warning: Permanently added 'vsock/44' (ED25519) to the list of known hosts.
-   cloud-fedora
-   6.19.10-300.fc44.x86_64
+      .. code-block:: console
+         :class: cmd-host
 
-.. _cloud-ubuntu:
-
-3. Ubuntu
-=========
-
-.. code-block:: ini
-   :caption: ~/.config/qemu/systemd/cloud-ubuntu.qemu
-
-   [QEMU]
-   drive=file=stonking-server-cloudimg-amd64.img,if=virtio,format=qcow2
-   device=vhost-vsock-pci-non-transitional,guest-cid=45
-
-.. code-block:: console
-   :class: cmd-host
-
-   $ systemctl --user start qemu-system-generator.service
-   $ systemctl --user start qemu-system@cloud-ubuntu.service
-   $ ssh cloud-ubuntu 'hostname; uname --kernel-release'
-   Warning: Permanently added 'vsock/45' (ED25519) to the list of known hosts.
-   cloud-ubuntu
-   7.3.0-9-generic
-
-.. _cloud-all:
-
-4. All three
-============
-
-Start them together and :cmd:`machinectl` lists them. Past the first
-boot, each reaches SSH in 9 to 12 seconds:
-
-.. code-block:: console
-   :class: cmd-host
-
-   $ systemctl --user start qemu-system@cloud-debian.service qemu-system@cloud-fedora.service qemu-system@cloud-ubuntu.service
-   $ machinectl --user list
-   MACHINE      CLASS SERVICE     OS VERSION ADDRESSES
-   cloud-debian vm    qemu-system -  -       -
-   cloud-fedora vm    qemu-system -  -       -
-   cloud-ubuntu vm    qemu-system -  -       -
-
-The context ids must differ, since a host has one vsock address space. A
-line in a machine's own file or drop-in directory, such as
-``cloud-debian.qemu.d/``, applies to that machine only; a drop-in file
-there with the name of one in ``cloud-.qemu.d/`` replaces it.
+         $ systemctl --user stop qemu-system@cloud-ubuntu.service
 
 To start a guest over, stop it and download its image again; cloud-init
 reads the seed on the fresh image's first boot.
 
 .. _cloud-network:
 
-5. A network between two machines
+2. A network between two machines
 =================================
 
-A second card on a multicast segment joins cloud-debian and cloud-fedora,
-as :doc:`network` explains. Give cloud-debian its card in a drop-in of
-its own:
+A second machine of the same distribution, ``cloud-<distro>-peer``, joins
+the first on a multicast segment, as :doc:`network` explains. It boots a
+copy of the image of its own:
 
-.. code-block:: ini
-   :caption: ~/.config/qemu/systemd/cloud-debian.qemu.d/20-lan.conf
+.. tab-set::
+   :sync-group: distro
 
-   [QEMU]
-   netdev=dgram,id=lan,remote.type=inet,remote.host=239.255.0.1,remote.port=5555,local.type=inet,local.host=127.0.0.1,local.port=0
-   device=virtio-net-pci-non-transitional,netdev=lan,mac=52:54:00:00:00:43
+   .. tab-item:: Debian
+      :sync: debian
 
-cloud-fedora's drop-in differs only in the ``mac=``:
+      .. code-block:: console
+         :class: cmd-host
 
-.. code-block:: ini
-   :caption: ~/.config/qemu/systemd/cloud-fedora.qemu.d/20-lan.conf
+         $ curl --location --remote-name --create-dirs --output-dir ~/.local/state/qemu-system/cloud-debian-peer \
+             https://cloud.debian.org/images/cloud/forky/daily/latest/debian-14-genericcloud-amd64-daily.qcow2
+         $ cd ~/.local/state/qemu-system/cloud-debian-peer
+         $ curl --silent --location https://cloud.debian.org/images/cloud/forky/daily/latest/SHA512SUMS | sha512sum --check --ignore-missing
+         debian-14-genericcloud-amd64-daily.qcow2: OK
 
-   [QEMU]
-   netdev=dgram,id=lan,remote.type=inet,remote.host=239.255.0.1,remote.port=5555,local.type=inet,local.host=127.0.0.1,local.port=0
-   device=virtio-net-pci-non-transitional,netdev=lan,mac=52:54:00:00:00:44
+   .. tab-item:: Fedora
+      :sync: fedora
+
+      .. code-block:: console
+         :class: cmd-host
+
+         $ curl --location --remote-name --create-dirs --output-dir ~/.local/state/qemu-system/cloud-fedora-peer \
+             https://download.fedoraproject.org/pub/fedora/linux/releases/44/Cloud/x86_64/images/Fedora-Cloud-Base-Generic-44-1.7.x86_64.qcow2
+         $ cd ~/.local/state/qemu-system/cloud-fedora-peer
+         $ curl --silent --location https://download.fedoraproject.org/pub/fedora/linux/releases/44/Cloud/x86_64/images/Fedora-Cloud-44-1.7-x86_64-CHECKSUM | sha256sum --check --ignore-missing
+         Fedora-Cloud-Base-Generic-44-1.7.x86_64.qcow2: OK
+         sha256sum: WARNING: 17 lines are improperly formatted
+
+   .. tab-item:: Ubuntu
+      :sync: ubuntu
+
+      .. code-block:: console
+         :class: cmd-host
+
+         $ curl --location --remote-name --create-dirs --output-dir ~/.local/state/qemu-system/cloud-ubuntu-peer \
+             https://cloud-images.ubuntu.com/stonking/current/stonking-server-cloudimg-amd64.img
+         $ cd ~/.local/state/qemu-system/cloud-ubuntu-peer
+         $ curl --silent --location https://cloud-images.ubuntu.com/stonking/current/SHA256SUMS | sha256sum --check --ignore-missing
+         stonking-server-cloudimg-amd64.img: OK
+
+``cloud-.qemu.d/`` applies to the peer too, so its file holds only its
+disk and context id, as the first machine's does:
+
+.. tab-set::
+   :sync-group: distro
+
+   .. tab-item:: Debian
+      :sync: debian
+
+      .. code-block:: ini
+         :caption: ~/.config/qemu/systemd/cloud-debian-peer.qemu
+
+         [QEMU]
+         drive=file=debian-14-genericcloud-amd64-daily.qcow2,if=virtio,format=qcow2
+         device=vhost-vsock-pci-non-transitional,guest-cid=51
+
+   .. tab-item:: Fedora
+      :sync: fedora
+
+      .. code-block:: ini
+         :caption: ~/.config/qemu/systemd/cloud-fedora-peer.qemu
+
+         [QEMU]
+         drive=file=Fedora-Cloud-Base-Generic-44-1.7.x86_64.qcow2,if=virtio,format=qcow2
+         device=vhost-vsock-pci-non-transitional,guest-cid=52
+
+   .. tab-item:: Ubuntu
+      :sync: ubuntu
+
+      .. code-block:: ini
+         :caption: ~/.config/qemu/systemd/cloud-ubuntu-peer.qemu
+
+         [QEMU]
+         drive=file=stonking-server-cloudimg-amd64.img,if=virtio,format=qcow2
+         device=vhost-vsock-pci-non-transitional,guest-cid=53
+
+Each machine gets its card in a drop-in directory of its own, whose lines
+apply to that machine only:
+
+.. tab-set::
+   :sync-group: distro
+
+   .. tab-item:: Debian
+      :sync: debian
+
+      .. code-block:: ini
+         :caption: ~/.config/qemu/systemd/cloud-debian.qemu.d/20-lan.conf
+
+         [QEMU]
+         netdev=dgram,id=lan,remote.type=inet,remote.host=239.255.0.1,remote.port=5555,local.type=inet,local.host=127.0.0.1,local.port=0
+         device=virtio-net-pci-non-transitional,netdev=lan,mac=52:54:00:00:00:43
+
+      .. code-block:: ini
+         :caption: ~/.config/qemu/systemd/cloud-debian-peer.qemu.d/20-lan.conf
+
+         [QEMU]
+         netdev=dgram,id=lan,remote.type=inet,remote.host=239.255.0.1,remote.port=5555,local.type=inet,local.host=127.0.0.1,local.port=0
+         device=virtio-net-pci-non-transitional,netdev=lan,mac=52:54:00:00:00:51
+
+   .. tab-item:: Fedora
+      :sync: fedora
+
+      .. code-block:: ini
+         :caption: ~/.config/qemu/systemd/cloud-fedora.qemu.d/20-lan.conf
+
+         [QEMU]
+         netdev=dgram,id=lan,remote.type=inet,remote.host=239.255.0.1,remote.port=5555,local.type=inet,local.host=127.0.0.1,local.port=0
+         device=virtio-net-pci-non-transitional,netdev=lan,mac=52:54:00:00:00:44
+
+      .. code-block:: ini
+         :caption: ~/.config/qemu/systemd/cloud-fedora-peer.qemu.d/20-lan.conf
+
+         [QEMU]
+         netdev=dgram,id=lan,remote.type=inet,remote.host=239.255.0.1,remote.port=5555,local.type=inet,local.host=127.0.0.1,local.port=0
+         device=virtio-net-pci-non-transitional,netdev=lan,mac=52:54:00:00:00:52
+
+   .. tab-item:: Ubuntu
+      :sync: ubuntu
+
+      .. code-block:: ini
+         :caption: ~/.config/qemu/systemd/cloud-ubuntu.qemu.d/20-lan.conf
+
+         [QEMU]
+         netdev=dgram,id=lan,remote.type=inet,remote.host=239.255.0.1,remote.port=5555,local.type=inet,local.host=127.0.0.1,local.port=0
+         device=virtio-net-pci-non-transitional,netdev=lan,mac=52:54:00:00:00:45
+
+      .. code-block:: ini
+         :caption: ~/.config/qemu/systemd/cloud-ubuntu-peer.qemu.d/20-lan.conf
+
+         [QEMU]
+         netdev=dgram,id=lan,remote.type=inet,remote.host=239.255.0.1,remote.port=5555,local.type=inet,local.host=127.0.0.1,local.port=0
+         device=virtio-net-pci-non-transitional,netdev=lan,mac=52:54:00:00:00:53
 
 cloud-init sets the addresses (:ref:`network-addresses`). Each
 configuration names both cards by their MAC addresses; the user-mode
 card keeps QEMU's first default address and asks for one over DHCP:
 
-.. code-block:: yaml
-   :caption: ~/bootstrap/cloud/cloud-debian.network
+.. tab-set::
+   :sync-group: distro
 
-   version: 2
-   ethernets:
-     user:
-       match:
-         macaddress: "52:54:00:12:34:56"
-       dhcp4: true
-     lan:
-       match:
-         macaddress: "52:54:00:00:00:43"
-       addresses: [10.0.100.43/24]
+   .. tab-item:: Debian
+      :sync: debian
 
-.. code-block:: yaml
-   :caption: ~/bootstrap/cloud/cloud-fedora.network
+      .. code-block:: yaml
+         :caption: ~/bootstrap/cloud/cloud-debian.network
 
-   version: 2
-   ethernets:
-     user:
-       match:
-         macaddress: "52:54:00:12:34:56"
-       dhcp4: true
-     lan:
-       match:
-         macaddress: "52:54:00:00:00:44"
-       addresses: [10.0.100.44/24]
+         version: 2
+         ethernets:
+           user:
+             match:
+               macaddress: "52:54:00:12:34:56"
+             dhcp4: true
+           lan:
+             match:
+               macaddress: "52:54:00:00:00:43"
+             addresses: [10.0.100.43/24]
+
+      .. code-block:: yaml
+         :caption: ~/bootstrap/cloud/cloud-debian-peer.network
+
+         version: 2
+         ethernets:
+           user:
+             match:
+               macaddress: "52:54:00:12:34:56"
+             dhcp4: true
+           lan:
+             match:
+               macaddress: "52:54:00:00:00:51"
+             addresses: [10.0.100.51/24]
+
+   .. tab-item:: Fedora
+      :sync: fedora
+
+      .. code-block:: yaml
+         :caption: ~/bootstrap/cloud/cloud-fedora.network
+
+         version: 2
+         ethernets:
+           user:
+             match:
+               macaddress: "52:54:00:12:34:56"
+             dhcp4: true
+           lan:
+             match:
+               macaddress: "52:54:00:00:00:44"
+             addresses: [10.0.100.44/24]
+
+      .. code-block:: yaml
+         :caption: ~/bootstrap/cloud/cloud-fedora-peer.network
+
+         version: 2
+         ethernets:
+           user:
+             match:
+               macaddress: "52:54:00:12:34:56"
+             dhcp4: true
+           lan:
+             match:
+               macaddress: "52:54:00:00:00:52"
+             addresses: [10.0.100.52/24]
+
+   .. tab-item:: Ubuntu
+      :sync: ubuntu
+
+      .. code-block:: yaml
+         :caption: ~/bootstrap/cloud/cloud-ubuntu.network
+
+         version: 2
+         ethernets:
+           user:
+             match:
+               macaddress: "52:54:00:12:34:56"
+             dhcp4: true
+           lan:
+             match:
+               macaddress: "52:54:00:00:00:45"
+             addresses: [10.0.100.45/24]
+
+      .. code-block:: yaml
+         :caption: ~/bootstrap/cloud/cloud-ubuntu-peer.network
+
+         version: 2
+         ethernets:
+           user:
+             match:
+               macaddress: "52:54:00:12:34:56"
+             dhcp4: true
+           lan:
+             match:
+               macaddress: "52:54:00:00:00:53"
+             addresses: [10.0.100.53/24]
 
 cloud-init reads the network configuration for a new ``instance-id``
-only, so write both seeds again with one:
+only, so the first machine's meta-data gets a new one:
 
-.. code-block:: shell
-   :class: cmd-host
+.. tab-set::
+   :sync-group: distro
 
-   cd ~/bootstrap/cloud
-   for name in cloud-debian cloud-fedora; do
-     printf 'instance-id: %s-lan\nlocal-hostname: %s\n' $name $name > meta-data
-     nix shell nixpkgs#cloud-utils --command \
-       cloud-localds --network-config=$name.network \
-       ~/.local/state/qemu-system/$name/seed.iso user-data meta-data
-   done
+   .. tab-item:: Debian
+      :sync: debian
 
-Regenerate and restart both, and each reaches the other:
+      .. code-block:: yaml
+         :caption: ~/bootstrap/cloud/cloud-debian.meta-data
 
-.. code-block:: console
-   :class: cmd-host
+         instance-id: cloud-debian-lan
+         local-hostname: cloud-debian
 
-   $ systemctl --user start qemu-system-generator.service
-   $ systemctl --user restart qemu-system@cloud-debian.service qemu-system@cloud-fedora.service
-   $ ssh cloud-debian ping -c 1 10.0.100.44
-   PING 10.0.100.44 (10.0.100.44) 56(84) bytes of data.
-   64 bytes from 10.0.100.44: icmp_seq=1 ttl=64 time=0.337 ms
-   ...
-   $ ssh cloud-fedora ping -c 1 10.0.100.43
-   PING 10.0.100.43 (10.0.100.43) 56(84) bytes of data.
-   64 bytes from 10.0.100.43: icmp_seq=1 ttl=64 time=0.161 ms
-   ...
+      .. code-block:: yaml
+         :caption: ~/bootstrap/cloud/cloud-debian-peer.meta-data
+
+         instance-id: cloud-debian-peer
+         local-hostname: cloud-debian-peer
+
+   .. tab-item:: Fedora
+      :sync: fedora
+
+      .. code-block:: yaml
+         :caption: ~/bootstrap/cloud/cloud-fedora.meta-data
+
+         instance-id: cloud-fedora-lan
+         local-hostname: cloud-fedora
+
+      .. code-block:: yaml
+         :caption: ~/bootstrap/cloud/cloud-fedora-peer.meta-data
+
+         instance-id: cloud-fedora-peer
+         local-hostname: cloud-fedora-peer
+
+   .. tab-item:: Ubuntu
+      :sync: ubuntu
+
+      .. code-block:: yaml
+         :caption: ~/bootstrap/cloud/cloud-ubuntu.meta-data
+
+         instance-id: cloud-ubuntu-lan
+         local-hostname: cloud-ubuntu
+
+      .. code-block:: yaml
+         :caption: ~/bootstrap/cloud/cloud-ubuntu-peer.meta-data
+
+         instance-id: cloud-ubuntu-peer
+         local-hostname: cloud-ubuntu-peer
+
+Write both seeds, regenerate, restart the first machine and start the
+peer, and each reaches the other:
+
+.. tab-set::
+   :sync-group: distro
+
+   .. tab-item:: Debian
+      :sync: debian
+
+      .. code-block:: console
+         :class: cmd-host
+
+         $ nix shell nixpkgs#cloud-utils --command \
+             cloud-localds --network-config ~/bootstrap/cloud/cloud-debian.network \
+             ~/.local/state/qemu-system/cloud-debian/seed.iso \
+             ~/bootstrap/cloud/user-data ~/bootstrap/cloud/cloud-debian.meta-data
+         $ nix shell nixpkgs#cloud-utils --command \
+             cloud-localds --network-config ~/bootstrap/cloud/cloud-debian-peer.network \
+             ~/.local/state/qemu-system/cloud-debian-peer/seed.iso \
+             ~/bootstrap/cloud/user-data ~/bootstrap/cloud/cloud-debian-peer.meta-data
+         $ systemctl --user start qemu-system-generator.service
+         $ systemctl --user restart qemu-system@cloud-debian.service
+         $ systemctl --user start qemu-system@cloud-debian-peer.service
+         $ ssh cloud-debian ping -c 1 10.0.100.51
+         PING 10.0.100.51 (10.0.100.51) 56(84) bytes of data.
+         64 bytes from 10.0.100.51: icmp_seq=1 ttl=64 time=0.302 ms
+         ...
+         $ ssh cloud-debian-peer ping -c 1 10.0.100.43
+         PING 10.0.100.43 (10.0.100.43) 56(84) bytes of data.
+         64 bytes from 10.0.100.43: icmp_seq=1 ttl=64 time=0.193 ms
+         ...
+
+   .. tab-item:: Fedora
+      :sync: fedora
+
+      .. code-block:: console
+         :class: cmd-host
+
+         $ nix shell nixpkgs#cloud-utils --command \
+             cloud-localds --network-config ~/bootstrap/cloud/cloud-fedora.network \
+             ~/.local/state/qemu-system/cloud-fedora/seed.iso \
+             ~/bootstrap/cloud/user-data ~/bootstrap/cloud/cloud-fedora.meta-data
+         $ nix shell nixpkgs#cloud-utils --command \
+             cloud-localds --network-config ~/bootstrap/cloud/cloud-fedora-peer.network \
+             ~/.local/state/qemu-system/cloud-fedora-peer/seed.iso \
+             ~/bootstrap/cloud/user-data ~/bootstrap/cloud/cloud-fedora-peer.meta-data
+         $ systemctl --user start qemu-system-generator.service
+         $ systemctl --user restart qemu-system@cloud-fedora.service
+         $ systemctl --user start qemu-system@cloud-fedora-peer.service
+         $ ssh cloud-fedora ping -c 1 10.0.100.52
+         PING 10.0.100.52 (10.0.100.52) 56(84) bytes of data.
+         64 bytes from 10.0.100.52: icmp_seq=1 ttl=64 time=0.353 ms
+         ...
+         $ ssh cloud-fedora-peer ping -c 1 10.0.100.44
+         PING 10.0.100.44 (10.0.100.44) 56(84) bytes of data.
+         64 bytes from 10.0.100.44: icmp_seq=1 ttl=64 time=0.160 ms
+         ...
+
+   .. tab-item:: Ubuntu
+      :sync: ubuntu
+
+      .. code-block:: console
+         :class: cmd-host
+
+         $ nix shell nixpkgs#cloud-utils --command \
+             cloud-localds --network-config ~/bootstrap/cloud/cloud-ubuntu.network \
+             ~/.local/state/qemu-system/cloud-ubuntu/seed.iso \
+             ~/bootstrap/cloud/user-data ~/bootstrap/cloud/cloud-ubuntu.meta-data
+         $ nix shell nixpkgs#cloud-utils --command \
+             cloud-localds --network-config ~/bootstrap/cloud/cloud-ubuntu-peer.network \
+             ~/.local/state/qemu-system/cloud-ubuntu-peer/seed.iso \
+             ~/bootstrap/cloud/user-data ~/bootstrap/cloud/cloud-ubuntu-peer.meta-data
+         $ systemctl --user start qemu-system-generator.service
+         $ systemctl --user restart qemu-system@cloud-ubuntu.service
+         $ systemctl --user start qemu-system@cloud-ubuntu-peer.service
+         $ ssh cloud-ubuntu ping -c 1 10.0.100.53
+         PING 10.0.100.53 (10.0.100.53) 56(84) bytes of data.
+         64 bytes from 10.0.100.53: icmp_seq=1 ttl=64 time=0.321 ms
+         ...
+         $ ssh cloud-ubuntu-peer ping -c 1 10.0.100.45
+         PING 10.0.100.45 (10.0.100.45) 56(84) bytes of data.
+         64 bytes from 10.0.100.45: icmp_seq=1 ttl=64 time=0.192 ms
+         ...
+
+.. _cloud-home:
+
+3. Your home
+============
+
+Share your home as :doc:`home` describes. Add its section to the drop-in:
+
+.. code-block:: diff
+   :caption: ~/.config/qemu/systemd/cloud-.qemu.d/10-cloud.conf
+
+    drive=file=seed.iso,if=virtio,format=raw,readonly=on
+    nic=user,model=virtio-net-pci-non-transitional
+   +
+   +[virtiofsd]
+   +shared-dir=%h
+   +tag=home
+   +sandbox=namespace
+   +uid-map=:0:%U:1:
+   +gid-map=:0:%G:1:
+
+Mount it in the guest as root's home (:ref:`home-cloud`), with your home
+in place of ``/home/user``:
+
+.. code-block:: diff
+   :caption: ~/bootstrap/cloud/user-data
+
+    ssh_authorized_keys:
+      - ssh-ed25519 AAAA... bootstrap
+   +write_files:
+   +  - path: /etc/fstab
+   +    append: true
+   +    content: |
+   +      home /home/user virtiofs defaults 0 0
+   +      none /home/user/.config/systemd tmpfs ro,nosuid,nodev,mode=0555 0 0
+   +      none /home/user/.local/share/systemd tmpfs ro,nosuid,nodev,mode=0555 0 0
+   +      /root/.ssh /home/user/.ssh none bind 0 0
+   +runcmd:
+   +  - [mount, --mkdir, /home/user]
+   +  - [mount, --mkdir, /home/user/.config/systemd]
+   +  - [mount, --mkdir, /home/user/.local/share/systemd]
+   +  - [mount, --mkdir, /home/user/.ssh]
+   +  - [sed, --in-place, --regexp-extended, 's|^(root:([^:]*:){4})/root:|\1/home/user:|', /etc/passwd]
+
+``/etc/fstab`` mounts them at every boot, and ``runcmd`` on the first;
+``sed`` sets root's home, since :cmd:`usermod` refuses while root runs
+PID 1. cloud-init runs both once per ``instance-id``, so give the machine
+a new one:
+
+.. tab-set::
+   :sync-group: distro
+
+   .. tab-item:: Debian
+      :sync: debian
+
+      .. code-block:: yaml
+         :caption: ~/bootstrap/cloud/cloud-debian.meta-data
+
+         instance-id: cloud-debian-home
+         local-hostname: cloud-debian
+
+   .. tab-item:: Fedora
+      :sync: fedora
+
+      .. code-block:: yaml
+         :caption: ~/bootstrap/cloud/cloud-fedora.meta-data
+
+         instance-id: cloud-fedora-home
+         local-hostname: cloud-fedora
+
+   .. tab-item:: Ubuntu
+      :sync: ubuntu
+
+      .. code-block:: yaml
+         :caption: ~/bootstrap/cloud/cloud-ubuntu.meta-data
+
+         instance-id: cloud-ubuntu-home
+         local-hostname: cloud-ubuntu
+
+Write its seed again, with its network configuration, then regenerate and
+restart. Root's home is now yours, with the two systemd directories and
+``~/.ssh`` covered, and a file root writes there belongs to you on the
+host:
+
+.. tab-set::
+   :sync-group: distro
+
+   .. tab-item:: Debian
+      :sync: debian
+
+      .. code-block:: console
+         :class: cmd-host
+
+         $ nix shell nixpkgs#cloud-utils --command \
+             cloud-localds --network-config ~/bootstrap/cloud/cloud-debian.network \
+             ~/.local/state/qemu-system/cloud-debian/seed.iso \
+             ~/bootstrap/cloud/user-data ~/bootstrap/cloud/cloud-debian.meta-data
+         $ systemctl --user start qemu-system-generator.service
+         $ systemctl --user restart qemu-system@cloud-debian.service
+         $ ssh cloud-debian 'pwd; findmnt --noheadings --output=TARGET,FSTYPE --submounts ~; touch ~/bootstrap/cloud/from-debian'
+         Warning: Permanently added 'vsock/43' (ED25519) to the list of known hosts.
+         /home/user
+         /home/user                        virtiofs
+         ├─/home/user/.config/systemd      tmpfs
+         ├─/home/user/.local/share/systemd tmpfs
+         └─/home/user/.ssh                 ext4
+         $ ls --format=long ~/bootstrap/cloud/from-debian
+         -rw-r--r-- 1 user user 0 Oct 27 16:22 /home/user/bootstrap/cloud/from-debian
+
+   .. tab-item:: Fedora
+      :sync: fedora
+
+      .. code-block:: console
+         :class: cmd-host
+
+         $ nix shell nixpkgs#cloud-utils --command \
+             cloud-localds --network-config ~/bootstrap/cloud/cloud-fedora.network \
+             ~/.local/state/qemu-system/cloud-fedora/seed.iso \
+             ~/bootstrap/cloud/user-data ~/bootstrap/cloud/cloud-fedora.meta-data
+         $ systemctl --user start qemu-system-generator.service
+         $ systemctl --user restart qemu-system@cloud-fedora.service
+         $ ssh cloud-fedora 'pwd; findmnt --noheadings --output=TARGET,FSTYPE --submounts ~; touch ~/bootstrap/cloud/from-fedora'
+         Warning: Permanently added 'vsock/44' (ED25519) to the list of known hosts.
+         /home/user
+         /home/user                        virtiofs
+         ├─/home/user/.config/systemd      tmpfs
+         ├─/home/user/.local/share/systemd tmpfs
+         └─/home/user/.ssh                 btrfs
+         $ ls --format=long ~/bootstrap/cloud/from-fedora
+         -rw-r--r-- 1 user user 0 Oct 27 16:21 /home/user/bootstrap/cloud/from-fedora
+
+   .. tab-item:: Ubuntu
+      :sync: ubuntu
+
+      .. code-block:: console
+         :class: cmd-host
+
+         $ nix shell nixpkgs#cloud-utils --command \
+             cloud-localds --network-config ~/bootstrap/cloud/cloud-ubuntu.network \
+             ~/.local/state/qemu-system/cloud-ubuntu/seed.iso \
+             ~/bootstrap/cloud/user-data ~/bootstrap/cloud/cloud-ubuntu.meta-data
+         $ systemctl --user start qemu-system-generator.service
+         $ systemctl --user restart qemu-system@cloud-ubuntu.service
+         $ ssh cloud-ubuntu 'pwd; findmnt --noheadings --output=TARGET,FSTYPE --submounts ~; touch ~/bootstrap/cloud/from-ubuntu'
+         Warning: Permanently added 'vsock/45' (ED25519) to the list of known hosts.
+         /home/user
+         /home/user                        virtiofs
+         ├─/home/user/.config/systemd      tmpfs
+         ├─/home/user/.local/share/systemd tmpfs
+         └─/home/user/.ssh                 ext4
+         $ ls --format=long ~/bootstrap/cloud/from-ubuntu
+         -rw-r--r-- 1 user user 0 Oct 27 16:21 /home/user/bootstrap/cloud/from-ubuntu
 
 .. _Debian: https://cloud.debian.org/images/cloud/
 .. _Fedora: https://fedoraproject.org/cloud/download
@@ -381,12 +924,10 @@ Regenerate and restart both, and each reaches the other:
 .. _cloud-init: https://cloudinit.readthedocs.io
 .. _user-mode network: https://www.qemu.org/docs/master/system/devices/net.html#using-the-user-mode-network-stack
 .. _systemd: https://systemd.io
-.. _nixpkgs: https://github.com/NixOS/nixpkgs
 .. _QEMU: https://www.qemu.org/docs/master/system/invocation.html
 .. _GRUB: https://www.gnu.org/software/grub/manual/grub/grub.html
 .. _SeaBIOS: https://www.seabios.org/
-.. _write_files: https://cloudinit.readthedocs.io/en/latest/reference/modules.html#write-files
-.. _runcmd: https://cloudinit.readthedocs.io/en/latest/reference/modules.html#runcmd
 .. _vsock: https://man7.org/linux/man-pages/man7/vsock.7.html
 .. _specifiers: https://www.freedesktop.org/software/systemd/man/latest/systemd.unit.html#Specifiers
+.. _module reference: https://cloudinit.readthedocs.io/en/latest/reference/modules.html
 .. _NoCloud: https://cloudinit.readthedocs.io/en/latest/reference/datasources/nocloud.html

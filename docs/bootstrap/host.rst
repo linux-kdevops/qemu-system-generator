@@ -66,6 +66,12 @@ it through :cmd:`systemd-ssh-proxy(1)`:
        HostName vsock/49
    Host bootstrap-knix-peer
        HostName vsock/50
+   Host cloud-debian-peer
+       HostName vsock/51
+   Host cloud-fedora-peer
+       HostName vsock/52
+   Host cloud-ubuntu-peer
+       HostName vsock/53
 
    Host bootstrap-* cloud-*
        ProxyCommand /usr/lib/systemd/systemd-ssh-proxy %h %p

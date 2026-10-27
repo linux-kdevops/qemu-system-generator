@@ -4,31 +4,64 @@
 Quick start
 ===========
 
-Boot a disk image as a machine of your user's manager, with the
-generator installed :ref:`for your user <install-user>`.
-The image needs a guest that prints to its serial console and powers off
-when the `ACPI`_ power button is pressed, as most distributions do.
+Boot a distribution's cloud image as a machine of your user's manager,
+with the generator installed :ref:`for your user <install-user>`. The
+machine is the first one of :doc:`/bootstrap/cloud`, which takes it
+further.
 
 The file
 ========
 
 A ``.qemu`` file is named after the machine, and its unit after the file.
-Save this as ``~/.config/qemu/systemd/demo.qemu``:
+Save this as ``~/.config/qemu/systemd/cloud-<distro>.qemu``:
 
-.. code-block:: ini
-   :caption: ~/.config/qemu/systemd/demo.qemu
+.. tab-set::
+   :sync-group: distro
 
-   [Unit]
-   Description=A first machine
+   .. tab-item:: Debian
+      :sync: debian
 
-   [QEMU]
-   machine=q35
-   accel=kvm
-   cpu=host
-   m=2G
-   smp=2
-   drive=file=disk.qcow2,if=virtio,format=qcow2
-   nographic=
+      .. code-block:: ini
+         :caption: ~/.config/qemu/systemd/cloud-debian.qemu
+
+         [QEMU]
+         machine=q35
+         accel=kvm
+         cpu=host
+         m=2G
+         smp=2
+         drive=file=debian-14-genericcloud-amd64-daily.qcow2,if=virtio,format=qcow2
+         nographic=
+
+   .. tab-item:: Fedora
+      :sync: fedora
+
+      .. code-block:: ini
+         :caption: ~/.config/qemu/systemd/cloud-fedora.qemu
+
+         [QEMU]
+         machine=q35
+         accel=kvm
+         cpu=host
+         m=2G
+         smp=2
+         drive=file=Fedora-Cloud-Base-Generic-44-1.7.x86_64.qcow2,if=virtio,format=qcow2
+         nographic=
+
+   .. tab-item:: Ubuntu
+      :sync: ubuntu
+
+      .. code-block:: ini
+         :caption: ~/.config/qemu/systemd/cloud-ubuntu.qemu
+
+         [QEMU]
+         machine=q35
+         accel=kvm
+         cpu=host
+         m=2G
+         smp=2
+         drive=file=stonking-server-cloudimg-amd64.img,if=virtio,format=qcow2
+         nographic=
 
 Each line of :key:`[QEMU]` is one QEMU option with its dash removed,
 passed on as written: ``m=2G`` is ``-m 2G``, and ``nographic=`` with an
@@ -36,21 +69,11 @@ empty value is the bare flag ``-nographic``.
 :cmd:`qemu-system-x86_64(1)` documents them all.
 
 A relative path resolves in the machine's state directory,
-``~/.local/state/qemu-system/demo/``. Put the image there as
-``disk.qcow2``: copy one you have, or download a distribution's cloud
-image:
+``~/.local/state/qemu-system/cloud-<distro>/``. Download the image there,
+and check it against the checksums its distribution publishes:
 
 .. tab-set::
-   :sync-group: image
-
-   .. tab-item:: Your image
-      :sync: own
-
-      .. code-block:: console
-         :class: cmd-host
-
-         $ mkdir --parents ~/.local/state/qemu-system/demo
-         $ cp /path/to/disk.qcow2 ~/.local/state/qemu-system/demo/
+   :sync-group: distro
 
    .. tab-item:: Debian
       :sync: debian
@@ -58,9 +81,11 @@ image:
       .. code-block:: console
          :class: cmd-host
 
-         $ mkdir --parents ~/.local/state/qemu-system/demo
-         $ curl --location --output ~/.local/state/qemu-system/demo/disk.qcow2 \
+         $ curl --location --remote-name --create-dirs --output-dir ~/.local/state/qemu-system/cloud-debian \
              https://cloud.debian.org/images/cloud/forky/daily/latest/debian-14-genericcloud-amd64-daily.qcow2
+         $ cd ~/.local/state/qemu-system/cloud-debian
+         $ curl --silent --location https://cloud.debian.org/images/cloud/forky/daily/latest/SHA512SUMS | sha512sum --check --ignore-missing
+         debian-14-genericcloud-amd64-daily.qcow2: OK
 
    .. tab-item:: Fedora
       :sync: fedora
@@ -68,9 +93,12 @@ image:
       .. code-block:: console
          :class: cmd-host
 
-         $ mkdir --parents ~/.local/state/qemu-system/demo
-         $ curl --location --output ~/.local/state/qemu-system/demo/disk.qcow2 \
+         $ curl --location --remote-name --create-dirs --output-dir ~/.local/state/qemu-system/cloud-fedora \
              https://download.fedoraproject.org/pub/fedora/linux/releases/44/Cloud/x86_64/images/Fedora-Cloud-Base-Generic-44-1.7.x86_64.qcow2
+         $ cd ~/.local/state/qemu-system/cloud-fedora
+         $ curl --silent --location https://download.fedoraproject.org/pub/fedora/linux/releases/44/Cloud/x86_64/images/Fedora-Cloud-44-1.7-x86_64-CHECKSUM | sha256sum --check --ignore-missing
+         Fedora-Cloud-Base-Generic-44-1.7.x86_64.qcow2: OK
+         sha256sum: WARNING: 17 lines are improperly formatted
 
    .. tab-item:: Ubuntu
       :sync: ubuntu
@@ -78,14 +106,11 @@ image:
       .. code-block:: console
          :class: cmd-host
 
-         $ mkdir --parents ~/.local/state/qemu-system/demo
-         $ curl --location --output ~/.local/state/qemu-system/demo/disk.qcow2 \
+         $ curl --location --remote-name --create-dirs --output-dir ~/.local/state/qemu-system/cloud-ubuntu \
              https://cloud-images.ubuntu.com/stonking/current/stonking-server-cloudimg-amd64.img
-
-A cloud image boots without the seed that :doc:`/bootstrap/cloud` gives
-it, so nobody can log in, but the console shows the boot and the power
-button works. That guide also checks each image against its published
-checksums.
+         $ cd ~/.local/state/qemu-system/cloud-ubuntu
+         $ curl --silent --location https://cloud-images.ubuntu.com/stonking/current/SHA256SUMS | sha256sum --check --ignore-missing
+         stonking-server-cloudimg-amd64.img: OK
 
 Check it
 ========
@@ -93,23 +118,83 @@ Check it
 ``--dryrun`` prints the units the generator would write, and writes
 nothing:
 
-.. code-block:: console
-   :class: cmd-host
+.. tab-set::
+   :sync-group: distro
 
-   $ qemu-system-generator --user --dryrun
-   ---qemu-system@demo.service---
-   # Automatically generated by qemu-system-generator
-   ...
-   ExecStart=/nix/store/...-qemu-11.1.2/bin/qemu-system-x86_64 \
-       -machine q35 \
-       -accel kvm \
-       -cpu host \
-       -m 2G \
-       -smp 2 \
-       -drive file=disk.qcow2,if=virtio,format=qcow2 \
-       -nographic \
-       -qmp unix:%t/qemu-system/%i/qmp.sock,server=on,wait=off
-   ...
+   .. tab-item:: Debian
+      :sync: debian
+
+      .. code-block:: console
+         :class: cmd-host
+
+         $ qemu-system-generator --user --dryrun
+
+      .. code-block:: ini
+         :caption: output
+
+         ---qemu-system@cloud-debian.service---
+         # Automatically generated by qemu-system-generator
+         ...
+         ExecStart=/nix/store/...-qemu-11.1.2/bin/qemu-system-x86_64 \
+             -machine q35 \
+             -accel kvm \
+             -cpu host \
+             -m 2G \
+             -smp 2 \
+             -drive file=debian-14-genericcloud-amd64-daily.qcow2,if=virtio,format=qcow2 \
+             -nographic \
+             -qmp unix:%t/qemu-system/%i/qmp.sock,server=on,wait=off
+         ...
+
+   .. tab-item:: Fedora
+      :sync: fedora
+
+      .. code-block:: console
+         :class: cmd-host
+
+         $ qemu-system-generator --user --dryrun
+
+      .. code-block:: ini
+         :caption: output
+
+         ---qemu-system@cloud-fedora.service---
+         # Automatically generated by qemu-system-generator
+         ...
+         ExecStart=/nix/store/...-qemu-11.1.2/bin/qemu-system-x86_64 \
+             -machine q35 \
+             -accel kvm \
+             -cpu host \
+             -m 2G \
+             -smp 2 \
+             -drive file=Fedora-Cloud-Base-Generic-44-1.7.x86_64.qcow2,if=virtio,format=qcow2 \
+             -nographic \
+             -qmp unix:%t/qemu-system/%i/qmp.sock,server=on,wait=off
+         ...
+
+   .. tab-item:: Ubuntu
+      :sync: ubuntu
+
+      .. code-block:: console
+         :class: cmd-host
+
+         $ qemu-system-generator --user --dryrun
+
+      .. code-block:: ini
+         :caption: output
+
+         ---qemu-system@cloud-ubuntu.service---
+         # Automatically generated by qemu-system-generator
+         ...
+         ExecStart=/nix/store/...-qemu-11.1.2/bin/qemu-system-x86_64 \
+             -machine q35 \
+             -accel kvm \
+             -cpu host \
+             -m 2G \
+             -smp 2 \
+             -drive file=stonking-server-cloudimg-amd64.img,if=virtio,format=qcow2 \
+             -nographic \
+             -qmp unix:%t/qemu-system/%i/qmp.sock,server=on,wait=off
+         ...
 
 .. note::
 
@@ -135,32 +220,54 @@ Run it
 
 The path unit regenerates on a save, after a moment; start the generator
 by hand to be sure, then the machine. :cmd:`journalctl` shows its serial
-console:
-
-.. code-block:: console
-   :class: cmd-host
-
-   $ systemctl --user start qemu-system-generator.service
-   $ systemctl --user start qemu-system@demo.service
-   $ journalctl --user-unit=qemu-system@demo.service --follow
-
-Stop it. ``systemctl --user stop`` presses the guest's power button over
+console. ``systemctl --user stop`` presses the guest's power button over
 `QMP`_ and waits up to two minutes for it to power off:
 
-.. code-block:: console
-   :class: cmd-host
+.. tab-set::
+   :sync-group: distro
 
-   $ systemctl --user stop qemu-system@demo.service
+   .. tab-item:: Debian
+      :sync: debian
+
+      .. code-block:: console
+         :class: cmd-host
+
+         $ systemctl --user start qemu-system-generator.service
+         $ systemctl --user start qemu-system@cloud-debian.service
+         $ journalctl --user-unit=qemu-system@cloud-debian.service --follow
+         $ systemctl --user stop qemu-system@cloud-debian.service
+
+   .. tab-item:: Fedora
+      :sync: fedora
+
+      .. code-block:: console
+         :class: cmd-host
+
+         $ systemctl --user start qemu-system-generator.service
+         $ systemctl --user start qemu-system@cloud-fedora.service
+         $ journalctl --user-unit=qemu-system@cloud-fedora.service --follow
+         $ systemctl --user stop qemu-system@cloud-fedora.service
+
+   .. tab-item:: Ubuntu
+      :sync: ubuntu
+
+      .. code-block:: console
+         :class: cmd-host
+
+         $ systemctl --user start qemu-system-generator.service
+         $ systemctl --user start qemu-system@cloud-ubuntu.service
+         $ journalctl --user-unit=qemu-system@cloud-ubuntu.service --follow
+         $ systemctl --user stop qemu-system@cloud-ubuntu.service
 
 Next
 ====
 
+Prepare the host as :doc:`/bootstrap/host` shows and carry on at
+:ref:`cloud-seeds`: the seed lets you in over SSH on `vsock`_, and the
+guide goes on to the home share, drop-ins and a network between machines.
 :doc:`/usage/index` shows what else :cmd:`systemctl`, ``journalctl``,
-:cmd:`machinectl` and QMP do with a running machine, and :doc:`/bootstrap/index`
-builds machines up one feature at a time: SSH over `vsock`_, shares,
-drop-ins, a network between machines. :doc:`qemu-systemd.unit(5)
+:cmd:`machinectl` and QMP do with a running machine. :doc:`qemu-systemd.unit(5)
 </man/qemu-systemd.unit.5>` specifies the whole file.
 
 .. _QMP: https://www.qemu.org/docs/master/interop/qmp-spec.html
-.. _ACPI: https://uefi.org/specifications
 .. _vsock: https://man7.org/linux/man-pages/man7/vsock.7.html

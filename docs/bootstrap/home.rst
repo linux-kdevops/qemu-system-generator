@@ -4,9 +4,8 @@
 The home share
 ==============
 
-Every guide shares your home with its guests at the same path, and the
-`NixOS`_ guests make it root's home. Write your own home where the
-examples show ``/home/user``.
+Every guide shares your home with its guests at the same path, as root's
+home. Write your own home where the examples show ``/home/user``.
 
 .. _home-host:
 
@@ -32,7 +31,7 @@ The guest side
 ==============
 
 Each `NixOS`_ guide saves ``home.nix`` next to its ``flake.nix``, in
-``~/bootstrap/<guide>/`` (``~/bootstrap/knix/guest/`` for `knix`_), and adds
+``~/bootstrap/<guide>/`` (``~/bootstrap/`knix`_/guest/`` for knix), and adds
 it to the guest's modules:
 
 .. code-block:: nix
@@ -75,14 +74,15 @@ your user units (:cmd:`systemd.unit(5)`) nor read your keys.
 The cloud guests
 ================
 
-`cloud-init`_ writes root's key to ``~/.ssh/authorized_keys``, which
-would put the guide's key in your own file if root lived in the shared
-home. The cloud guests therefore mount the home at the same path and keep
-root's home in ``/root``. No user manager starts in the shared home there, but
-``/home/user/.ssh`` stays visible to them.
+`cloud-init`_ writes root's key to ``/root/.ssh``, and the sshd that
+:cmd:`systemd-ssh-generator(8)` starts on `vsock`_ reads keys from
+``~/.ssh`` only. The cloud seed makes the shared home root's home with the
+same two systemd masks, and covers ``~/.ssh`` with the guest's own
+``/root/.ssh`` instead of an empty tmpfs (:ref:`cloud-home`).
 
 .. _NixOS: https://nixos.org/manual/nixos/stable/
 .. _tmpfs: https://docs.kernel.org/filesystems/tmpfs.html
 .. _cloud-init: https://cloudinit.readthedocs.io
 .. _README: https://gitlab.com/virtio-fs/virtiofsd/-/blob/main/README.md#options
 .. _knix: https://github.com/linux-kdevops/knix
+.. _vsock: https://man7.org/linux/man-pages/man7/vsock.7.html
