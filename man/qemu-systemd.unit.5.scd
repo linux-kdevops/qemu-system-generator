@@ -209,6 +209,12 @@ xattr=
 no-announce-submounts=
 ```
 
+The home holds the user's own systemd units, in _~/.config/systemd/user/_
+and _~/.local/share/systemd/user/_ (*systemd.unit*(5)). A guest that makes
+the shared home a user's home starts them when that user's manager runs,
+unless it mounts an empty, read-only tmpfs over _~/.config/systemd_ and
+_~/.local/share/systemd_; that is guest configuration, outside the file.
+
 ## [Unit], [Service] and [Install]
 
 Copied into the generated service after the generator's own lines, so a
