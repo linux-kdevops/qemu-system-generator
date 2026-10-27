@@ -39,6 +39,9 @@ steps:
   - id: kernel_build
     run: steps/kernel/build
 
+  - id: generator_run
+    run: steps/generator/run
+
   - id: machine_start_bootstrap
     run: steps/machine/start --name bootstrap
 

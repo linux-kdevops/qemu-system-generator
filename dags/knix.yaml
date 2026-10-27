@@ -39,6 +39,9 @@ steps:
   - id: knix_build
     run: steps/knix/build
 
+  - id: generator_run
+    run: steps/generator/run
+
   - id: machine_start_bootstrap
     run: steps/machine/start --name bootstrap
 

@@ -33,6 +33,9 @@ steps:
   - id: uki_build
     run: steps/uki/build
 
+  - id: generator_run
+    run: steps/generator/run
+
   - id: machine_start
     run: steps/machine/start --name bootstrap
 

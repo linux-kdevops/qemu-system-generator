@@ -2,9 +2,9 @@
 # SPDX-License-Identifier: copyleft-next-0.3.1
 ## Usage: steps/machine/start --name VM
 ##
-## Regenerate the units from the .qemu files and restart
-## qemu-system@VM.service. The service is up once QEMU runs; steps/machine/wait says when the
-## guest is:
+## Restart qemu-system@VM.service from the units steps/generator/run
+## generated. The service is up once QEMU runs; steps/machine/wait says
+## when the guest is:
 ##
 ##   nix develop --ignore-env --keep-env-var HOME \
 ##       --keep-env-var XDG_RUNTIME_DIR \
@@ -21,6 +21,4 @@ done
 : "${name:?}"
 
 set -o xtrace
-# start would join a run the path unit began before the last write.
-systemctl --user restart qemu-system-generator.service
 systemctl --user restart "qemu-system@$name.service"

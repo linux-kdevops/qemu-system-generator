@@ -58,6 +58,9 @@ steps:
   - id: cloud_build_ubuntu
     run: steps/cloud/build --distro ubuntu --version 26.10
 
+  - id: generator_run
+    run: steps/generator/run
+
   - id: machine_start_cloud_debian
     run: steps/machine/start --name cloud-debian
 
