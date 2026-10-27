@@ -14,33 +14,33 @@ handler_on:
     run: steps/machine/stop --name bootstrap
 
 steps:
-  - id: check_host
+  - id: host_check
     run: steps/host/check
 
-  - id: generate_key
+  - id: ssh_generate_key
     run: steps/ssh/generate_key
 
-  - id: install_host
+  - id: host_install
     run: steps/host/install
 
-  - id: install_generator
+  - id: generator_install
     run: steps/generator/install
 
-  - id: install
+  - id: disk_install
     run: steps/disk/install
 
-  - id: build
+  - id: disk_build
     run: steps/disk/build
 
-  - id: start
+  - id: machine_start
     run: steps/machine/start --name bootstrap
 
   # The guest answers once its sshd runs; until then the step fails.
-  - id: wait
+  - id: machine_wait
     run: steps/machine/wait --name bootstrap
     retry_policy:
       limit: 60
       interval_sec: 5
 
-  - id: check
+  - id: disk_check
     run: steps/disk/check

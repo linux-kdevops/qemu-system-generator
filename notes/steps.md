@@ -52,6 +52,11 @@ setup and refuses to run anywhere else.
 
 ## DAGs
 
+A DAG step's `id` is the step it runs, `<subsystem>_<verb>`
+(`host_check`, `ssh_generate_key`), followed by the value of the
+argument that tells two runs of that step in one DAG apart
+(`cloud_fetch_debian`).
+
 A DAG (`dags/<guide>.yaml`) is `type: chain`, takes no parameters, and
 holds the control flow: it retries `machine/wait` until the guest
 answers, and stops the machines from `handler_on: exit`, whether the run

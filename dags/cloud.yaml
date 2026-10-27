@@ -14,43 +14,43 @@ handler_on:
     run: steps/machine/stop --name "cloud-debian cloud-fedora cloud-ubuntu"
 
 steps:
-  - id: check_host
+  - id: host_check
     run: steps/host/check
 
-  - id: generate_key
+  - id: ssh_generate_key
     run: steps/ssh/generate_key
 
-  - id: install_host
+  - id: host_install
     run: steps/host/install
 
-  - id: install_generator
+  - id: generator_install
     run: steps/generator/install
 
-  - id: fetch_debian
+  - id: cloud_fetch_debian
     run: steps/cloud/fetch --distro debian --version 14
 
-  - id: fetch_fedora
+  - id: cloud_fetch_fedora
     run: steps/cloud/fetch --distro fedora --version 44
 
-  - id: fetch_ubuntu
+  - id: cloud_fetch_ubuntu
     run: steps/cloud/fetch --distro ubuntu --version 26.10
 
-  - id: install
+  - id: cloud_install
     run: steps/cloud/install
 
-  - id: build
+  - id: cloud_build
     run: steps/cloud/build
 
-  - id: start
+  - id: machine_start
     run: steps/machine/start --name "cloud-debian cloud-fedora cloud-ubuntu"
 
   # The guest answers once its sshd runs; until then the step fails.
   # cloud-init's first boot grows the disk and makes the host keys.
-  - id: wait
+  - id: machine_wait
     run: steps/machine/wait --name "cloud-debian cloud-fedora cloud-ubuntu"
     retry_policy:
       limit: 120
       interval_sec: 5
 
-  - id: check
+  - id: cloud_check
     run: steps/cloud/check
