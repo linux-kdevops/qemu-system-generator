@@ -20,18 +20,25 @@ checkout of `this repository`_:
 For your user
 =============
 
-Add it to your Nix profile with :cmd:`nix profile add`, from the checkout:
+Add it to your Nix profile with :cmd:`nix profile add`, from the checkout.
+The profile puts ``qemu-system-generator`` on ``PATH``:
 
 .. code-block:: console
    :class: cmd-host
 
    $ nix profile add .
+   $ qemu-system-generator --help
+   Usage: qemu-system-generator [--user|--system] [--dryrun] [NORMAL_DIR [EARLY_DIR LATE_DIR]]
+          qemu-system-generator --version
+          qemu-system-generator --help
 
-The profile puts ``qemu-system-generator`` on ``PATH``. `systemd`_ runs user
-generators only from root-owned directories
-(:cmd:`systemd.generator(7)`), so a user manager never runs this one on its
-own. Two user units do it instead. Enable them through the profile's
-link, ``~/.nix-profile`` (``~/.local/state/nix/profile`` with
+   Reads .qemu files from the search path (see qemu-systemd.unit(5)) and
+   writes systemd units into NORMAL_DIR. With --dryrun the units are printed
+   instead. The scope comes from --user/--system, else $SYSTEMD_SCOPE, else
+   the effective user id.
+
+Enable the two user units that run it, through the profile's link,
+``~/.nix-profile`` (``~/.local/state/nix/profile`` with
 `use-xdg-base-directories`_):
 
 .. code-block:: console
@@ -42,13 +49,26 @@ link, ``~/.nix-profile`` (``~/.local/state/nix/profile`` with
        ~/.nix-profile/lib/systemd/user/qemu-system-generator.path
 
 :cmd:`systemctl` links the units by the path it is given, not by the store
-path behind it. After
-:cmd:`nix profile upgrade qemu-system-generator <nix profile upgrade>`, a
-``systemctl --user daemon-reload`` loads the new generation's units.
+path behind it, so an upgrade is a :cmd:`nix profile upgrade`, a reload
+that loads the new units, and a run of the new generator:
 
-The service turns every ``.qemu`` file in ``~/.config/qemu/systemd/`` into
-units and reloads the manager; it runs at login, and the
-:cmd:`systemd.path(5)` unit runs it again whenever that directory changes.
+.. code-block:: console
+   :class: cmd-host
+
+   $ nix profile upgrade qemu-system-generator
+   $ systemctl --user daemon-reload
+   $ systemctl --user start qemu-system-generator.service
+
+.. note::
+
+   `systemd`_ runs user generators only from the directories
+   :cmd:`systemd.generator(7)` lists, such as
+   ``/etc/systemd/user-generators/``, and none of them is in your home, so
+   a user manager never runs the one in your profile on its own. The two
+   units do it instead. The service turns every ``.qemu`` file in
+   ``~/.config/qemu/systemd/`` into units and reloads the manager; it runs
+   at login, and the :cmd:`systemd.path(5)` unit runs it again whenever
+   that directory changes.
 
 For the whole host
 ==================
