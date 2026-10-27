@@ -23,12 +23,11 @@ done
 # shellcheck source=steps/base
 . "$(dirname "$0")/../base"
 units=$HOME/.config/qemu/systemd
+files=$(realpath "$(dirname "$0")/files")
 
 set -o xtrace
 cd "$WORKTREES_DIR/kernel/$name"
 nix build
 mkdir --parents "$units/$name.qemu.d"
-cat >"$units/$name.qemu.d/10-closure.conf" <<EOF
-[QEMU]
-append=console=ttyS0 systemd.ssh_listen=vsock::22 init=$(readlink result)/init
-EOF
+init=$(readlink result)/init envsubst "\$init" \
+	<"$files/10-closure.conf" >"$units/$name.qemu.d/10-closure.conf"

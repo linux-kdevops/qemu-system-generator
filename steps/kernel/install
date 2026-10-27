@@ -26,6 +26,7 @@ done
 # shellcheck source=steps/base
 . "$(dirname "$0")/../base"
 units=$HOME/.config/qemu/systemd
+files=$(realpath "$(dirname "$0")/files")
 
 # vsock context id, which also ends the LAN MAC and address, and CPUs
 case $name in
@@ -40,88 +41,10 @@ esac
 set -o xtrace
 mkdir --parents "$WORKTREES_DIR/kernel/$name" "$units" "$SYSTEM_DIR/share"
 cd "$WORKTREES_DIR/kernel/$name"
-cat >flake.nix <<EOF
-{
-  inputs.nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
-
-  outputs =
-    { self, nixpkgs }:
-    {
-      nixosConfigurations.$name = nixpkgs.lib.nixosSystem {
-        system = "x86_64-linux";
-        modules = [ ./configuration.nix ];
-      };
-      packages.x86_64-linux.default = self.nixosConfigurations.$name.config.system.build.toplevel;
-    };
-}
-EOF
-cat >configuration.nix <<EOF
-{ lib, modulesPath, pkgs, ... }:
-{
-  imports = [ (modulesPath + "/profiles/qemu-guest.nix") ];
-
-  boot.kernelPackages = pkgs.linuxPackages_latest;
-  networking.hostName = "$name";
-  networking.useNetworkd = true;
-  systemd.network.networks."10-lan" = {
-    matchConfig.MACAddress = "52:54:00:00:00:$cid";
-    address = [ "10.0.100.$cid/24" ];
-  };
-  services.openssh.enable = true;
-  services.openssh.hostKeys = [
-    { type = "ed25519"; path = "/etc/ssh/ssh_host_ed25519_key"; }
-  ];
-  security.pam.services.sshd.startSession = lib.mkForce false;
-  users.users.root.openssh.authorizedKeys.keys = [ "$(cat "$SSH_KEY.pub")" ];
-
-  boot.loader.grub.enable = false;
-  fileSystems."/" = {
-    device = "none";
-    fsType = "tmpfs";
-    options = [ "mode=0755" ];
-  };
-  fileSystems."/nix/store" = {
-    device = "store";
-    fsType = "virtiofs";
-  };
-  fileSystems."/mnt/host" = {
-    device = "host";
-    fsType = "virtiofs";
-  };
-
-  system.stateVersion = "26.05";
-}
-EOF
-cat >"$units/$name.qemu" <<EOF
-[QEMU]
-machine=microvm,rtc=on
-accel=kvm
-cpu=host
-m=2G
-smp=$cpus
-nographic=
-serial=mon:stdio
-kernel=$WORKTREES_DIR/kernel/$name/result/kernel
-initrd=$WORKTREES_DIR/kernel/$name/result/initrd
-global=virtio-mmio.force-legacy=false
-netdev=user,id=net0
-device=virtio-net-device,netdev=net0
-netdev=dgram,id=lan,remote.type=inet,remote.host=239.255.0.1,remote.port=5555,local.type=inet,local.host=127.0.0.1,local.port=0
-device=virtio-net-device,netdev=lan,mac=52:54:00:00:00:$cid
-device=vhost-vsock-device,guest-cid=$cid
-
-[virtiofsd]
-shared-dir=/nix/store
-tag=store
-sandbox=namespace
-uid-map=:0:%U:1:
-gid-map=:0:%G:1:
-
-[virtiofsd]
-shared-dir=$SYSTEM_DIR/share
-tag=host
-sandbox=namespace
-uid-map=:0:%U:1:
-gid-map=:0:%G:1:
-EOF
+name=$name envsubst "\$name" <"$files/flake.nix" >flake.nix
+name=$name cid=$cid key=$(cat "$SSH_KEY.pub") \
+	envsubst "\$name \$cid \$key" <"$files/configuration.nix" >configuration.nix
+name=$name cid=$cid cpus=$cpus WORKTREES_DIR=$WORKTREES_DIR SYSTEM_DIR=$SYSTEM_DIR \
+	envsubst "\$name \$cid \$cpus \$WORKTREES_DIR \$SYSTEM_DIR" \
+	<"$files/machine.qemu" >"$units/$name.qemu"
 rm --recursive --force -- "${units:?}/${name:?}.qemu.d"
