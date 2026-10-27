@@ -53,6 +53,9 @@ translate-gid=map:0:1000:1
 xattr=
 no-announce-submounts=
 
+# The home, which the guest mounts at the same path as root's home. The
+# guest mounts an empty, read-only tmpfs over ~/.config/systemd and
+# ~/.local/share/systemd, or root's user manager starts the host's units.
 [virtiofsd]
 shared-dir=%h
 tag=home

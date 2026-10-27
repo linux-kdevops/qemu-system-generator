@@ -35,7 +35,9 @@ serial=mon:stdio
 
 # One virtiofsd per section; keys are virtiofsd options without their
 # dashes. tag= names the daemon's units and the guest mount tag.
-# See: /usr/libexec/virtiofsd --help.
+# See: /usr/libexec/virtiofsd --help. The guest mounts the home at the
+# same path and keeps root's home in /root, so no user manager there runs
+# the host's units.
 [virtiofsd]
 shared-dir=%h
 tag=home
