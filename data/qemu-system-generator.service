@@ -6,6 +6,9 @@
 [Unit]
 Description=Generate QEMU units from .qemu files
 Documentation=man:qemu-system-generator(8)
+# The path unit starts this on every write to the directory, and a burst
+# of writes must not leave the units stale.
+StartLimitIntervalSec=0
 
 [Service]
 Type=oneshot
