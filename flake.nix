@@ -36,6 +36,7 @@
           ps.sphinx
           ps.sphinx-autobuild
           ps.sphinx-copybutton
+          ps.sphinx-design
           ps.pydata-sphinx-theme
         ]);
     in

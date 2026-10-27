@@ -15,6 +15,7 @@ author = "qemu-system-generator authors"
 
 extensions = [
     "sphinx_copybutton",
+    "sphinx_design",
 ]
 
 # Show the "$ " host / "# " guest prompt but strip it (and follow "\"

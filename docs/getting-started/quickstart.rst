@@ -4,7 +4,7 @@
 Quick start
 ===========
 
-This boots a disk image you already have as a machine of your user's
+This boots a disk image as a machine of your user's
 manager, with the generator installed :ref:`for your user <install-user>`.
 The image needs a guest that prints to its serial console and powers off
 when the `ACPI`_ power button is pressed, as most distributions do.
@@ -36,14 +36,56 @@ empty value is the bare flag ``-nographic``.
 :cmd:`qemu-system-x86_64(1)` documents them all.
 
 A relative path resolves in the machine's state directory,
-``~/.local/state/qemu-system/demo/``. Copy the image there:
+``~/.local/state/qemu-system/demo/``. Put the image there as
+``disk.qcow2``: copy one you have, or download a distribution's cloud
+image:
 
-.. code-block:: console
-   :caption: host
-   :class: cmd-host
+.. tab-set::
+   :sync-group: image
 
-   $ mkdir --parents ~/.local/state/qemu-system/demo
-   $ cp /srv/images/disk.qcow2 ~/.local/state/qemu-system/demo/
+   .. tab-item:: Your image
+      :sync: own
+
+      .. code-block:: console
+         :class: cmd-host
+
+         $ mkdir --parents ~/.local/state/qemu-system/demo
+         $ cp /srv/images/disk.qcow2 ~/.local/state/qemu-system/demo/
+
+   .. tab-item:: Debian
+      :sync: debian
+
+      .. code-block:: console
+         :class: cmd-host
+
+         $ mkdir --parents ~/.local/state/qemu-system/demo
+         $ curl --location --output ~/.local/state/qemu-system/demo/disk.qcow2 \
+             https://cloud.debian.org/images/cloud/forky/daily/latest/debian-14-genericcloud-amd64-daily.qcow2
+
+   .. tab-item:: Fedora
+      :sync: fedora
+
+      .. code-block:: console
+         :class: cmd-host
+
+         $ mkdir --parents ~/.local/state/qemu-system/demo
+         $ curl --location --output ~/.local/state/qemu-system/demo/disk.qcow2 \
+             https://download.fedoraproject.org/pub/fedora/linux/releases/44/Cloud/x86_64/images/Fedora-Cloud-Base-Generic-44-1.7.x86_64.qcow2
+
+   .. tab-item:: Ubuntu
+      :sync: ubuntu
+
+      .. code-block:: console
+         :class: cmd-host
+
+         $ mkdir --parents ~/.local/state/qemu-system/demo
+         $ curl --location --output ~/.local/state/qemu-system/demo/disk.qcow2 \
+             https://cloud-images.ubuntu.com/stonking/current/stonking-server-cloudimg-amd64.img
+
+A cloud image boots without the seed that :doc:`/bootstrap/cloud` gives
+it, so nobody can log in, but the console shows the boot and the power
+button works. That guide also checks each image against its published
+checksums.
 
 Check it
 ========
@@ -68,6 +110,20 @@ nothing:
        -nographic \
        -qmp unix:%t/qemu-system/%i/qmp.sock,server=on,wait=off
    ...
+
+.. note::
+
+   The dry run generates every ``.qemu`` file on the search path, in name
+   order, so with other machines in ``~/.config/qemu/systemd/`` it prints
+   their units too. To check one file alone, keep it in a directory of
+   its own and point ``QEMU_SYSTEMD_UNIT_DIRS`` at that directory, which
+   replaces the search path
+   (:doc:`qemu-systemd.unit(5) </man/qemu-systemd.unit.5>`):
+
+   .. code-block:: console
+      :class: cmd-host
+
+      $ QEMU_SYSTEMD_UNIT_DIRS=/srv/machines qemu-system-generator --user --dryrun
 
 The options come out in the file's order, and the only one the
 generator adds is the ``-qmp`` socket it stops the machine through. It
