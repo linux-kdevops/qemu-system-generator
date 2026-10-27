@@ -51,12 +51,6 @@ These are linked from the icons in the top navigation bar too.
 
 .. toctree::
    :maxdepth: 1
-   :caption: Background
-
-   background/motivation
-
-.. toctree::
-   :maxdepth: 1
    :caption: Walk-throughs
 
    bootstrap/index
@@ -66,6 +60,12 @@ These are linked from the icons in the top navigation bar too.
    :caption: Using machines
 
    usage/index
+
+.. toctree::
+   :maxdepth: 1
+   :caption: Background
+
+   background/motivation
 
 .. toctree::
    :maxdepth: 1
