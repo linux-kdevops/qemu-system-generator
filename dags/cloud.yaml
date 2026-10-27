@@ -34,26 +34,26 @@ steps:
   - id: cloud_fetch_debian
     run: steps/cloud/fetch --distro debian --version 14
 
-  - id: cloud_fetch_fedora
-    run: steps/cloud/fetch --distro fedora --version 44
-
-  - id: cloud_fetch_ubuntu
-    run: steps/cloud/fetch --distro ubuntu --version 26.10
-
   - id: cloud_install_debian
     run: steps/cloud/install --distro debian --version 14
-
-  - id: cloud_install_fedora
-    run: steps/cloud/install --distro fedora --version 44
-
-  - id: cloud_install_ubuntu
-    run: steps/cloud/install --distro ubuntu --version 26.10
 
   - id: cloud_build_debian
     run: steps/cloud/build --distro debian --version 14
 
+  - id: cloud_fetch_fedora
+    run: steps/cloud/fetch --distro fedora --version 44
+
+  - id: cloud_install_fedora
+    run: steps/cloud/install --distro fedora --version 44
+
   - id: cloud_build_fedora
     run: steps/cloud/build --distro fedora --version 44
+
+  - id: cloud_fetch_ubuntu
+    run: steps/cloud/fetch --distro ubuntu --version 26.10
+
+  - id: cloud_install_ubuntu
+    run: steps/cloud/install --distro ubuntu --version 26.10
 
   - id: cloud_build_ubuntu
     run: steps/cloud/build --distro ubuntu --version 26.10
