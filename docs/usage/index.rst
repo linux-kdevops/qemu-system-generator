@@ -1,8 +1,8 @@
 .. SPDX-License-Identifier: copyleft-next-0.3.1
 
-==============
-Using machines
-==============
+========
+Machines
+========
 
 Each machine the generator writes is an ordinary systemd service,
 registered with machined and given its own QMP socket. The tools that

@@ -45,9 +45,13 @@ These are linked from the icons in the top navigation bar too.
    :maxdepth: 1
    :caption: Getting started
 
-   getting-started/requirements
-   getting-started/installation
-   getting-started/quickstart
+   getting-started/index
+
+.. toctree::
+   :maxdepth: 1
+   :caption: Machines
+
+   usage/index
 
 .. toctree::
    :maxdepth: 1
@@ -57,21 +61,15 @@ These are linked from the icons in the top navigation bar too.
 
 .. toctree::
    :maxdepth: 1
-   :caption: Using machines
+   :caption: Manual pages
 
-   usage/index
+   man/index
 
 .. toctree::
    :maxdepth: 1
    :caption: Background
 
    background/motivation
-
-.. toctree::
-   :maxdepth: 1
-   :caption: Manual pages
-
-   man/index
 
 .. _systemd: https://systemd.io
 .. _unit-file syntax: https://www.freedesktop.org/software/systemd/man/latest/systemd.syntax.html
