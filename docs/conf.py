@@ -109,6 +109,7 @@ cmd_links = {
     "sshd(8)": "https://man7.org/linux/man-pages/man8/sshd.8.html",
     "systemd-path": f"{_SYSTEMD}/systemd-path.html",
     "systemd.service(5)": f"{_SYSTEMD}/systemd.service.html",
+    "systemd.socket(5)": f"{_SYSTEMD}/systemd.socket.html",
     "systemd.unit(5)": f"{_SYSTEMD}/systemd.unit.html",
     "sd_notify(3)": f"{_SYSTEMD}/sd_notify.html",
     "podman-systemd.unit(5)": "https://docs.podman.io/en/latest/markdown/podman-systemd.unit.5.html",

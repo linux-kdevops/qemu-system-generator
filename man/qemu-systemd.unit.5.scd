@@ -300,7 +300,8 @@ The daemon's socket listens on _%t/virtiofsd/name-tag/virtiofsd.sock_,
 with *SocketMode=0660* so that only the manager's user and group can
 connect, and its service stops when nothing needs it (*StopWhenUnneeded=*). It is
 ordered *Before=* the machine so that it outlives the guest's unmount
-during shutdown.
+during shutdown. Both carry *Documentation=* naming virtiofsd's project
+page and *systemd.socket*(5) or *systemd.service*(5).
 
 # EXAMPLES
 

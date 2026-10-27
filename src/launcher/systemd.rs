@@ -280,9 +280,12 @@ fn machine_service(source: &Source, file: &UnitFile, plan: &Plan, scope: Scope) 
     unit.text
 }
 
-fn helper_socket(source: &Source, program: &str) -> String {
+fn helper_socket(source: &Source, program: &str, documentation: &str) -> String {
     let mut unit = UnitText::new(&source.path);
-    unit.line(format_args!("Description={program} socket for %i"));
+    unit.line(format_args!("Description={program} Socket for %i"));
+    unit.line(format_args!(
+        "Documentation={documentation} man:systemd.socket(5)"
+    ));
     unit.section("Socket");
     unit.line(format_args!(
         "ListenStream={}",
@@ -298,7 +301,14 @@ fn helper_socket(source: &Source, program: &str) -> String {
 
 fn helper_service(source: &Source, machine: &str, helper: &Helper) -> String {
     let mut unit = UnitText::new(&source.path);
-    unit.line(format_args!("Description={} for %i", helper.program));
+    unit.line(format_args!(
+        "Description={} Service for %i",
+        helper.program
+    ));
+    unit.line(format_args!(
+        "Documentation={} man:systemd.service(5)",
+        helper.documentation
+    ));
     unit.line("StopWhenUnneeded=yes");
     unit.line(format_args!("Before={machine}"));
     for mount in &helper.requires_mounts {
@@ -431,7 +441,7 @@ pub fn emit(
         let stem = helper_stem(&source.name, helper.program, &helper.tag);
         files.push(GeneratedFile {
             path: PathBuf::from(format!("{stem}.socket")),
-            text: helper_socket(source, helper.program),
+            text: helper_socket(source, helper.program, helper.documentation),
         });
         files.push(GeneratedFile {
             path: PathBuf::from(format!("{stem}.service")),

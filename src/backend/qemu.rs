@@ -289,6 +289,7 @@ fn decode_helper(
         .collect();
     Ok(Helper {
         program: VIRTIOFSD_SECTION,
+        documentation: "https://gitlab.com/virtio-fs/virtiofsd",
         tag,
         binary: binary.to_owned(),
         args,

@@ -198,8 +198,8 @@ The daemon came up with the machine:
 
    $ systemctl --user list-units 'virtiofsd@bootstrap-*'
      UNIT                              LOAD   ACTIVE SUB     DESCRIPTION
-     virtiofsd@bootstrap-store.service loaded active running virtiofsd for bootstrap-store
-     virtiofsd@bootstrap-store.socket  loaded active running virtiofsd socket for bootstrap-store
+     virtiofsd@bootstrap-store.service loaded active running virtiofsd Service for bootstrap-store
+     virtiofsd@bootstrap-store.socket  loaded active running virtiofsd Socket for bootstrap-store
 
 The guest answers the power button now, so stop it the normal way:
 

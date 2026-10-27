@@ -73,7 +73,8 @@ WantedBy=machines.target
 
 [Unit]
 SourcePath=@EXAMPLES@/fedora.qemu
-Description=virtiofsd socket for %i
+Description=virtiofsd Socket for %i
+Documentation=https://gitlab.com/virtio-fs/virtiofsd man:systemd.socket(5)
 
 [Socket]
 ListenStream=%t/virtiofsd/%i/virtiofsd.sock
@@ -84,7 +85,8 @@ RuntimeDirectory=virtiofsd/%i
 
 [Unit]
 SourcePath=@EXAMPLES@/fedora.qemu
-Description=virtiofsd for %i
+Description=virtiofsd Service for %i
+Documentation=https://gitlab.com/virtio-fs/virtiofsd man:systemd.service(5)
 StopWhenUnneeded=yes
 Before=qemu-system@fedora.service
 
@@ -283,7 +285,8 @@ DeviceAllow=char-pts rw
 
 [Unit]
 SourcePath=@EXAMPLES@/microvm.qemu
-Description=virtiofsd socket for %i
+Description=virtiofsd Socket for %i
+Documentation=https://gitlab.com/virtio-fs/virtiofsd man:systemd.socket(5)
 
 [Socket]
 ListenStream=%t/virtiofsd/%i/virtiofsd.sock
@@ -294,7 +297,8 @@ RuntimeDirectory=virtiofsd/%i
 
 [Unit]
 SourcePath=@EXAMPLES@/microvm.qemu
-Description=virtiofsd for %i
+Description=virtiofsd Service for %i
+Documentation=https://gitlab.com/virtio-fs/virtiofsd man:systemd.service(5)
 StopWhenUnneeded=yes
 Before=qemu-system@microvm.service
 
@@ -399,7 +403,8 @@ WantedBy=machines.target
 
 [Unit]
 SourcePath=@EXAMPLES@/nixos.qemu
-Description=virtiofsd socket for %i
+Description=virtiofsd Socket for %i
+Documentation=https://gitlab.com/virtio-fs/virtiofsd man:systemd.socket(5)
 
 [Socket]
 ListenStream=%t/virtiofsd/%i/virtiofsd.sock
@@ -410,7 +415,8 @@ RuntimeDirectory=virtiofsd/%i
 
 [Unit]
 SourcePath=@EXAMPLES@/nixos.qemu
-Description=virtiofsd for %i
+Description=virtiofsd Service for %i
+Documentation=https://gitlab.com/virtio-fs/virtiofsd man:systemd.service(5)
 StopWhenUnneeded=yes
 Before=qemu-system@nixos.service
 RequiresMountsFor=/nix/store
@@ -431,7 +437,8 @@ ExecStart=@VIRTIOFSD@ \
 
 [Unit]
 SourcePath=@EXAMPLES@/nixos.qemu
-Description=virtiofsd socket for %i
+Description=virtiofsd Socket for %i
+Documentation=https://gitlab.com/virtio-fs/virtiofsd man:systemd.socket(5)
 
 [Socket]
 ListenStream=%t/virtiofsd/%i/virtiofsd.sock
@@ -442,7 +449,8 @@ RuntimeDirectory=virtiofsd/%i
 
 [Unit]
 SourcePath=@EXAMPLES@/nixos.qemu
-Description=virtiofsd for %i
+Description=virtiofsd Service for %i
+Documentation=https://gitlab.com/virtio-fs/virtiofsd man:systemd.service(5)
 StopWhenUnneeded=yes
 Before=qemu-system@nixos.service
 RequiresMountsFor=/srv/kernel/lib/modules
@@ -465,7 +473,8 @@ ExecStart=@VIRTIOFSD@ \
 
 [Unit]
 SourcePath=@EXAMPLES@/nixos.qemu
-Description=virtiofsd socket for %i
+Description=virtiofsd Socket for %i
+Documentation=https://gitlab.com/virtio-fs/virtiofsd man:systemd.socket(5)
 
 [Socket]
 ListenStream=%t/virtiofsd/%i/virtiofsd.sock
@@ -476,7 +485,8 @@ RuntimeDirectory=virtiofsd/%i
 
 [Unit]
 SourcePath=@EXAMPLES@/nixos.qemu
-Description=virtiofsd for %i
+Description=virtiofsd Service for %i
+Documentation=https://gitlab.com/virtio-fs/virtiofsd man:systemd.service(5)
 StopWhenUnneeded=yes
 Before=qemu-system@nixos.service
 

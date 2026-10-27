@@ -69,6 +69,8 @@ impl fmt::Display for Tag {
 pub struct Helper {
     /// The daemon's name, which names its units.
     pub program: &'static str,
+    /// Where the daemon's options are documented, as a URI.
+    pub documentation: &'static str,
     pub tag: Tag,
     pub binary: String,
     pub args: Vec<Arg>,
