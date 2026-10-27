@@ -1,11 +1,10 @@
 #!/usr/bin/env bash
 # SPDX-License-Identifier: copyleft-next-0.3.1
-## Usage: steps/machine/wait --name "VM..." [--base FILE]
+## Usage: steps/machine/wait --name VM [--base FILE]
 ##
-## Ask each machine in the space-separated list over SSH whether its
-## systemd has finished starting up, and wait for the answer. A guest that
-## comes up degraded counts as up; one that does not answer yet fails, so
-## run it again until it passes:
+## Ask the machine over SSH whether its systemd has finished starting up,
+## and wait for the answer. A guest that comes up degraded counts as up;
+## one that does not answer yet fails, so run it again until it passes:
 ##
 ##   nix develop --ignore-env --keep-env-var HOME \
 ##       --command steps/machine/wait --name bootstrap
@@ -25,7 +24,5 @@ done
 . "$(dirname "$0")/../base"
 
 set -o xtrace
-for vm in $name; do
-	state=$(ssh -F "$SSH_DIR/config" "$vm" systemctl is-system-running --wait) ||
-		[ "$state" = degraded ]
-done
+state=$(ssh -F "$SSH_DIR/config" "$name" systemctl is-system-running --wait) ||
+	[ "$state" = degraded ]

@@ -11,7 +11,12 @@ env:
 
 handler_on:
   exit:
-    run: steps/machine/stop --name "cloud-debian cloud-fedora cloud-ubuntu"
+    # Stop every machine, even after one fails to stop.
+    run: >-
+      status=0;
+      for vm in cloud-debian cloud-fedora cloud-ubuntu; do
+      steps/machine/stop --name $vm || status=1; done;
+      exit $status
 
 steps:
   - id: host_check
@@ -41,13 +46,31 @@ steps:
   - id: cloud_build
     run: steps/cloud/build
 
-  - id: machine_start
-    run: steps/machine/start --name "cloud-debian cloud-fedora cloud-ubuntu"
+  - id: machine_start_cloud_debian
+    run: steps/machine/start --name cloud-debian
+
+  - id: machine_start_cloud_fedora
+    run: steps/machine/start --name cloud-fedora
+
+  - id: machine_start_cloud_ubuntu
+    run: steps/machine/start --name cloud-ubuntu
 
   # The guest answers once its sshd runs; until then the step fails.
   # cloud-init's first boot grows the disk and makes the host keys.
-  - id: machine_wait
-    run: steps/machine/wait --name "cloud-debian cloud-fedora cloud-ubuntu"
+  - id: machine_wait_cloud_debian
+    run: steps/machine/wait --name cloud-debian
+    retry_policy:
+      limit: 120
+      interval_sec: 5
+
+  - id: machine_wait_cloud_fedora
+    run: steps/machine/wait --name cloud-fedora
+    retry_policy:
+      limit: 120
+      interval_sec: 5
+
+  - id: machine_wait_cloud_ubuntu
+    run: steps/machine/wait --name cloud-ubuntu
     retry_policy:
       limit: 120
       interval_sec: 5

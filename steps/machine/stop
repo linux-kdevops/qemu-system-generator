@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 # SPDX-License-Identifier: copyleft-next-0.3.1
-## Usage: steps/machine/stop --name "VM..."
+## Usage: steps/machine/stop --name VM
 ##
-## Stop qemu-system@VM.service of each machine in the space-separated list
-## the way the guides do, which powers the guest down, and fail unless the
-## service ended with Result=success, which a guest that ignored the power
-## button and was killed at TimeoutStopSec= does not:
+## Stop qemu-system@VM.service the way the guides do, which powers the
+## guest down, and fail unless the service ended with Result=success,
+## which a guest that ignored the power button and was killed at
+## TimeoutStopSec= does not:
 ##
 ##   nix develop --ignore-env --keep-env-var HOME \
 ##       --keep-env-var XDG_RUNTIME_DIR \
@@ -22,10 +22,8 @@ done
 : "${name:?}"
 
 set -o xtrace
-for vm in $name; do
-	start=$SECONDS
-	systemctl --user stop "qemu-system@$vm.service"
-	echo "$vm: stopped in $((SECONDS - start)) s"
-	result=$(systemctl --user show --property=Result --value "qemu-system@$vm.service")
-	[ "$result" = success ]
-done
+start=$SECONDS
+systemctl --user stop "qemu-system@$name.service"
+echo "$name: stopped in $((SECONDS - start)) s"
+result=$(systemctl --user show --property=Result --value "qemu-system@$name.service")
+[ "$result" = success ]

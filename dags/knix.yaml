@@ -13,7 +13,12 @@ env:
 
 handler_on:
   exit:
-    run: steps/machine/stop --name "bootstrap peer"
+    # Stop every machine, even after one fails to stop.
+    run: >-
+      status=0;
+      for vm in bootstrap peer; do
+      steps/machine/stop --name $vm || status=1; done;
+      exit $status
 
 steps:
   - id: host_check
@@ -34,12 +39,21 @@ steps:
   - id: knix_build
     run: steps/knix/build
 
-  - id: machine_start
-    run: steps/machine/start --name "bootstrap peer"
+  - id: machine_start_bootstrap
+    run: steps/machine/start --name bootstrap
+
+  - id: machine_start_peer
+    run: steps/machine/start --name peer
 
   # The guest answers once its sshd runs; until then the step fails.
-  - id: machine_wait
-    run: steps/machine/wait --name "bootstrap peer"
+  - id: machine_wait_bootstrap
+    run: steps/machine/wait --name bootstrap
+    retry_policy:
+      limit: 60
+      interval_sec: 5
+
+  - id: machine_wait_peer
+    run: steps/machine/wait --name peer
     retry_policy:
       limit: 60
       interval_sec: 5
