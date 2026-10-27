@@ -50,7 +50,7 @@ image:
          :class: cmd-host
 
          $ mkdir --parents ~/.local/state/qemu-system/demo
-         $ cp /srv/images/disk.qcow2 ~/.local/state/qemu-system/demo/
+         $ cp /path/to/disk.qcow2 ~/.local/state/qemu-system/demo/
 
    .. tab-item:: Debian
       :sync: debian
@@ -123,7 +123,7 @@ nothing:
    .. code-block:: console
       :class: cmd-host
 
-      $ QEMU_SYSTEM_GENERATOR_UNIT_DIRS=/srv/machines qemu-system-generator --user --dryrun
+      $ QEMU_SYSTEM_GENERATOR_UNIT_DIRS=/path/to/machines qemu-system-generator --user --dryrun
 
 The options come out in the file's order, and the only one the
 generator adds is the ``-qmp`` socket it stops the machine through. It

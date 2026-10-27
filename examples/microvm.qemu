@@ -14,7 +14,7 @@ accel=kvm
 cpu=host
 m=1024
 smp=2
-kernel=/srv/kernel/bzImage
+kernel=/path/to/kernel/bzImage
 append=console=ttyS0 root=/dev/vda rw
 drive=file=root.raw,if=none,format=raw,id=root
 device=virtio-blk-device,drive=root
@@ -22,7 +22,7 @@ netdev=user,id=net0,hostfwd=tcp:127.0.0.1:10222-:22
 device=virtio-net-device,netdev=net0
 device=virtio-rng-device
 device=vhost-vsock-device,guest-cid=43
-fsdev=local,id=fsdev_share,path=/srv/share,security_model=none,multidevs=remap
+fsdev=local,id=fsdev_share,path=/path/to/share,security_model=none,multidevs=remap
 device=virtio-9p-device,fsdev=fsdev_share,mount_tag=share
 nographic=
 serial=mon:stdio

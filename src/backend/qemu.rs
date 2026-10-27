@@ -483,18 +483,18 @@ mod tests {
     #[test]
     fn virtiofsd_sections_become_helpers() {
         let plan = decode_text(
-            "[QEMU]\nm=2G\n[virtiofsd]\nshared-dir=/srv/a\ntag=a\nxattr=\n[virtiofsd]\nshared-dir=%h\ntag=b\n",
+            "[QEMU]\nm=2G\n[virtiofsd]\nshared-dir=/path/to/a\ntag=a\nxattr=\n[virtiofsd]\nshared-dir=%h\ntag=b\n",
         )
         .unwrap();
         let tags: Vec<_> = plan.helpers.iter().map(|h| h.tag.to_string()).collect();
         assert_eq!(tags, ["a", "b"]);
-        assert_eq!(plan.helpers[0].requires_mounts, ["/srv/a"]);
+        assert_eq!(plan.helpers[0].requires_mounts, ["/path/to/a"]);
         assert_eq!(plan.helpers[1].requires_mounts, [] as [String; 0]);
         assert_eq!(plan.helpers[0].binary, VIRTIOFSD);
         let words: Vec<_> = plan.helpers[0].args.iter().map(|a| a.join(" ")).collect();
         assert_eq!(
             words,
-            ["--shared-dir=/srv/a", "--tag=a", "--xattr", "--fd=3"]
+            ["--shared-dir=/path/to/a", "--tag=a", "--xattr", "--fd=3"]
         );
         assert_eq!(
             command_line(&plan)[1..],

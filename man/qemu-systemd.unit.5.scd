@@ -166,7 +166,7 @@ second *-qmp* from the file is fine, QEMU serves several.
 A 9p share is two ordinary lines and needs no daemon:
 
 ```
-fsdev=local,id=fsdev_share,path=/srv/share,security_model=none,multidevs=remap
+fsdev=local,id=fsdev_share,path=/path/to/share,security_model=none,multidevs=remap
 device=virtio-9p-pci-non-transitional,fsdev=fsdev_share,mount_tag=share
 ```
 

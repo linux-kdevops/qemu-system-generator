@@ -14,8 +14,8 @@ cpu=host,pmu=on
 m=4G
 smp=4
 uuid=7f3a2b1c-4d5e-4f60-8a7b-9c0d1e2f3a4b
-kernel=/srv/kernel/bzImage
-initrd=/srv/nixos/initrd
+kernel=/path/to/kernel/bzImage
+initrd=/path/to/nixos/initrd
 append=console=ttyS0,115200 console=hvc0 init=/nix/store/current-system/init
 drive=file=nvme0.qcow2,if=none,format=qcow2,id=nvme0-drive
 device=nvme,serial=nvme0,drive=nvme0-drive,logical_block_size=4096,physical_block_size=4096
@@ -43,7 +43,7 @@ xattr=
 no-announce-submounts=
 
 [virtiofsd]
-shared-dir=/srv/kernel/lib/modules
+shared-dir=/path/to/kernel/lib/modules
 tag=modules
 sandbox=namespace
 uid-map=:0:%U:1:

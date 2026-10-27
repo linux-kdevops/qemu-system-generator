@@ -534,14 +534,14 @@ mod tests {
             [
                 words(&["-append", "a b"]),
                 words(&["-S"]),
-                words(&["--shared-dir=/srv/my share"]),
+                words(&["--shared-dir=/path/to/my share"]),
             ],
         );
         assert!(unit.text.ends_with(concat!(
             "[Service]\nExecStart=/bin/q \\\n",
             "    -append \"a b\" \\\n",
             "    -S \\\n",
-            "    \"--shared-dir=/srv/my share\"\n",
+            "    \"--shared-dir=/path/to/my share\"\n",
         )));
     }
 
