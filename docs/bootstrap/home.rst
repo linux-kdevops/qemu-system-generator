@@ -24,13 +24,16 @@ One :key:`[virtiofsd]` section serves the home (:ref:`host-virtiofsd`):
    uid-map=:0:%U:1:
    gid-map=:0:%G:1:
 
+The keys are virtiofsd's long options, documented in its `README`_.
+
 .. _home-guest:
 
 The guest side
 ==============
 
-The NixOS guests take one more module, ``home.nix``, the same in every
-guide:
+Each `NixOS`_ guide saves ``home.nix`` next to its ``flake.nix``, in
+``~/bootstrap/<guide>/`` (``~/bootstrap/knix/guest/`` for `knix`_), and adds
+it to the guest's modules:
 
 .. code-block:: nix
    :caption: home.nix
@@ -81,3 +84,5 @@ root's home in ``/root``. No user manager starts in the shared home there, but
 .. _NixOS: https://nixos.org/manual/nixos/stable/
 .. _tmpfs: https://docs.kernel.org/filesystems/tmpfs.html
 .. _cloud-init: https://cloudinit.readthedocs.io
+.. _README: https://gitlab.com/virtio-fs/virtiofsd/-/blob/main/README.md#options
+.. _knix: https://github.com/linux-kdevops/knix
