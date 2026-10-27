@@ -1,8 +1,8 @@
 # SPDX-License-Identifier: copyleft-next-0.3.1
 description: >-
-  Build a NixOS closure with the latest kernel, boot it directly as the
-  microvm machines bootstrap and peer with the host's Nix store over
-  virtiofs, log in, pass a file each way through a share, and have each
+  Build a NixOS closure with the latest kernel for each of the microvm
+  machines bootstrap and peer, boot it directly with the host's Nix store
+  over virtiofs, log in, pass a file each way through a share, and have each
   machine ping the other.
 working_dir: ..
 type: chain
@@ -33,11 +33,17 @@ steps:
   - id: generator_install
     run: steps/generator/install
 
-  - id: kernel_install
-    run: steps/kernel/install
+  - id: kernel_install_bootstrap
+    run: steps/kernel/install --name bootstrap
 
-  - id: kernel_build
-    run: steps/kernel/build
+  - id: kernel_build_bootstrap
+    run: steps/kernel/build --name bootstrap
+
+  - id: kernel_install_peer
+    run: steps/kernel/install --name peer
+
+  - id: kernel_build_peer
+    run: steps/kernel/build --name peer
 
   - id: generator_run
     run: steps/generator/run

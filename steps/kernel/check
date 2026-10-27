@@ -3,8 +3,8 @@
 ## Usage: steps/kernel/check [--base FILE]
 ##
 ## Log in to the running bootstrap and peer machines, print bootstrap's
-## kernel, have it read the host's file from the share and leave one
-## there, find that file in SYSTEM_DIR/share, and have each machine ping
+## kernel, have it read a file the host leaves in SYSTEM_DIR/share and
+## leave one there, find that file on the host, and have each machine ping
 ## the other over their LAN:
 ##
 ##   nix develop --ignore-env --keep-env-var HOME \
@@ -25,6 +25,7 @@ done
 
 set -o xtrace
 rm --force -- "$SYSTEM_DIR/share/from-guest"
+echo "hello from the host" >"$SYSTEM_DIR/share/hello.txt"
 ssh -F "$SSH_DIR/config" bootstrap uname --kernel-release
 ssh -F "$SSH_DIR/config" bootstrap 'cat /mnt/host/hello.txt; touch /mnt/host/from-guest'
 ls --format=long "$SYSTEM_DIR/share/from-guest"
