@@ -2,9 +2,10 @@
 # SPDX-License-Identifier: copyleft-next-0.3.1
 ## Usage: steps/uki/check [--base FILE]
 ##
-## Log in to the running bootstrap-uki machine, print its kernel, check that
-## root's home is the shared home with its systemd directories masked,
-## and leave a file in WORKTREES_DIR/uki, which must lie in the home:
+## Log in to the running bootstrap-uki machine, print its kernel, check
+## that root's home is the shared home with its systemd directories and
+## ~/.ssh masked, and leave a file in WORKTREES_DIR/uki, which must lie
+## in the home:
 ##
 ##   nix develop --ignore-env --keep-env-var HOME \
 ##       --command steps/uki/check
@@ -26,5 +27,5 @@ set -o xtrace
 ssh -F "$SSH_DIR/config" bootstrap-uki uname --kernel-release
 rm --force -- "$WORKTREES_DIR/uki/from-guest"
 ssh -F "$SSH_DIR/config" bootstrap-uki \
-	"pwd && findmnt --mountpoint ~/.config/systemd && findmnt --mountpoint ~/.local/share/systemd && touch $WORKTREES_DIR/uki/from-guest"
+	"pwd && findmnt --mountpoint ~/.config/systemd && findmnt --mountpoint ~/.local/share/systemd && findmnt --mountpoint ~/.ssh && touch $WORKTREES_DIR/uki/from-guest"
 ls --format=long "$WORKTREES_DIR/uki/from-guest"

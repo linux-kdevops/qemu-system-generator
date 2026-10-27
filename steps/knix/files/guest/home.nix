@@ -15,5 +15,6 @@ in
   };
   fileSystems."${home}/.config/systemd" = mask;
   fileSystems."${home}/.local/share/systemd" = mask;
+  fileSystems."${home}/.ssh" = mask;
   users.users.root.home = lib.mkForce home;
 }
