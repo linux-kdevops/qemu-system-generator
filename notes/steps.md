@@ -21,6 +21,12 @@ concern the guides share (`host`, `ssh`, `generator`, `machine`,
 `github`). A step is named for its action in the imperative,
 `verb_object` in snake_case when it takes an object (`generate_key`).
 
+A file a step writes lives as a file of its own in
+`steps/<subsystem>/files/`, so it can be read and checked without running
+the step. The step copies it, or fills in its `$name` placeholders with
+`envsubst`, given the list of names to fill so that Nix's `${...}` and
+systemd's `%` specifiers pass through as written.
+
 A guide and its steps are independent documents, kept by hand: neither
 reads, includes or names the other, and a change to one needs the
 matching change to the other.
