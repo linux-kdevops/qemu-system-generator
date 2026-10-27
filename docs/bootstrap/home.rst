@@ -51,6 +51,7 @@ guide:
      };
      fileSystems."${home}/.config/systemd" = mask;
      fileSystems."${home}/.local/share/systemd" = mask;
+     fileSystems."${home}/.ssh" = mask;
      users.users.root.home = lib.mkForce home;
    }
 
@@ -59,24 +60,12 @@ with ``lib.mkForce``.
 
 .. _home-units:
 
-Your units stay on the host
----------------------------
+Your units and keys stay on the host
+------------------------------------
 
-``home.nix`` hides ``~/.config/systemd`` and ``~/.local/share/systemd``
-under an empty, read-only `tmpfs`_, so the guests do not run your user
-units (:cmd:`systemd.unit(5)`).
-
-.. _home-ssh:
-
-What else the guest sees
-------------------------
-
-NixOS's :cmd:`sshd <sshd(8)>` reads ``~/.ssh/authorized_keys`` as well as
-the keys set in the configuration
-(`services.openssh.authorizedKeysInHomedir`_ and ``AuthorizedKeysFile`` in
-:cmd:`sshd_config(5)`), so a key your account accepts on the host also logs
-in to the guests as root. The files root writes, such as its shell history,
-land in your home.
+``home.nix`` hides ``~/.config/systemd``, ``~/.local/share/systemd`` and
+``~/.ssh`` under an empty, read-only `tmpfs`_, so the guests neither run
+your user units (:cmd:`systemd.unit(5)`) nor read your keys.
 
 .. _home-cloud:
 
@@ -86,10 +75,9 @@ The cloud guests
 `cloud-init`_ writes root's key to ``~/.ssh/authorized_keys``, which
 would put the guide's key in your own file if root lived in the shared
 home. The cloud guests therefore mount the home at the same path and keep
-root's home in ``/root``. No user manager starts in the shared home there, so
-they need no tmpfs over it.
+root's home in ``/root``. No user manager starts in the shared home there, but
+``/home/user/.ssh`` stays visible to them.
 
 .. _NixOS: https://nixos.org/manual/nixos/stable/
 .. _tmpfs: https://docs.kernel.org/filesystems/tmpfs.html
-.. _services.openssh.authorizedKeysInHomedir: https://nixos.org/manual/nixos/stable/options#opt-services.openssh.authorizedKeysInHomedir
 .. _cloud-init: https://cloudinit.readthedocs.io
