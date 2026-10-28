@@ -186,13 +186,13 @@ flag, in file order; *virtiofsd --help* is the reference.
 
 *tag=*
 	Required. Names the daemon's units, _virtiofsd@name-tag.socket_ and
-	_.service_, and the mount tag the guest sees. Letters, digits, dot,
-	underscore and dash. Since both names may hold a dash, _a-b.qemu_ with
-	tag _c_ and _a.qemu_ with tag _b-c_ name the same units; the file
-	later in name order is reported and not generated. The line is passed
-	to virtiofsd like any other; its *--tag* advertises the same tag
-	through the vhost-user CONFIG feature, which QEMU 8.1 and later ignore
-	and QEMU 7.1 to 8.0 cannot handle.
+	_.service_, and the mount tag the guest sees. Letters, digits, dot and
+	underscore. Not a dash: the machine name may hold one, and with a
+	dash in the tag as well, _a-b.qemu_ with tag _c_ and _a.qemu_ with tag
+	_b-c_ would name the same units. The line is passed to virtiofsd like
+	any other; its *--tag* advertises the same tag through the vhost-user
+	CONFIG feature, which QEMU 8.1 and later ignore and QEMU 7.1 to 8.0
+	cannot handle.
 
 *shared-dir=*
 	Read for *RequiresMountsFor=* on the daemon's unit when it is an

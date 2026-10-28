@@ -22,7 +22,9 @@ pub type Arg = Vec<String>;
 /// The mount tag of a share, which also names the helper that serves it.
 /// It must fit in a unit name, in a QEMU id after `systemd-virtiofs-`
 /// (`id_wellformed()` in QEMU's `util/id.c`), and in a `-device` value,
-/// where a comma would start a new property.
+/// where a comma would start a new property. It holds no dash, which a
+/// machine name may hold: the helper's instance `<machine>-<tag>` then
+/// splits only at its last dash.
 #[derive(Debug, PartialEq, Eq)]
 pub struct Tag(String);
 
@@ -33,7 +35,7 @@ impl fmt::Display for InvalidTag {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
             f,
-            "tag {:?} is not usable in a unit name: letters, digits, '_', '.' and '-' only",
+            "tag {:?} may hold letters, digits, '_' and '.' only",
             self.0
         )
     }
@@ -48,7 +50,7 @@ impl FromStr for Tag {
         let valid = !tag.is_empty()
             && tag
                 .chars()
-                .all(|c| c.is_ascii_alphanumeric() || matches!(c, '_' | '.' | '-'));
+                .all(|c| c.is_ascii_alphanumeric() || matches!(c, '_' | '.'));
         if valid {
             Ok(Self(tag.to_owned()))
         } else {
@@ -126,8 +128,8 @@ mod tests {
     #[test]
     fn tags() {
         assert_eq!("home".parse::<Tag>().unwrap().to_string(), "home");
-        assert!("lib.modules_1-2".parse::<Tag>().is_ok());
-        for bad in ["", "a b", "a/b", "a@b", "a:b"] {
+        assert!("lib.modules_1".parse::<Tag>().is_ok());
+        for bad in ["", "a b", "a/b", "a@b", "a:b", "b-c"] {
             assert!(bad.parse::<Tag>().is_err(), "{bad:?}");
         }
     }

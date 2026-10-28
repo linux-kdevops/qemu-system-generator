@@ -226,9 +226,8 @@ fn generate(source: &Source, scope: Scope) -> Result<Output, GenerateError> {
 }
 
 /// Record the units and links of `output` as generated from `source`,
-/// unless an earlier file generated one of them: `a-b.qemu` with tag
-/// `c` and `a.qemu` with tag `b-c` both name `virtiofsd@a-b-c`, and an
-/// `[Install]` link may name a unit.
+/// unless an earlier file generated one of them: an `[Install]` link
+/// may name another file's unit.
 fn claim(
     claimed: &mut BTreeMap<PathBuf, PathBuf>,
     source: &Source,

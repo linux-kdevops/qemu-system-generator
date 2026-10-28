@@ -104,7 +104,7 @@ fn a_broken_file_fails_without_stopping_the_others() {
 }
 
 #[test]
-fn a_unit_name_is_generated_once() {
+fn a_daemon_unit_names_one_share() {
     let tmp = env::temp_dir().join(format!(
         "qemu-system-generator-conflict-{}",
         std::process::id()
@@ -117,11 +117,9 @@ fn a_unit_name_is_generated_once() {
     let stderr = String::from_utf8_lossy(&out.stderr);
     let stdout = String::from_utf8_lossy(&out.stdout);
     assert_eq!(out.status.code(), Some(1));
-    assert!(
-        stderr.contains("a-b.qemu: virtiofsd@a-b-c.socket is already generated from "),
-        "{stderr}"
-    );
-    assert_eq!(stdout.matches("---virtiofsd@a-b-c.socket---").count(), 1);
+    assert!(stderr.contains("a.qemu: line 4: [virtiofsd]"), "{stderr}");
+    assert!(stdout.contains("---qemu-system@a-b.service---"));
+    assert!(!stdout.contains("---qemu-system@a.service---"));
 }
 
 #[test]
