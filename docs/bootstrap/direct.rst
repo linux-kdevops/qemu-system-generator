@@ -753,9 +753,82 @@ Quiet
 The initrd still waits about 0.8 seconds on systemd's mount rate limit,
 which this guest cannot lift safely (:ref:`fast-mounts`).
 
+.. _direct-numa:
+
+13. Two NUMA nodes
+==================
+
+This step and the next are optional and change ``bootstrap-direct-peer``
+only. For a virtiofs share, the generator backs all of a machine's memory
+with one shared memory backend of its own, unless the file supplies the
+memory itself. A file that splits the memory into NUMA nodes does, one
+backend per node, and QEMU refuses the generator's backend beside them.
+The backends must add up to ``m=2G``, and must be shared for virtiofsd to
+reach the guest's memory. Put the nodes in a drop-in:
+
+.. code-block:: ini
+   :caption: ~/.config/qemu/systemd/bootstrap-direct-peer.qemu.d/20-numa.conf
+
+   [QEMU]
+   object=memory-backend-memfd,id=ram0,size=1G,share=on
+   object=memory-backend-memfd,id=ram1,size=1G,share=on
+   numa=node,nodeid=0,cpus=0,memdev=ram0
+   numa=node,nodeid=1,cpus=1,memdev=ram1
+
+:ref:`Regenerate <host-regenerate>` and :ref:`restart <host-start>`. The
+unit holds no memory backend of the generator's, and the guest has two
+nodes:
+
+.. code-block:: console
+   :class: cmd-host
+
+   $ systemctl --user start qemu-system-generator.service
+   $ systemctl --user restart qemu-system@bootstrap-direct-peer.service
+   $ systemctl --user cat qemu-system@bootstrap-direct-peer.service | grep --count systemd-mem
+   0
+   $ ssh bootstrap-direct-peer ls /sys/devices/system/node
+   has_cpu
+   has_generic_initiator
+   has_memory
+   has_normal_memory
+   node0
+   node1
+   online
+   possible
+   power
+   uevent
+
+.. _direct-json:
+
+14. A device written as JSON
+============================
+
+QEMU also takes a ``-device`` value as a JSON object, and some devices
+only that way: ``vfio-user-pci`` names its server's socket as an object.
+The generator reads a JSON line as it reads the comma-separated form, so
+machined still records the context id. Write the peer's vsock device as
+JSON:
+
+.. code-block:: diff
+   :caption: ~/.config/qemu/systemd/bootstrap-direct-peer.qemu
+
+    device=virtio-net-pci-non-transitional,netdev=lan,mac=52:54:00:00:00:48,romfile=
+   -device=vhost-vsock-pci-non-transitional,guest-cid=48
+   +device={"driver": "vhost-vsock-pci-non-transitional", "guest-cid": 48}
+
+Regenerate, restart, and ask machined:
+
+.. code-block:: console
+   :class: cmd-host
+
+   $ systemctl --user start qemu-system-generator.service
+   $ systemctl --user restart qemu-system@bootstrap-direct-peer.service
+   $ machinectl --user show --property=VSockCID bootstrap-direct-peer
+   VSockCID=48
+
 .. _direct-microvm:
 
-13. A microvm
+15. A microvm
 =============
 
 This step is optional, and the machine is no faster for it. QEMU's

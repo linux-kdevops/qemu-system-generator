@@ -7,8 +7,10 @@
 ## home with its systemd directories and ~/.ssh masked, leave a file in
 ## WORKTREES_DIR/direct, which must lie in the home, have each machine
 ## ping the other over their LAN, check that machined records each
-## machine's vsock context id, and that bootstrap-direct, on microvm,
-## gets the virtio-mmio virtiofs devices:
+## machine's vsock context id, bootstrap-direct-peer's read from a JSON
+## device= line, that bootstrap-direct, on microvm, gets the virtio-mmio
+## virtiofs devices, and that bootstrap-direct-peer has two NUMA nodes
+## and no memory backend of the generator's:
 ##
 ##   nix develop --ignore-env --keep-env-var HOME \
 ##       --command steps/direct/check
@@ -37,3 +39,6 @@ ssh -F "$SSH_DIR/config" bootstrap-direct ping -c 1 10.0.100.48
 [ "$(machinectl --user show --property=VSockCID --value bootstrap-direct)" = 47 ]
 [ "$(machinectl --user show --property=VSockCID --value bootstrap-direct-peer)" = 48 ]
 [ "$(systemctl --user cat qemu-system@bootstrap-direct.service | grep --count 'vhost-user-fs-device,')" = 2 ]
+[ "$(systemctl --user cat qemu-system@bootstrap-direct-peer.service | grep --count systemd-mem)" = 0 ]
+ssh -F "$SSH_DIR/config" bootstrap-direct-peer ls /sys/devices/system/node
+ssh -F "$SSH_DIR/config" bootstrap-direct-peer test -d /sys/devices/system/node/node1

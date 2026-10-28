@@ -40,8 +40,9 @@ the guest costs.
 
 :doc:`disk` is the closest to a physical machine. :doc:`direct` covers most
 of the format: `vsock`_, SSH poweroff, consoles, drop-ins, systemd
-settings and shares, which work the same way in the others. It ends on
-`QEMU`_'s :ref:`microvm machine type <direct-microvm>`.
+settings and shares, which work the same way in the others, then NUMA
+nodes and a device written as JSON. It ends on `QEMU`_'s
+:ref:`microvm machine type <direct-microvm>`.
 
 Each NixOS guide ends with :doc:`a faster boot <fast>`, from the
 defaults to the fastest configuration it can reach, one change at a time.
