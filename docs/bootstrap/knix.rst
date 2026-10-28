@@ -312,7 +312,7 @@ addresses (:doc:`network`):
 
 The two ``10-`` networks come before knix's ``80-ethernet``, which asks
 for every other card's address over DHCP. Rebuild, and put the new
-paths in the drop-in:
+``init`` path from ``boot.json`` in ``bootstrap-knix``'s drop-in:
 
 .. code-block:: console
    :class: cmd-host
@@ -380,8 +380,8 @@ context id of its own and no forwarded port, since ``bootstrap-knix`` holds
    uid-map=:0:%U:1:
    gid-map=:0:%G:1:
 
-Its drop-in names the same closure, and gives the machine its own
-hostname:
+Its drop-in names the same new paths from ``boot.json``, and gives the
+machine its own hostname:
 
 .. code-block:: console
    :class: cmd-host
