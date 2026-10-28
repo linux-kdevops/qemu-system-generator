@@ -6,7 +6,7 @@ Prepare the host
 
 Every guide starts from a host that meets the
 :doc:`/getting-started/requirements`, with the generator installed
-:ref:`for your user <install-user>`, and from the workspace and SSH
+:ref:`per user <install-user>`, and from the workspace and SSH
 configuration below. Nothing in these guides runs as root.
 
 The workspace

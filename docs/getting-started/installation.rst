@@ -4,8 +4,8 @@
 Installation
 ============
 
-The generator is built with `Nix`_ and installs for one user without root,
-for the whole host, or through a `NixOS`_ module. Each starts from a
+The generator is built with `Nix`_ and installs per user without root,
+system-wide, or through a `NixOS`_ module. Each starts from a
 checkout of `this repository`_:
 
 .. code-block:: console
@@ -17,8 +17,8 @@ checkout of `this repository`_:
 
 .. _install-user:
 
-For your user
-=============
+Per-user installation
+=====================
 
 Add it to your Nix profile with :cmd:`nix profile add`, from the checkout:
 
@@ -69,8 +69,8 @@ that loads the new units, and a run of the new generator:
    at login, and the :cmd:`systemd.path(5)` unit runs it again whenever
    that directory changes.
 
-For the whole host
-==================
+System-wide installation
+========================
 
 On a distribution other than NixOS, the same build serves the system
 manager and every user manager. systemd runs a generator linked from
@@ -109,8 +109,8 @@ Then build and install:
 The profile keeps the build from garbage collection, and running the
 first two commands again moves it to a newer build. A user manager picks
 the generator up at its next ``daemon-reload`` or login.
-Leave out the user units of :ref:`install-user`, or every machine's units
-are generated twice.
+Leave out the user units of the :ref:`per-user installation
+<install-user>`, or every machine's units are generated twice.
 
 At boot, systemd runs generators before it mounts most file systems
 (:cmd:`systemd.generator(7)`), so ``/nix`` must be on the root file system,

@@ -5,7 +5,7 @@ Quick start
 ===========
 
 Boot a distribution's cloud image as a machine of your user's manager,
-with the generator installed :ref:`for your user <install-user>`. The
+with the generator installed :ref:`per user <install-user>`. The
 machine is the first one of :doc:`/bootstrap/cloud`, which takes it
 further.
 

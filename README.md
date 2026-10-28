@@ -70,8 +70,8 @@ systemctl --user stop qemu-system@fedora
 ## Getting started
 
 [docs/getting-started/](docs/getting-started/) has the host requirements
-(systemd and Nix), the three ways to install (for one user without root,
-for the whole host, or through the flake's NixOS module) and a quick start
+(systemd and Nix), the three ways to install (per user without root,
+system-wide, or through the flake's NixOS module) and a quick start
 that boots a disk image you already have. The guides in
 [docs/bootstrap/](docs/bootstrap/) then boot a guest from a [NixOS] disk
 image, a [UKI], a kernel and an initrd, a kernel and a QEMU of your own,
