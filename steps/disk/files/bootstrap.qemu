@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: copyleft-next-0.3.1
 [QEMU]
 machine=q35
+nodefaults=
 accel=kvm
 cpu=host
 m=2G
@@ -10,7 +11,8 @@ serial=mon:stdio
 drive=if=pflash,format=raw,readonly=on,file=$WORKTREES_DIR/disk/ovmf-fd/FV/OVMF_CODE.fd
 drive=if=pflash,format=raw,snapshot=on,file=$WORKTREES_DIR/disk/ovmf-fd/FV/OVMF_VARS.fd
 drive=file=$WORKTREES_DIR/disk/efi/bootstrap.qcow2,if=virtio,format=qcow2,snapshot=on
-nic=user,model=virtio-net-pci-non-transitional
+netdev=user,id=net0
+device=virtio-net-pci-non-transitional,netdev=net0,romfile=
 device=vhost-vsock-pci-non-transitional,guest-cid=42
 
 [virtiofsd]

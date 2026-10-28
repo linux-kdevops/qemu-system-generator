@@ -129,6 +129,7 @@ Create ``~/.config/qemu/systemd/bootstrap-uki.qemu``:
 
    [QEMU]
    machine=q35
+   nodefaults=
    accel=kvm
    cpu=host
    m=2G
@@ -144,6 +145,10 @@ Create ``~/.config/qemu/systemd/bootstrap-uki.qemu``:
    sandbox=namespace
    uid-map=:0:%U:1:
    gid-map=:0:%G:1:
+
+``nodefaults=`` leaves out the devices QEMU adds on its own, such as a
+VGA card, a CD drive and a network card; the file names every device the
+machine has.
 
 :ref:`Regenerate <host-regenerate>` and :ref:`start <host-start>` it; the
 journal has the serial console.
@@ -169,8 +174,8 @@ stops where it looks for the store:
    :caption: guest
    :class: cmd-guest
 
-   BdsDxe: loading Boot0002 "UEFI Non-Block Boot Device" from PciRoot(0x0)/Pci(0x3,0x0)
-   BdsDxe: starting Boot0002 "UEFI Non-Block Boot Device" from PciRoot(0x0)/Pci(0x3,0x0)
+   BdsDxe: loading Boot0002 "UEFI Non-Block Boot Device" from PciRoot(0x0)/Pci(0x1,0x0)
+   BdsDxe: starting Boot0002 "UEFI Non-Block Boot Device" from PciRoot(0x0)/Pci(0x1,0x0)
    Booting initrd of NixOS 26.11 (Zokor) (Initrd).
    ...
    [FAILED] Failed to mount /sysroot/nix/store.
@@ -236,8 +241,12 @@ and add the `vsock`_ device with the context id :ref:`host-ssh` names:
    :caption: ~/.config/qemu/systemd/bootstrap-uki.qemu
 
     drive=if=pflash,format=raw,snapshot=on,file=%h/bootstrap/uki/ovmf-fd/FV/OVMF_VARS.fd
-   +nic=user,model=virtio-net-pci-non-transitional,hostfwd=tcp:127.0.0.1:10046-:22
+   +netdev=user,id=net0,hostfwd=tcp:127.0.0.1:10046-:22
+   +device=virtio-net-pci-non-transitional,netdev=net0,romfile=
    +device=vhost-vsock-pci-non-transitional,guest-cid=46
+
+``romfile=`` with no value leaves out the card's iPXE boot ROM, which
+the firmware would otherwise load.
 
 :ref:`Regenerate <host-regenerate>` and :ref:`start <host-start>`.
 The machine registers with :cmd:`machined <systemd-machined>`

@@ -174,12 +174,18 @@ the part of the name up to a dash, ``cloud-.qemu.d/``, applies to every
    nographic=
    serial=mon:stdio
    drive=file=seed.iso,if=virtio,format=raw,readonly=on
-   nic=user,model=virtio-net-pci-non-transitional
+   netdev=user,id=net0
+   device=virtio-net-pci-non-transitional,netdev=net0,romfile=
 
-``%h`` is your home directory (`specifiers`_). ``nic=`` gives the guest
-`QEMU`_'s `user-mode network`_. The machine's own file keeps only its disk
-and a `vsock`_ device whose context id is the machine's own, as
-:ref:`host-ssh` names it; it replaces the quick start's file:
+``%h`` is your home directory (`specifiers`_). ``netdev=`` gives the guest
+`QEMU`_'s `user-mode network`_ through the card the ``device=`` after it
+adds; ``romfile=`` with no value leaves out the card's iPXE boot ROM,
+which the firmware would otherwise load. The file keeps the devices QEMU
+adds on its own: without the VGA card, Debian's kernel resets the
+machine right after GRUB's ``Loading Linux``. The machine's own file
+keeps only its disk and a `vsock`_ device whose context id is the
+machine's own, as :ref:`host-ssh` names it; it replaces the quick start's
+file:
 
 .. tab-set::
    :sync-group: distro
@@ -524,14 +530,14 @@ apply to that machine only:
 
          [QEMU]
          netdev=dgram,id=lan,remote.type=inet,remote.host=239.255.0.1,remote.port=5555,local.type=inet,local.host=127.0.0.1,local.port=0
-         device=virtio-net-pci-non-transitional,netdev=lan,mac=52:54:00:00:00:43
+         device=virtio-net-pci-non-transitional,netdev=lan,mac=52:54:00:00:00:43,romfile=
 
       .. code-block:: ini
          :caption: ~/.config/qemu/systemd/cloud-debian-peer.qemu.d/20-lan.conf
 
          [QEMU]
          netdev=dgram,id=lan,remote.type=inet,remote.host=239.255.0.1,remote.port=5555,local.type=inet,local.host=127.0.0.1,local.port=0
-         device=virtio-net-pci-non-transitional,netdev=lan,mac=52:54:00:00:00:51
+         device=virtio-net-pci-non-transitional,netdev=lan,mac=52:54:00:00:00:51,romfile=
 
    .. tab-item:: Fedora
       :sync: fedora
@@ -541,14 +547,14 @@ apply to that machine only:
 
          [QEMU]
          netdev=dgram,id=lan,remote.type=inet,remote.host=239.255.0.1,remote.port=5555,local.type=inet,local.host=127.0.0.1,local.port=0
-         device=virtio-net-pci-non-transitional,netdev=lan,mac=52:54:00:00:00:44
+         device=virtio-net-pci-non-transitional,netdev=lan,mac=52:54:00:00:00:44,romfile=
 
       .. code-block:: ini
          :caption: ~/.config/qemu/systemd/cloud-fedora-peer.qemu.d/20-lan.conf
 
          [QEMU]
          netdev=dgram,id=lan,remote.type=inet,remote.host=239.255.0.1,remote.port=5555,local.type=inet,local.host=127.0.0.1,local.port=0
-         device=virtio-net-pci-non-transitional,netdev=lan,mac=52:54:00:00:00:52
+         device=virtio-net-pci-non-transitional,netdev=lan,mac=52:54:00:00:00:52,romfile=
 
    .. tab-item:: Ubuntu
       :sync: ubuntu
@@ -558,14 +564,14 @@ apply to that machine only:
 
          [QEMU]
          netdev=dgram,id=lan,remote.type=inet,remote.host=239.255.0.1,remote.port=5555,local.type=inet,local.host=127.0.0.1,local.port=0
-         device=virtio-net-pci-non-transitional,netdev=lan,mac=52:54:00:00:00:45
+         device=virtio-net-pci-non-transitional,netdev=lan,mac=52:54:00:00:00:45,romfile=
 
       .. code-block:: ini
          :caption: ~/.config/qemu/systemd/cloud-ubuntu-peer.qemu.d/20-lan.conf
 
          [QEMU]
          netdev=dgram,id=lan,remote.type=inet,remote.host=239.255.0.1,remote.port=5555,local.type=inet,local.host=127.0.0.1,local.port=0
-         device=virtio-net-pci-non-transitional,netdev=lan,mac=52:54:00:00:00:53
+         device=virtio-net-pci-non-transitional,netdev=lan,mac=52:54:00:00:00:53,romfile=
 
 cloud-init sets the addresses (:ref:`network-addresses`). Each
 configuration names both cards by their MAC addresses; the user-mode
@@ -814,7 +820,8 @@ Share your home as :doc:`home` describes. Add its section to the drop-in:
    :caption: ~/.config/qemu/systemd/cloud-.qemu.d/10-cloud.conf
 
     drive=file=seed.iso,if=virtio,format=raw,readonly=on
-    nic=user,model=virtio-net-pci-non-transitional
+    netdev=user,id=net0
+    device=virtio-net-pci-non-transitional,netdev=net0,romfile=
    +
    +[virtiofsd]
    +shared-dir=%h

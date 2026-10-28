@@ -93,6 +93,7 @@ Create ``~/.config/qemu/systemd/bootstrap-disk.qemu``:
 
    [QEMU]
    machine=q35
+   nodefaults=
    accel=kvm
    cpu=host
    m=2G
@@ -100,11 +101,15 @@ Create ``~/.config/qemu/systemd/bootstrap-disk.qemu``:
    nographic=
    serial=mon:stdio
 
+``nodefaults=`` leaves out the devices QEMU adds on its own, such as a
+VGA card, a CD drive and a network card; the file names every device the
+machine has.
+
 :ref:`Regenerate <host-regenerate>` and :ref:`start <host-start>` it; the
 journal has the serial console.
 
-With nothing to boot, the firmware tries the disk, the CD and the
-network, and gives up:
+With nothing to boot, the firmware tries the disk and the floppy, and
+gives up:
 
 .. code-block:: console
    :caption: guest
@@ -113,13 +118,7 @@ network, and gives up:
    SeaBIOS (version rel-1.17.0-0-gb52ca86e094d-prebuilt.qemu.org)
    Booting from Hard Disk...
    Boot failed: could not read the boot disk
-   Booting from DVD/CD...
-   Boot failed: Could not read from CDROM (code 0003)
-   Booting from ROM...
-   iPXE (PCI 00:02.0) starting execution...ok
-   ...
-   Nothing to boot: No such file or directory (http://ipxe.org/2d03e13b)
-   No more network devices
+   Booting from Floppy...
    Boot failed: could not read the boot disk
    No bootable device.
 
@@ -156,7 +155,9 @@ what the guest wrote is gone when it stops.
 
 :ref:`Regenerate <host-regenerate>` and :ref:`start <host-start>`. SeaBIOS
 finds the disk, GRUB loads the kernel and the `initrd`_ with the command
-line from ``disk.nix``, and NixOS boots in about 18 seconds:
+line from ``disk.nix``, and NixOS boots in about 18 seconds. With no VGA
+card, SeaBIOS hands GRUB the serial console, and GRUB, finding no video
+mode, draws its menu there:
 
 .. code-block:: console
    :class: cmd-guest
@@ -165,6 +166,10 @@ line from ``disk.nix``, and NixOS boots in about 18 seconds:
    Booting from Hard Disk...
    GRUB loading.
    Welcome to GRUB!
+   error: video/video.c:grub_video_set_mode:782:no suitable video mode found.
+   ...
+      The highlighted entry will be executed automatically in 5s.
+   ...
    Booting initrd of NixOS 26.11 (Zokor) (Initrd).
    ...
    [  OK  ] Found device /dev/disk/by-label/nixos.
@@ -220,8 +225,8 @@ follow the journal with it:
 .. code-block:: console
    :class: cmd-guest
 
-   BdsDxe: loading Boot0002 "UEFI Misc Device" from PciRoot(0x0)/Pci(0x3,0x0)
-   BdsDxe: starting Boot0002 "UEFI Misc Device" from PciRoot(0x0)/Pci(0x3,0x0)
+   BdsDxe: loading Boot0002 "UEFI Misc Device" from PciRoot(0x0)/Pci(0x1,0x0)
+   BdsDxe: starting Boot0002 "UEFI Misc Device" from PciRoot(0x0)/Pci(0x1,0x0)
    NixOS
    Reboot Into Firmware Interface
    Boot in 5s.
@@ -244,8 +249,12 @@ and add the `vsock`_ device with the context id :ref:`host-ssh` names:
    :caption: ~/.config/qemu/systemd/bootstrap-disk.qemu
 
     drive=file=%h/bootstrap/disk/efi/bootstrap.qcow2,if=virtio,format=qcow2,snapshot=on
-   +nic=user,model=virtio-net-pci-non-transitional,hostfwd=tcp:127.0.0.1:10042-:22
+   +netdev=user,id=net0,hostfwd=tcp:127.0.0.1:10042-:22
+   +device=virtio-net-pci-non-transitional,netdev=net0,romfile=
    +device=vhost-vsock-pci-non-transitional,guest-cid=42
+
+``romfile=`` with no value leaves out the card's iPXE boot ROM, which
+the firmware would otherwise load.
 
 :ref:`Regenerate <host-regenerate>` and :ref:`restart <host-start>`.
 The machine registers with :cmd:`machined <systemd-machined>`
@@ -286,7 +295,8 @@ Share your home as :doc:`home` describes. Add its section to the file:
 .. code-block:: diff
    :caption: ~/.config/qemu/systemd/bootstrap-disk.qemu
 
-    nic=user,model=virtio-net-pci-non-transitional,hostfwd=tcp:127.0.0.1:10042-:22
+    netdev=user,id=net0,hostfwd=tcp:127.0.0.1:10042-:22
+    device=virtio-net-pci-non-transitional,netdev=net0,romfile=
     device=vhost-vsock-pci-non-transitional,guest-cid=42
    +
    +[virtiofsd]

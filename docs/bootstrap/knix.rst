@@ -158,6 +158,7 @@ home:
 
    [QEMU]
    machine=q35
+   nodefaults=
    accel=kvm
    cpu=host
    m=2G
@@ -165,7 +166,8 @@ home:
    nographic=
    serial=mon:stdio
    kernel=%h/bootstrap/knix/linux-build/arch/x86/boot/bzImage
-   nic=user,model=virtio-net-pci-non-transitional,hostfwd=tcp:127.0.0.1:10049-:22
+   netdev=user,id=net0,hostfwd=tcp:127.0.0.1:10049-:22
+   device=virtio-net-pci-non-transitional,netdev=net0,romfile=
    device=vhost-vsock-pci-non-transitional,guest-cid=49
 
    [virtiofsd]
@@ -189,12 +191,15 @@ home:
    uid-map=:0:%U:1:
    gid-map=:0:%G:1:
 
-``nic=`` forwards a local port to the guest's SSH over QEMU's
-`user-mode network`_, and the `vsock`_ device gives the guest the context id
-:ref:`host-ssh` names. :key:`SshPrivateKey=` has a stop power the guest
-off over SSH first (:ref:`SSH poweroff <host-poweroff>`), and each
-:key:`[virtiofsd]` section shares one directory without root
-(:ref:`host-virtiofsd`).
+``nodefaults=`` leaves out the devices QEMU adds on its own, such as a
+VGA card, a CD drive and a network card. ``netdev=`` forwards a local
+port to the guest's SSH over QEMU's `user-mode network`_, and the
+``device=`` after it is the card; ``romfile=`` with no value leaves out
+its iPXE boot ROM, which the firmware would otherwise load. The `vsock`_
+device gives the guest the context id :ref:`host-ssh` names.
+:key:`SshPrivateKey=` has a stop power the guest off over SSH first
+(:ref:`SSH poweroff <host-poweroff>`), and each :key:`[virtiofsd]`
+section shares one directory without root (:ref:`host-virtiofsd`).
 
 The initrd and ``init=`` name one build of the closure, and every
 :cmd:`nix build` makes a new one, so they go in a drop-in: the files in
@@ -316,9 +321,10 @@ Give ``bootstrap-knix`` its card:
 .. code-block:: diff
    :caption: ~/.config/qemu/systemd/bootstrap-knix.qemu
 
-    nic=user,model=virtio-net-pci-non-transitional,hostfwd=tcp:127.0.0.1:10049-:22
+    netdev=user,id=net0,hostfwd=tcp:127.0.0.1:10049-:22
+    device=virtio-net-pci-non-transitional,netdev=net0,romfile=
    +netdev=dgram,id=lan,remote.type=inet,remote.host=239.255.0.1,remote.port=5557,local.type=inet,local.host=127.0.0.1,local.port=0
-   +device=virtio-net-pci-non-transitional,netdev=lan,mac=52:54:00:00:00:49
+   +device=virtio-net-pci-non-transitional,netdev=lan,mac=52:54:00:00:00:49,romfile=
     device=vhost-vsock-pci-non-transitional,guest-cid=49
 
 ``bootstrap-knix-peer`` needs the three shares the closure mounts, a
@@ -334,6 +340,7 @@ context id of its own and no forwarded port, since ``bootstrap-knix`` holds
 
    [QEMU]
    machine=q35
+   nodefaults=
    accel=kvm
    cpu=host
    m=2G
@@ -341,9 +348,10 @@ context id of its own and no forwarded port, since ``bootstrap-knix`` holds
    nographic=
    serial=mon:stdio
    kernel=%h/bootstrap/knix/linux-build/arch/x86/boot/bzImage
-   nic=user,model=virtio-net-pci-non-transitional
+   netdev=user,id=net0
+   device=virtio-net-pci-non-transitional,netdev=net0,romfile=
    netdev=dgram,id=lan,remote.type=inet,remote.host=239.255.0.1,remote.port=5557,local.type=inet,local.host=127.0.0.1,local.port=0
-   device=virtio-net-pci-non-transitional,netdev=lan,mac=52:54:00:00:00:50
+   device=virtio-net-pci-non-transitional,netdev=lan,mac=52:54:00:00:00:50,romfile=
    device=vhost-vsock-pci-non-transitional,guest-cid=50
 
    [virtiofsd]
@@ -541,6 +549,7 @@ QEMU ships `qboot`_, "a simple x86 firmware that can boot Linux" from
    :caption: ~/.config/qemu/systemd/bootstrap-knix.qemu
 
     machine=q35
+    nodefaults=
    +bios=qboot.rom
 
 4.7 seconds; the time before the kernel starts falls from 0.24 to 0.15
