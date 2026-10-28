@@ -214,6 +214,16 @@ the command line:
 :ref:`Regenerate <host-regenerate>` and :ref:`start <host-start>` it; the
 journal has the serial console.
 
+The machine registers with :cmd:`machined <systemd-machined>`
+(:ref:`host-machined`), which records the id:
+
+.. code-block:: console
+   :class: cmd-host
+
+   $ machinectl --user list
+   MACHINE        CLASS SERVICE     OS VERSION ADDRESSES
+   bootstrap-knix vm    qemu-system -  -       -
+
 :ref:`host-ssh` already names the machine by its context id. Log in and
 look at the shares:
 

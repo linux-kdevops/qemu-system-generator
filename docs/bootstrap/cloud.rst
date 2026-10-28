@@ -316,6 +316,42 @@ image's `GRUB`_, and cloud-init reads the seed:
          ...
          Try contacting this VM's SSH server via 'ssh vsock%45' from host.
 
+The machine registers with :cmd:`machined <systemd-machined>`
+(:ref:`host-machined`), which records the id:
+
+.. tab-set::
+   :sync-group: distro
+
+   .. tab-item:: Debian
+      :sync: debian
+
+      .. code-block:: console
+         :class: cmd-host
+
+         $ machinectl --user list
+         MACHINE      CLASS SERVICE     OS VERSION ADDRESSES
+         cloud-debian vm    qemu-system -  -       -
+
+   .. tab-item:: Fedora
+      :sync: fedora
+
+      .. code-block:: console
+         :class: cmd-host
+
+         $ machinectl --user list
+         MACHINE      CLASS SERVICE     OS VERSION ADDRESSES
+         cloud-fedora vm    qemu-system -  -       -
+
+   .. tab-item:: Ubuntu
+      :sync: ubuntu
+
+      .. code-block:: console
+         :class: cmd-host
+
+         $ machinectl --user list
+         MACHINE      CLASS SERVICE     OS VERSION ADDRESSES
+         cloud-ubuntu vm    qemu-system -  -       -
+
 The guest's :cmd:`systemd-ssh-generator(8)` listens for SSH on vsock.
 :ref:`host-ssh` already names the machine by its context id, so its name
 is an :cmd:`ssh` alias:

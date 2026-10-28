@@ -248,6 +248,16 @@ and add the `vsock`_ device with the context id :ref:`host-ssh` names:
    +device=vhost-vsock-pci-non-transitional,guest-cid=42
 
 :ref:`Regenerate <host-regenerate>` and :ref:`restart <host-start>`.
+The machine registers with :cmd:`machined <systemd-machined>`
+(:ref:`host-machined`), which records the id:
+
+.. code-block:: console
+   :class: cmd-host
+
+   $ machinectl --user list
+   MACHINE        CLASS SERVICE     OS VERSION ADDRESSES
+   bootstrap-disk vm    qemu-system -  -       -
+
 :ref:`host-ssh` already names the machine by this context id; without that
 ``Include`` in your ``~/.ssh/config``, the forwarded port takes the key on
 the command line:
