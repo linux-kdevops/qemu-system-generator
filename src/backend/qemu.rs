@@ -163,13 +163,14 @@ fn property<'a>(value: &'a str, key: &str) -> Option<&'a str> {
         .find_map(|f| f.strip_prefix(key)?.strip_prefix('='))
 }
 
-/// The machine type a `-machine` value names, if it names one: its first
-/// field unless that is a `key=value`, else its `type=` field (QEMU
-/// parses the option with "type" as the implied key).
-fn machine_type(value: &str) -> Option<&str> {
+/// The `key=` of an option value whose first field may leave out
+/// `key=`, as QEMU reads "type" for `-machine` and "driver" for
+/// `-device`: the first field unless that is a `key=value`, else the
+/// `key=` field.
+fn implied<'a>(value: &'a str, key: &str) -> Option<&'a str> {
     let first = first_field(value);
     if first.contains('=') {
-        property(value, "type")
+        property(value, key)
     } else {
         Some(first)
     }
@@ -262,7 +263,7 @@ fn observe<'a>(entries: &[&'a Entry]) -> Result<Observed<'a>, DecodeError> {
             "machine" | "M" => {
                 // QEMU keeps the last value of a property repeated
                 // across -machine options.
-                if let Some(name) = machine_type(&entry.value) {
+                if let Some(name) = implied(&entry.value, "type") {
                     seen.microvm = name == "microvm";
                 }
                 seen.own_memory_backend |= property(&entry.value, "memory-backend").is_some();
@@ -271,7 +272,9 @@ fn observe<'a>(entries: &[&'a Entry]) -> Result<Observed<'a>, DecodeError> {
             "m" => seen.memory = Some(&entry.value),
             "uuid" => seen.uuid = Some(&entry.value),
             "device" => {
-                let driver = first_field(&entry.value);
+                let Some(driver) = implied(&entry.value, "driver") else {
+                    continue;
+                };
                 seen.vfio |= VFIO_DRIVERS.contains(&driver);
                 if driver.starts_with("vhost-vsock")
                     && let Some(cid) = property(&entry.value, "guest-cid")
@@ -494,9 +497,13 @@ mod tests {
         );
         assert_eq!(property("vhost-vsock-pci", "guest-cid"), None);
         assert_eq!(property("a,guest-cidx=1", "guest-cid"), None);
-        assert_eq!(machine_type("q35,accel=kvm"), Some("q35"));
-        assert_eq!(machine_type("accel=kvm,type=microvm"), Some("microvm"));
-        assert_eq!(machine_type("accel=kvm"), None);
+        assert_eq!(implied("q35,accel=kvm", "type"), Some("q35"));
+        assert_eq!(implied("accel=kvm,type=microvm", "type"), Some("microvm"));
+        assert_eq!(implied("accel=kvm", "type"), None);
+        assert_eq!(
+            implied("host=x,driver=vfio-pci", "driver"),
+            Some("vfio-pci")
+        );
     }
 
     #[test]
@@ -638,6 +645,16 @@ mod tests {
         assert!(plan.device_allow.contains(&"char-vfio rw"));
         assert!(plan.device_allow.contains(&"/dev/iommu rw"));
         assert!(plan.device_allow.contains(&"char-vfio-dev rw"));
+    }
+
+    #[test]
+    fn device_driver_may_be_named() {
+        let plan = decode_text(
+            "[QEMU]\ndevice=driver=vfio-pci,host=0000:01:00.0\ndevice=guest-cid=5,driver=vhost-vsock-pci\n",
+        )
+        .unwrap();
+        assert!(plan.lock_memory);
+        assert_eq!(plan.vsock_cid, Some(5));
     }
 
     #[test]
