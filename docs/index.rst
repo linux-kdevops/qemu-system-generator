@@ -69,6 +69,12 @@ These are linked from the icons in the top navigation bar too.
 
    background/motivation
 
+.. toctree::
+   :maxdepth: 1
+   :caption: Project
+
+   roadmap
+
 .. _systemd: https://systemd.io
 .. _unit-file syntax: https://www.freedesktop.org/software/systemd/man/latest/systemd.syntax.html
 .. _QEMU: https://www.qemu.org/docs/master/system/invocation.html
