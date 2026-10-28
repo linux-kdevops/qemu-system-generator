@@ -1,0 +1,32 @@
+#!/usr/bin/env bash
+# SPDX-License-Identifier: copyleft-next-0.3.1
+## Usage: steps/direct/pad_initrd --name VM [--base FILE]
+##
+## Copy the initrd of the closure built in WORKTREES_DIR/direct/VM to
+## initrd beside it, padded to whole pages, which a microvm machine
+## boots; run it again after every build:
+##
+##   nix develop --ignore-env --keep-env-var HOME \
+##       --command steps/direct/pad_initrd --name bootstrap-direct
+set -o errexit -o nounset -o pipefail
+
+while [ $# -gt 0 ]; do
+	case $1 in
+	--name | --base) declare "${1#--}=$2" ;;
+	*) sed --quiet 's/^## \{0,1\}//p' "$0" >&2 && exit 2 ;;
+	esac
+	shift 2
+done
+: "${name:?}"
+# shellcheck source=/dev/null
+[ -z "${base-}" ] || . "$base"
+# shellcheck source=steps/base
+. "$(dirname "$0")/../base"
+
+set -o xtrace
+cd "$WORKTREES_DIR/direct/$name"
+# microvm loads the initrd to end in the top page of RAM, under the
+# firmware's ACPI tables; whole pages end it below that page.
+cp --dereference --force result/initrd initrd
+chmod u+w initrd
+truncate --size=%4096 initrd

@@ -1,9 +1,10 @@
 # SPDX-License-Identifier: copyleft-next-0.3.1
 description: >-
   Build a NixOS closure with the latest kernel for each of the machines
-  bootstrap-direct and bootstrap-direct-peer, boot it directly with the
-  host's Nix store over virtiofs, log in, leave a file in the shared home,
-  and have each machine ping the other.
+  bootstrap-direct, on microvm, and bootstrap-direct-peer, on q35, boot it
+  directly with the host's Nix store over virtiofs, log in, leave a file
+  in the shared home, have each machine ping the other, and check their
+  registration with machined.
 working_dir: ..
 type: chain
 env:
@@ -36,6 +37,9 @@ steps:
 
   - id: direct_build_bootstrap_direct
     run: steps/direct/build --name bootstrap-direct
+
+  - id: direct_pad_initrd_bootstrap_direct
+    run: steps/direct/pad_initrd --name bootstrap-direct
 
   - id: direct_install_bootstrap_direct_peer
     run: steps/direct/install --name bootstrap-direct-peer

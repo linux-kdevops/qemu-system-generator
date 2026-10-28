@@ -5,8 +5,8 @@
 Status: planned, 2026-10-28. The report below is drafted and not filed.
 Once it has an issue number, cite it in `docs/bootstrap/direct.rst`'s
 microvm step, which explains the cause from the source and pads the
-initrd as the workaround. The steps no longer boot microvm, so nothing
-else cites it.
+initrd as the workaround, and in `steps/direct/pad_initrd`, which does
+the same for the direct DAG.
 
 ## The draft
 
