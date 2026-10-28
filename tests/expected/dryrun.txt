@@ -7,6 +7,8 @@ Documentation=man:qemu-system(1) man:systemd.service(5) man:systemd.kill(5)
 PartOf=machines.target
 Before=machines.target
 After=network.target
+Wants=systemd-machined.socket
+After=systemd-machined.socket
 Requires=virtiofsd@fedora-home.socket
 After=virtiofsd@fedora-home.socket
 Requires=virtiofsd@fedora-home.service
@@ -113,6 +115,8 @@ Documentation=man:qemu-system(1) man:systemd.service(5) man:systemd.kill(5)
 PartOf=machines.target
 Before=machines.target
 After=network.target
+Wants=systemd-machined.socket
+After=systemd-machined.socket
 Description=fstests on btrfs
 
 [Service]
@@ -174,6 +178,8 @@ Documentation=man:qemu-system(1) man:systemd.service(5) man:systemd.kill(5)
 PartOf=machines.target
 Before=machines.target
 After=network.target
+Wants=systemd-machined.socket
+After=systemd-machined.socket
 Description=fstests on XFS
 
 [Service]
@@ -234,6 +240,8 @@ Documentation=man:qemu-system(1) man:systemd.service(5) man:systemd.kill(5)
 PartOf=machines.target
 Before=machines.target
 After=network.target
+Wants=systemd-machined.socket
+After=systemd-machined.socket
 Requires=virtiofsd@microvm-home.socket
 After=virtiofsd@microvm-home.socket
 Requires=virtiofsd@microvm-home.service
@@ -329,6 +337,8 @@ Documentation=man:qemu-system(1) man:systemd.service(5) man:systemd.kill(5)
 PartOf=machines.target
 Before=machines.target
 After=network.target
+Wants=systemd-machined.socket
+After=systemd-machined.socket
 Requires=virtiofsd@nixos-store.socket
 After=virtiofsd@nixos-store.socket
 Requires=virtiofsd@nixos-store.service
@@ -520,6 +530,8 @@ Documentation=man:qemu-system(1) man:systemd.service(5) man:systemd.kill(5)
 PartOf=machines.target
 Before=machines.target
 After=network.target
+Wants=systemd-machined.socket
+After=systemd-machined.socket
 Description=GPU Passthrough Guest
 
 [Service]

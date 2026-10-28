@@ -262,8 +262,10 @@ _$XDG_RUNTIME_DIR/systemd/generator/_ (*systemd.generator*(7)), where
 The service carries *SourcePath=* back to the file and *Documentation=*
 naming *qemu-system*(1), *systemd.service*(5) and *systemd.kill*(5), is
 part of and ordered before _machines.target_, after _network.target_
-under the system manager, *Requires=* and *After=* each daemon's socket
-and *Requires=* its service, and then:
+under the system manager, *Wants=* and *After=*
+_systemd-machined.socket_, which a registration needs listening,
+*Requires=* and *After=* each daemon's socket and *Requires=* its
+service, and then:
 
 ```
 [Service]

@@ -207,6 +207,10 @@ fn machine_service(source: &Source, file: &UnitFile, plan: &Plan, scope: Scope) 
     if scope == Scope::System {
         unit.line("After=network.target");
     }
+    // sockets.target already wants the socket, but one installed after
+    // boot does not listen until a unit starts it.
+    unit.line("Wants=systemd-machined.socket");
+    unit.line("After=systemd-machined.socket");
     for helper in &plan.helpers {
         let stem = helper_stem(name, helper.program, &helper.tag);
         unit.line(format_args!("Requires={stem}.socket"));
@@ -583,6 +587,21 @@ mod tests {
         assert!(out.files[0].text.contains("\nAfter=network.target\n"));
         assert_eq!(out.files[0].path, PathBuf::from("qemu-system@vm.service"));
         assert_eq!(out.links, [] as [Symlink; 0]);
+    }
+
+    #[test]
+    fn registration_wants_the_machined_socket() {
+        for scope in [Scope::System, Scope::User] {
+            let out = emit(&source(), &UnitFile::default(), &plan(), scope, |w| {
+                panic!("{w}")
+            });
+            assert!(
+                out.files[0]
+                    .text
+                    .contains("\nWants=systemd-machined.socket\nAfter=systemd-machined.socket\n"),
+                "{scope:?}"
+            );
+        }
     }
 
     #[test]
