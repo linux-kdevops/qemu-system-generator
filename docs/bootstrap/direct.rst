@@ -322,17 +322,24 @@ the machine's runtime directory. ``%i`` is the machine name:
    +chardev=socket,id=console0,path=%t/qemu-system/%i/console.sock,server=on,wait=off
    +device=virtconsole,chardev=console0
 
-Restart, then attach with :cmd:`socat`. Press Enter for the prompt, log in
-as root with no password, and leave with Ctrl-O:
+:ref:`Regenerate <host-regenerate>`, :ref:`start <host-start>`, and
+attach with :cmd:`socat`:
 
 .. code-block:: console
    :class: cmd-host
 
    $ socat -,rawer,escape=0x0f UNIX-CONNECT:$XDG_RUNTIME_DIR/qemu-system/bootstrap-direct/console.sock
 
+Press :kbd:`Enter` for the prompt and log in as root with no password:
+
+.. code-block:: console
+   :class: cmd-guest
+
    bootstrap login: root
    [root@bootstrap:~]# uname --kernel-release
    6.18.57
+
+:kbd:`Ctrl-O` leaves the console.
 
 .. _direct-drop-in:
 
