@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: copyleft-next-0.3.1
 ## Usage: steps/direct/install --name VM [--base FILE]
 ##
-## Write the files of one microvm machine, bootstrap-direct or bootstrap-direct-peer: in
+## Write the files of one machine, bootstrap-direct or bootstrap-direct-peer: in
 ## WORKTREES_DIR/direct/VM, a NixOS flake whose system closure, with the
 ## latest kernel, the public key of SSH_KEY for root and the machine's
 ## address on the LAN, the machine boots directly; and in

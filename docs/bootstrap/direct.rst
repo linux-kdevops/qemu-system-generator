@@ -110,6 +110,7 @@ the closure's kernel and initrd; ``%h`` is your home directory
 
    [QEMU]
    machine=q35
+   nodefaults=
    accel=kvm
    cpu=host
    m=2G
@@ -119,6 +120,10 @@ the closure's kernel and initrd; ``%h`` is your home directory
    kernel=%h/bootstrap/direct/result/kernel
    initrd=%h/bootstrap/direct/result/initrd
    append=console=ttyS0
+
+``nodefaults=`` leaves out the devices QEMU adds on its own, such as a
+VGA card, a CD drive and a network card; the file names every device the
+machine has.
 
 :ref:`Regenerate <host-regenerate>` and :ref:`start <host-start>` it; the
 journal has the serial console.
@@ -230,7 +235,11 @@ Forward a local port to the guest's SSH over QEMU's `user-mode network`_:
    :caption: ~/.config/qemu/systemd/bootstrap-direct.qemu
 
     append=console=ttyS0 init=/nix/store/i7s2903dhm9g5z73vkcbpggmv1iqnvwy-nixos-system-bootstrap-26.11.20261020.02c087f/init
-   +nic=user,model=virtio-net-pci-non-transitional,hostfwd=tcp:127.0.0.1:10047-:22
+   +netdev=user,id=net0,hostfwd=tcp:127.0.0.1:10047-:22
+   +device=virtio-net-pci-non-transitional,netdev=net0,romfile=
+
+``romfile=`` with no value leaves out the card's iPXE boot ROM, which
+the firmware would otherwise load.
 
 :ref:`Regenerate <host-regenerate>`, :ref:`start <host-start>`, and log
 in with :cmd:`ssh`:
@@ -252,7 +261,8 @@ A `vsock`_ device gives the guest a context id:
 .. code-block:: diff
    :caption: ~/.config/qemu/systemd/bootstrap-direct.qemu
 
-    nic=user,model=virtio-net-pci-non-transitional,hostfwd=tcp:127.0.0.1:10047-:22
+    netdev=user,id=net0,hostfwd=tcp:127.0.0.1:10047-:22
+    device=virtio-net-pci-non-transitional,netdev=net0,romfile=
    +device=vhost-vsock-pci-non-transitional,guest-cid=47
 
 The machine registers with :cmd:`machined <systemd-machined>`
@@ -291,6 +301,7 @@ over SSH first (:ref:`SSH poweroff <host-poweroff>`):
    +
     [QEMU]
     machine=q35
+    nodefaults=
 
 .. code-block:: console
    :class: cmd-host
@@ -316,7 +327,8 @@ the machine's runtime directory. ``%i`` is the machine name:
 
    -append=console=ttyS0 init=/nix/store/i7s2903dhm9g5z73vkcbpggmv1iqnvwy-nixos-system-bootstrap-26.11.20261020.02c087f/init
    +append=console=ttyS0 console=hvc0 init=/nix/store/i7s2903dhm9g5z73vkcbpggmv1iqnvwy-nixos-system-bootstrap-26.11.20261020.02c087f/init
-    nic=user,model=virtio-net-pci-non-transitional,hostfwd=tcp:127.0.0.1:10047-:22
+    netdev=user,id=net0,hostfwd=tcp:127.0.0.1:10047-:22
+    device=virtio-net-pci-non-transitional,netdev=net0,romfile=
     device=vhost-vsock-pci-non-transitional,guest-cid=47
    +device=virtio-serial-pci-non-transitional
    +chardev=socket,id=console0,path=%t/qemu-system/%i/console.sock,server=on,wait=off
@@ -356,7 +368,8 @@ drop-in: the files in ``bootstrap-direct.qemu.d/`` are appended to
 
     initrd=%h/bootstrap/direct/result/initrd
    -append=console=ttyS0 console=hvc0 init=/nix/store/i7s2903dhm9g5z73vkcbpggmv1iqnvwy-nixos-system-bootstrap-26.11.20261020.02c087f/init
-    nic=user,model=virtio-net-pci-non-transitional,hostfwd=tcp:127.0.0.1:10047-:22
+    netdev=user,id=net0,hostfwd=tcp:127.0.0.1:10047-:22
+    device=virtio-net-pci-non-transitional,netdev=net0,romfile=
 
 .. code-block:: console
    :class: cmd-host
@@ -459,7 +472,7 @@ your home in place of ``/home/user``, and add it to the guest:
    +          ./home.nix
             ];
 
-Rebuild, put the new path :cmd:`readlink` prints for ``result`` in the
+Rebuild, put the path ``readlink result`` prints, and ``/init``, in the
 drop-in's ``init=``, :ref:`regenerate <host-regenerate>` and
 :ref:`restart <host-start>`.
 Root's home is now yours, with the two systemd directories empty, and a
@@ -477,111 +490,9 @@ file the guest writes belongs to you on the host:
    $ ls --format=long ~/bootstrap/direct/from-guest
    -rw-r--r-- 1 user user 0 Oct 27 13:47 /home/user/bootstrap/direct/from-guest
 
-.. _direct-microvm:
-
-10. A microvm
-=============
-
-QEMU's `microvm`_ machine type has no PCI bus and no firmware to run: its
-devices sit on virtio-mmio, and the kernel reaches its ``/init`` sooner.
-
-microvm reserves no room for its `ACPI`_ tables when it loads the initrd:
-``microvm_memory_init()`` in ``hw/i386/microvm.c`` passes
-``x86_load_linux()`` an ``acpi_data_size`` of 0, where the PC machines
-pass ``PC_FW_DATA``. An initrd that does not end on a page boundary can
-end over the tables, in the top page of RAM, and the guest stops at
-``ACPI: Core revision``, depending on the initrd's size and the number of
-devices. Boot a copy padded to whole pages, and make it again after every
-build:
-
-.. code-block:: console
-   :class: cmd-host
-
-   $ cd ~/bootstrap/direct
-   $ cp --dereference --force result/initrd initrd
-   $ chmod u+w initrd
-   $ truncate --size=%4096 initrd
-
-Then change the machine. On microvm the virtio devices take their
-``-device`` names instead of the ``-pci-non-transitional`` ones. The
-network card becomes a ``netdev=`` and a ``device=`` that names it:
-``nic=`` would still open the forwarded port, but microvm never creates
-the card it asks for, since only the PC machines' PCI setup does
-(``pci_init_nic_devices()`` in ``hw/i386/pc.c``). The journal shows
-QEMU's warning, ``requested NIC (anonymous, model virtio-net-device) was
-not created (not supported by this machine?)``. The ``global=`` line has
-QEMU's virtio-mmio transport offer virtio 1.0, as a non-transitional PCI
-device does; QEMU defaults to the legacy transport (``force-legacy`` in
-``hw/virtio/virtio-mmio.c``). Under `KVM`_, microvm leaves the RTC out unless
-``rtc=on`` asks for it (``hw/i386/microvm.c``). Without it the kernel's
-RTC probe fails, and ``/init`` started at 1.56 seconds instead of 0.37
-here:
-
-.. code-block:: diff
-   :caption: ~/.config/qemu/systemd/bootstrap-direct.qemu
-
-   -machine=q35
-   +machine=microvm,rtc=on
-    accel=kvm
-    cpu=host
-    m=2G
-    smp=2
-    nographic=
-    serial=mon:stdio
-    kernel=%h/bootstrap/direct/result/kernel
-   -initrd=%h/bootstrap/direct/result/initrd
-   +initrd=%h/bootstrap/direct/initrd
-   -nic=user,model=virtio-net-pci-non-transitional,hostfwd=tcp:127.0.0.1:10047-:22
-   -device=vhost-vsock-pci-non-transitional,guest-cid=47
-   -device=virtio-serial-pci-non-transitional
-   +global=virtio-mmio.force-legacy=false
-   +netdev=user,id=net0,hostfwd=tcp:127.0.0.1:10047-:22
-   +device=virtio-net-device,netdev=net0
-   +device=vhost-vsock-device,guest-cid=47
-   +device=virtio-serial-device
-
-Keep `ACPI`_, microvm's default. With ``acpi=off`` the guest cannot power
-off, and every stop waits out :cmd:`TimeoutStopSec=`. The generator
-follows the machine type for the virtiofs devices it adds:
-
-.. code-block:: console
-   :class: cmd-host
-
-   $ qemu-system-generator --user --dryrun | grep vhost-user-fs
-       -device vhost-user-fs-device,queue-size=1024,chardev=virtiofs_store,tag=store \
-       -device vhost-user-fs-device,queue-size=1024,chardev=virtiofs_home,tag=home \
-
-On microvm this guest's ``systemd-ssh-generator`` opens no vsock
-listener by itself, so ask for one on the kernel command line with
-``systemd.ssh_listen=vsock::22``. Add it to the drop-in:
-
-.. code-block:: diff
-   :caption: ~/.config/qemu/systemd/bootstrap-direct.qemu.d/10-closure.conf
-
-    [QEMU]
-   -append=console=ttyS0 console=hvc0 init=/nix/store/...-nixos-system-bootstrap-.../init
-   +append=console=ttyS0 console=hvc0 systemd.ssh_listen=vsock::22 init=/nix/store/...-nixos-system-bootstrap-.../init
-
-:ref:`Regenerate <host-regenerate>`, :ref:`restart <host-start>` and log in:
-
-.. code-block:: console
-   :class: cmd-host
-
-   $ systemctl --user start qemu-system-generator.service
-   $ systemctl --user restart qemu-system@bootstrap-direct.service
-   $ ssh bootstrap-direct uname --kernel-release
-   Warning: Permanently added 'vsock/47' (ED25519) to the list of known hosts.
-   6.18.58
-
-On this guest the kernel reached ``/init`` at 0.37 seconds against 0.68
-on q35, and the initrd mounted the store at 2.55 seconds against 2.92,
-but ``ssh`` answered after 9.1 to 9.5 seconds against 8.3 to 8.5. NixOS's
-userspace outweighs what microvm saves before it, so the other guides
-keep q35.
-
 .. _direct-peer:
 
-11. A second machine on one network
+10. A second machine on one network
 ===================================
 
 A second machine, ``bootstrap-direct-peer``, joins ``bootstrap-direct`` on a
@@ -608,16 +519,14 @@ addresses (:doc:`network`):
 With ``networking.useNetworkd``, NixOS asks for the user-mode card's
 address over DHCP through systemd-networkd too, from its
 ``99-ethernet-default-dhcp`` network, and the two ``10-`` networks come
-before it. Rebuild, and put the new path in the drop-in's ``init=``:
+before it. Rebuild, and put the new path and ``/init`` in the drop-in's
+``init=``:
 
 .. code-block:: console
    :class: cmd-host
 
    $ cd ~/bootstrap/direct
    $ nix build
-   $ cp --dereference --force result/initrd initrd
-   $ chmod u+w initrd
-   $ truncate --size=%4096 initrd
    $ readlink result
 
 Give ``bootstrap-direct`` its card:
@@ -626,10 +535,10 @@ Give ``bootstrap-direct`` its card:
    :caption: ~/.config/qemu/systemd/bootstrap-direct.qemu
 
     netdev=user,id=net0,hostfwd=tcp:127.0.0.1:10047-:22
-    device=virtio-net-device,netdev=net0
+    device=virtio-net-pci-non-transitional,netdev=net0,romfile=
    +netdev=dgram,id=lan,remote.type=inet,remote.host=239.255.0.1,remote.port=5556,local.type=inet,local.host=127.0.0.1,local.port=0
-   +device=virtio-net-device,netdev=lan,mac=52:54:00:00:00:47
-    device=vhost-vsock-device,guest-cid=47
+   +device=virtio-net-pci-non-transitional,netdev=lan,mac=52:54:00:00:00:47,romfile=
+    device=vhost-vsock-pci-non-transitional,guest-cid=47
 
 ``bootstrap-direct-peer`` needs the store and the home, which the closure
 mounts, a context id of its own and no forwarded port, since
@@ -642,7 +551,8 @@ mounts, a context id of its own and no forwarded port, since
    SshPrivateKey=%h/bootstrap/system/ssh/id_ed25519
 
    [QEMU]
-   machine=microvm,rtc=on
+   machine=q35
+   nodefaults=
    accel=kvm
    cpu=host
    m=2G
@@ -650,13 +560,12 @@ mounts, a context id of its own and no forwarded port, since
    nographic=
    serial=mon:stdio
    kernel=%h/bootstrap/direct/result/kernel
-   initrd=%h/bootstrap/direct/initrd
-   global=virtio-mmio.force-legacy=false
+   initrd=%h/bootstrap/direct/result/initrd
    netdev=user,id=net0
-   device=virtio-net-device,netdev=net0
+   device=virtio-net-pci-non-transitional,netdev=net0,romfile=
    netdev=dgram,id=lan,remote.type=inet,remote.host=239.255.0.1,remote.port=5556,local.type=inet,local.host=127.0.0.1,local.port=0
-   device=virtio-net-device,netdev=lan,mac=52:54:00:00:00:48
-   device=vhost-vsock-device,guest-cid=48
+   device=virtio-net-pci-non-transitional,netdev=lan,mac=52:54:00:00:00:48,romfile=
+   device=vhost-vsock-pci-non-transitional,guest-cid=48
 
    [virtiofsd]
    shared-dir=/nix/store
@@ -684,7 +593,7 @@ hostname:
    :caption: ~/.config/qemu/systemd/bootstrap-direct-peer.qemu.d/10-closure.conf
 
    [QEMU]
-   append=console=ttyS0 systemd.hostname=peer systemd.ssh_listen=vsock::22 init=/nix/store/...-nixos-system-bootstrap-.../init
+   append=console=ttyS0 systemd.hostname=peer init=/nix/store/...-nixos-system-bootstrap-.../init
 
 :ref:`Regenerate <host-regenerate>`, :ref:`restart <host-start>`
 ``bootstrap-direct``, start ``bootstrap-direct-peer``, and each reaches
@@ -700,21 +609,21 @@ the other:
    Warning: Permanently added 'vsock/48' (ED25519) to the list of known hosts.
    peer
    PING 10.0.100.47 (10.0.100.47) 56(84) bytes of data.
-   64 bytes from 10.0.100.47: icmp_seq=1 ttl=64 time=0.501 ms
+   64 bytes from 10.0.100.47: icmp_seq=1 ttl=64 time=0.342 ms
    ...
    $ ssh bootstrap-direct ping -c 1 10.0.100.48
    PING 10.0.100.48 (10.0.100.48) 56(84) bytes of data.
-   64 bytes from 10.0.100.48: icmp_seq=1 ttl=64 time=0.276 ms
+   64 bytes from 10.0.100.48: icmp_seq=1 ttl=64 time=0.261 ms
    ...
 
 .. _direct-fast:
 
-12. A faster boot
+11. A faster boot
 =================
 
 Each step is timed as :ref:`fast-measure` shows.
 
-The machine as it stands takes 9.0 to 9.2 seconds.
+The machine as it stands takes 8.3 to 8.9 seconds.
 
 The console
 -----------
@@ -727,11 +636,11 @@ Add them to the drop-in:
    :caption: ~/.config/qemu/systemd/bootstrap-direct.qemu.d/10-closure.conf
 
     [QEMU]
-   -append=console=ttyS0 console=hvc0 systemd.ssh_listen=vsock::22 init=/nix/store/...-nixos-system-bootstrap-.../init
-   +append=console=ttyS0 console=hvc0 systemd.ssh_listen=vsock::22 systemd.tty.term.console=vt220 systemd.tty.rows.console=24 systemd.tty.columns.console=80 init=/nix/store/...-nixos-system-bootstrap-.../init
+   -append=console=ttyS0 console=hvc0 init=/nix/store/...-nixos-system-bootstrap-.../init
+   +append=console=ttyS0 console=hvc0 systemd.tty.term.console=vt220 systemd.tty.rows.console=24 systemd.tty.columns.console=80 init=/nix/store/...-nixos-system-bootstrap-.../init
 
-:ref:`Regenerate <host-regenerate>` and :ref:`restart <host-start>`: 7.0
-seconds, and the initrd's share falls from 3.1 to 2.1.
+:ref:`Regenerate <host-regenerate>` and :ref:`restart <host-start>`: 6.6
+seconds, and the initrd's share falls from 3.0 to 1.9.
 
 The store
 ---------
@@ -747,7 +656,7 @@ The store
    +cache=always
     sandbox=namespace
 
-6.2 seconds.
+5.5 seconds.
 
 The closure
 -----------
@@ -771,19 +680,16 @@ The closure
    +    "systemd-update-done.service"
    +  ];
 
-Rebuild, and put the new path in the drop-in's ``init=``:
+Rebuild, and put the new path and ``/init`` in the drop-in's ``init=``:
 
 .. code-block:: console
    :class: cmd-host
 
    $ cd ~/bootstrap/direct
    $ nix build
-   $ cp --dereference --force result/initrd initrd
-   $ chmod u+w initrd
-   $ truncate --size=%4096 initrd
    $ readlink result
 
-5.1 seconds. ``bootstrap-direct-peer`` keeps the closure its own drop-in
+4.9 seconds. ``bootstrap-direct-peer`` keeps the closure its own drop-in
 names until you edit that one too.
 
 More processors
@@ -797,7 +703,7 @@ systemd starts what it can in parallel:
    -smp=2
    +smp=4
 
-5.0 seconds.
+4.8 seconds.
 
 Quiet
 -----
@@ -808,13 +714,132 @@ Quiet
    :caption: ~/.config/qemu/systemd/bootstrap-direct.qemu.d/10-closure.conf
 
     [QEMU]
-   -append=console=ttyS0 console=hvc0 systemd.ssh_listen=vsock::22 systemd.tty.term.console=vt220 systemd.tty.rows.console=24 systemd.tty.columns.console=80 init=/nix/store/...-nixos-system-bootstrap-.../init
-   +append=console=ttyS0 console=hvc0 systemd.ssh_listen=vsock::22 systemd.tty.term.console=vt220 systemd.tty.rows.console=24 systemd.tty.columns.console=80 quiet init=/nix/store/...-nixos-system-bootstrap-.../init
+   -append=console=ttyS0 console=hvc0 systemd.tty.term.console=vt220 systemd.tty.rows.console=24 systemd.tty.columns.console=80 init=/nix/store/...-nixos-system-bootstrap-.../init
+   +append=console=ttyS0 console=hvc0 systemd.tty.term.console=vt220 systemd.tty.rows.console=24 systemd.tty.columns.console=80 quiet init=/nix/store/...-nixos-system-bootstrap-.../init
 
-4.7 seconds, half the time this section started from.
+4.5 seconds, about half the time this section started from.
 
 The initrd still waits about 0.8 seconds on systemd's mount rate limit,
 which this guest cannot lift safely (:ref:`fast-mounts`).
+
+.. _direct-microvm:
+
+12. A microvm
+=============
+
+This step is optional, and the machine is no faster for it. QEMU's
+`microvm`_ machine type has no PCI bus unless asked for one, and its
+firmware does little more than hand over to ``kernel=``: its devices
+sit on virtio-mmio, and the kernel reaches its ``/init`` sooner. In
+exchange, it gives up what the other guides rely on
+(``docs/system/i386/microvm.rst`` and ``hw/i386/microvm.c`` in QEMU):
+
+- No PCI device, so no VFIO passthrough and no ``nic=``, unless
+  ``pcie=on`` adds a PCI Express bus, which it does only with `ACPI`_.
+- No hotplug of any kind: CPUs, disks and cards are fixed at start.
+- No live migration across QEMU versions.
+- No firmware boots a virtio-mmio disk, so the machine boots
+  ``kernel=`` only; the disk and UKI guides cannot use it.
+- 24 virtio-mmio slots with ACPI, eight without, and every virtio device
+  takes one, the generator's virtiofs devices too.
+- Without ACPI, no power button: with ``acpi=off`` the guest cannot
+  power off, and every stop waits out :cmd:`TimeoutStopSec=`. Keep ACPI,
+  microvm's default.
+
+microvm reserves no room for its ACPI tables when it loads the initrd:
+``microvm_memory_init()`` in ``hw/i386/microvm.c`` passes
+``x86_load_linux()`` an ``acpi_data_size`` of 0, where the PC machines
+pass ``PC_FW_DATA``. An initrd that does not end on a page boundary can
+end over the tables, in the top page of RAM, and the guest stops at
+``ACPI: Core revision``, depending on the initrd's size and the number of
+devices. Boot a copy padded to whole pages, and make it again after every
+build:
+
+.. code-block:: console
+   :class: cmd-host
+
+   $ cd ~/bootstrap/direct
+   $ cp --dereference --force result/initrd initrd
+   $ chmod u+w initrd
+   $ truncate --size=%4096 initrd
+
+Then change the machine. On microvm the virtio devices take their
+``-device`` names instead of the ``-pci-non-transitional`` ones, and have
+no boot ROM to leave out. The user-mode card was already a ``netdev=``
+and a ``device=`` that names it; ``nic=`` would still open the forwarded
+port, but microvm never creates the card it asks for, since only the PC
+machines' PCI setup does (``pci_init_nic_devices()`` in
+``hw/i386/pc.c``). The ``global=`` line has QEMU's virtio-mmio transport
+offer virtio 1.0, as a non-transitional PCI device does; QEMU defaults
+to the legacy transport (``force-legacy`` in ``hw/virtio/virtio-mmio.c``).
+Under `KVM`_, microvm leaves the RTC out unless ``rtc=on`` asks for it
+(``hw/i386/microvm.c``). Without it the kernel's RTC probe fails, and
+``/init`` started at 1.51 seconds instead of 0.29 here:
+
+.. code-block:: diff
+   :caption: ~/.config/qemu/systemd/bootstrap-direct.qemu
+
+   -machine=q35
+   +machine=microvm,rtc=on
+    nodefaults=
+    accel=kvm
+    cpu=host
+    m=2G
+    smp=4
+    nographic=
+    serial=mon:stdio
+    kernel=%h/bootstrap/direct/result/kernel
+   -initrd=%h/bootstrap/direct/result/initrd
+   +initrd=%h/bootstrap/direct/initrd
+   +global=virtio-mmio.force-legacy=false
+    netdev=user,id=net0,hostfwd=tcp:127.0.0.1:10047-:22
+   -device=virtio-net-pci-non-transitional,netdev=net0,romfile=
+   +device=virtio-net-device,netdev=net0
+    netdev=dgram,id=lan,remote.type=inet,remote.host=239.255.0.1,remote.port=5556,local.type=inet,local.host=127.0.0.1,local.port=0
+   -device=virtio-net-pci-non-transitional,netdev=lan,mac=52:54:00:00:00:47,romfile=
+   -device=vhost-vsock-pci-non-transitional,guest-cid=47
+   -device=virtio-serial-pci-non-transitional
+   +device=virtio-net-device,netdev=lan,mac=52:54:00:00:00:47
+   +device=vhost-vsock-device,guest-cid=47
+   +device=virtio-serial-device
+
+The generator follows the machine type for the virtiofs devices it adds:
+
+.. code-block:: console
+   :class: cmd-host
+
+   $ qemu-system-generator --user --dryrun | grep vhost-user-fs
+       -device vhost-user-fs-device,queue-size=1024,chardev=virtiofs_store,tag=store \
+       -device vhost-user-fs-device,queue-size=1024,chardev=virtiofs_home,tag=home \
+
+On microvm this guest's ``systemd-ssh-generator`` opens no vsock
+listener by itself, so ask for one on the kernel command line with
+``systemd.ssh_listen=vsock::22``:
+
+.. code-block:: diff
+   :caption: ~/.config/qemu/systemd/bootstrap-direct.qemu.d/10-closure.conf
+
+    [QEMU]
+   -append=console=ttyS0 console=hvc0 systemd.tty.term.console=vt220 systemd.tty.rows.console=24 systemd.tty.columns.console=80 quiet init=/nix/store/...-nixos-system-bootstrap-.../init
+   +append=console=ttyS0 console=hvc0 systemd.ssh_listen=vsock::22 systemd.tty.term.console=vt220 systemd.tty.rows.console=24 systemd.tty.columns.console=80 quiet init=/nix/store/...-nixos-system-bootstrap-.../init
+
+:ref:`Regenerate <host-regenerate>`, :ref:`restart <host-start>` and log in:
+
+.. code-block:: console
+   :class: cmd-host
+
+   $ systemctl --user start qemu-system-generator.service
+   $ systemctl --user restart qemu-system@bootstrap-direct.service
+   $ ssh bootstrap-direct uname --kernel-release
+   Warning: Permanently added 'vsock/47' (ED25519) to the list of known hosts.
+   6.18.59
+
+The kernel reaches ``/init`` at 0.29 seconds against 0.49 on q35, and
+the initrd mounts the store at 1.43 seconds against 1.67, but ``ssh``
+answers after 4.8 seconds against 4.5. NixOS's userspace outweighs what
+microvm saves before it, so this guide, and the others, keep q35.
+``bootstrap-direct-peer`` stays on q35; the LAN does not depend on the
+machine type.
 
 Notes
 =====
