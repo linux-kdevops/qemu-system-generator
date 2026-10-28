@@ -22,5 +22,6 @@
         ];
       };
       packages.x86_64-linux.toplevel = self.nixosConfigurations.vm.config.system.build.toplevel;
+      packages.x86_64-linux.initrd = self.nixosConfigurations.vm.config.system.build.initialRamdisk;
     };
 }

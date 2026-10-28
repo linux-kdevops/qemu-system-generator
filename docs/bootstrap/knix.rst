@@ -255,8 +255,8 @@ look at the shares:
 After a kernel rebuild, ``make modules_install`` again and
 :ref:`restart <host-start>`. After a closure rebuild, put the new paths
 from ``boot.json`` in the drop-in, :ref:`regenerate <host-regenerate>`
-and :ref:`restart <host-start>`; the path unit does not watch the
-drop-in directory.
+and :ref:`restart <host-start>`; :ref:`step 4 <knix-links>` replaces that
+with links.
 
 .. _knix-qemu:
 
@@ -416,9 +416,72 @@ other:
    64 bytes from 10.0.100.50: icmp_seq=1 ttl=64 time=0.185 ms
    ...
 
+.. _knix-links:
+
+4. The closure through links
+============================
+
+Every closure rebuild so far meant two new paths in each drop-in. QEMU
+reads ``initrd=`` on the host, so it can name a link there, and the
+initrd resolves ``init=`` inside the guest's root and follows symbolic
+links on the way (``initrd-find-nixos-closure`` in nixpkgs'
+``nixos/modules/system/boot/systemd/initrd.nix``), so ``init=`` can name
+``result`` in your home, once the initrd mounts the home. The closure
+has no ``initrd`` link, so build the initrd as a package of its own:
+
+.. code-block:: diff
+   :caption: ~/bootstrap/knix/guest/flake.nix
+
+            toplevel = self.nixosConfigurations.vm.config.system.build.toplevel;
+   +        initrd = self.nixosConfigurations.vm.config.system.build.initialRamdisk;
+
+.. code-block:: diff
+   :caption: ~/bootstrap/knix/guest/home.nix
+
+      fileSystems.${home} = {
+        device = "home";
+        fsType = "virtiofs";
+   +    neededForBoot = true;
+      };
+
+Rebuild the closure and the initrd:
+
+.. code-block:: console
+   :class: cmd-host
+
+   $ cd ~/bootstrap/knix/guest
+   $ nix build .#toplevel
+   $ nix build .#initrd --out-link initrd
+
+Change each drop-in one last time. ``%h`` is your home on the host, and
+the guest mounts it at the same path:
+
+.. code-block:: diff
+   :caption: ~/.config/qemu/systemd/bootstrap-knix.qemu.d/10-closure.conf
+
+    [QEMU]
+   -initrd=/nix/store/...-initrd-linux-.../initrd
+   -append=root=tmpfs console=ttyS0 init=/nix/store/...-nixos-system-bootstrap-.../init
+   +initrd=%h/bootstrap/knix/guest/initrd/initrd
+   +append=root=tmpfs console=ttyS0 init=%h/bootstrap/knix/guest/result/init
+
+.. code-block:: diff
+   :caption: ~/.config/qemu/systemd/bootstrap-knix-peer.qemu.d/10-closure.conf
+
+    [QEMU]
+   -initrd=/nix/store/...-initrd-linux-.../initrd
+   -append=root=tmpfs console=ttyS0 systemd.hostname=peer init=/nix/store/...-nixos-system-bootstrap-.../init
+   +initrd=%h/bootstrap/knix/guest/initrd/initrd
+   +append=root=tmpfs console=ttyS0 systemd.hostname=peer init=%h/bootstrap/knix/guest/result/init
+
+:ref:`Regenerate <host-regenerate>` and :ref:`restart <host-start>` both.
+From here a change to the guest is the two builds above and a restart,
+and the drop-ins stay as they are. The boot now depends on the home
+share: if it fails to mount, the guest stops in the initrd.
+
 .. _knix-fast:
 
-4. A faster boot
+5. A faster boot
 ================
 
 Your own kernel and QEMU allow three more changes: a kernel with only
@@ -519,9 +582,9 @@ The console
    :caption: ~/.config/qemu/systemd/bootstrap-knix.qemu.d/10-closure.conf
 
     [QEMU]
-    initrd=/nix/store/...-initrd-linux-.../initrd
-   -append=root=tmpfs console=ttyS0 init=/nix/store/...-nixos-system-bootstrap-.../init
-   +append=root=tmpfs console=ttyS0 systemd.tty.term.console=vt220 systemd.tty.rows.console=24 systemd.tty.columns.console=80 init=/nix/store/...-nixos-system-bootstrap-.../init
+    initrd=%h/bootstrap/knix/guest/initrd/initrd
+   -append=root=tmpfs console=ttyS0 init=%h/bootstrap/knix/guest/result/init
+   +append=root=tmpfs console=ttyS0 systemd.tty.term.console=vt220 systemd.tty.rows.console=24 systemd.tty.columns.console=80 init=%h/bootstrap/knix/guest/result/init
 
 :ref:`Regenerate <host-regenerate>` and :ref:`restart <host-start>`: 5.6
 seconds.
@@ -568,9 +631,9 @@ This kernel has virtiofs built in, so the limit can go
    :caption: ~/.config/qemu/systemd/bootstrap-knix.qemu.d/10-closure.conf
 
     [QEMU]
-    initrd=/nix/store/...-initrd-linux-.../initrd
-   -append=root=tmpfs console=ttyS0 systemd.tty.term.console=vt220 systemd.tty.rows.console=24 systemd.tty.columns.console=80 init=/nix/store/...-nixos-system-bootstrap-.../init
-   +append=root=tmpfs console=ttyS0 systemd.tty.term.console=vt220 systemd.tty.rows.console=24 systemd.tty.columns.console=80 SYSTEMD_DEFAULT_MOUNT_RATE_LIMIT_BURST=1000 init=/nix/store/...-nixos-system-bootstrap-.../init
+    initrd=%h/bootstrap/knix/guest/initrd/initrd
+   -append=root=tmpfs console=ttyS0 systemd.tty.term.console=vt220 systemd.tty.rows.console=24 systemd.tty.columns.console=80 init=%h/bootstrap/knix/guest/result/init
+   +append=root=tmpfs console=ttyS0 systemd.tty.term.console=vt220 systemd.tty.rows.console=24 systemd.tty.columns.console=80 SYSTEMD_DEFAULT_MOUNT_RATE_LIMIT_BURST=1000 init=%h/bootstrap/knix/guest/result/init
 
 3.3 seconds, and the initrd's share falls from 1.6 to 0.7.
 
@@ -602,17 +665,17 @@ tells it this is not one (:cmd:`kernel-command-line(7)`).
 
    $ cd ~/bootstrap/knix/guest
    $ nix build .#toplevel
-   $ jq '."org.nixos.bootspec.v1" | {initrd, init}' result/boot.json
+   $ nix build .#initrd --out-link initrd
 
-Put the new paths in the drop-in, and the option:
+Add the option to the drop-in:
 
 .. code-block:: diff
    :caption: ~/.config/qemu/systemd/bootstrap-knix.qemu.d/10-closure.conf
 
     [QEMU]
-    initrd=/nix/store/...-initrd-linux-.../initrd
-   -append=root=tmpfs console=ttyS0 systemd.tty.term.console=vt220 systemd.tty.rows.console=24 systemd.tty.columns.console=80 SYSTEMD_DEFAULT_MOUNT_RATE_LIMIT_BURST=1000 init=/nix/store/...-nixos-system-bootstrap-.../init
-   +append=root=tmpfs console=ttyS0 systemd.tty.term.console=vt220 systemd.tty.rows.console=24 systemd.tty.columns.console=80 SYSTEMD_DEFAULT_MOUNT_RATE_LIMIT_BURST=1000 systemd.condition_first_boot=false init=/nix/store/...-nixos-system-bootstrap-.../init
+    initrd=%h/bootstrap/knix/guest/initrd/initrd
+   -append=root=tmpfs console=ttyS0 systemd.tty.term.console=vt220 systemd.tty.rows.console=24 systemd.tty.columns.console=80 SYSTEMD_DEFAULT_MOUNT_RATE_LIMIT_BURST=1000 init=%h/bootstrap/knix/guest/result/init
+   +append=root=tmpfs console=ttyS0 systemd.tty.term.console=vt220 systemd.tty.rows.console=24 systemd.tty.columns.console=80 SYSTEMD_DEFAULT_MOUNT_RATE_LIMIT_BURST=1000 systemd.condition_first_boot=false init=%h/bootstrap/knix/guest/result/init
 
 2.6 seconds.
 
@@ -625,9 +688,9 @@ Quiet
    :caption: ~/.config/qemu/systemd/bootstrap-knix.qemu.d/10-closure.conf
 
     [QEMU]
-    initrd=/nix/store/...-initrd-linux-.../initrd
-   -append=root=tmpfs console=ttyS0 systemd.tty.term.console=vt220 systemd.tty.rows.console=24 systemd.tty.columns.console=80 SYSTEMD_DEFAULT_MOUNT_RATE_LIMIT_BURST=1000 systemd.condition_first_boot=false init=/nix/store/...-nixos-system-bootstrap-.../init
-   +append=root=tmpfs console=ttyS0 systemd.tty.term.console=vt220 systemd.tty.rows.console=24 systemd.tty.columns.console=80 SYSTEMD_DEFAULT_MOUNT_RATE_LIMIT_BURST=1000 systemd.condition_first_boot=false quiet init=/nix/store/...-nixos-system-bootstrap-.../init
+    initrd=%h/bootstrap/knix/guest/initrd/initrd
+   -append=root=tmpfs console=ttyS0 systemd.tty.term.console=vt220 systemd.tty.rows.console=24 systemd.tty.columns.console=80 SYSTEMD_DEFAULT_MOUNT_RATE_LIMIT_BURST=1000 systemd.condition_first_boot=false init=%h/bootstrap/knix/guest/result/init
+   +append=root=tmpfs console=ttyS0 systemd.tty.term.console=vt220 systemd.tty.rows.console=24 systemd.tty.columns.console=80 SYSTEMD_DEFAULT_MOUNT_RATE_LIMIT_BURST=1000 systemd.condition_first_boot=false quiet init=%h/bootstrap/knix/guest/result/init
 
 2.0 seconds.
 
@@ -683,7 +746,9 @@ reaches the script as an environment variable like the rate limit. It
 leaves out ``root=``: with no root device named, the kernel makes its
 initial root a `tmpfs`_ (``init/do_mounts.c``), and NixOS's ``/`` is a
 tmpfs anyway. It leaves out ``init=`` too, so the kernel runs ``/init``.
-``CLOSURE=`` is the closure's path:
+``CLOSURE=`` names one build again, since the BusyBox ``init`` mounts
+only the store and cannot follow ``result`` in the home. It is the
+closure's path:
 
 .. code-block:: console
    :class: cmd-host
@@ -694,8 +759,8 @@ tmpfs anyway. It leaves out ``init=`` too, so the kernel runs ``/init``.
    :caption: ~/.config/qemu/systemd/bootstrap-knix.qemu.d/10-closure.conf
 
     [QEMU]
-   -initrd=/nix/store/...-initrd-linux-.../initrd
-   -append=root=tmpfs console=ttyS0 systemd.tty.term.console=vt220 systemd.tty.rows.console=24 systemd.tty.columns.console=80 SYSTEMD_DEFAULT_MOUNT_RATE_LIMIT_BURST=1000 systemd.condition_first_boot=false quiet init=/nix/store/...-nixos-system-bootstrap-.../init
+   -initrd=%h/bootstrap/knix/guest/initrd/initrd
+   -append=root=tmpfs console=ttyS0 systemd.tty.term.console=vt220 systemd.tty.rows.console=24 systemd.tty.columns.console=80 SYSTEMD_DEFAULT_MOUNT_RATE_LIMIT_BURST=1000 systemd.condition_first_boot=false quiet init=%h/bootstrap/knix/guest/result/init
    +initrd=%h/bootstrap/knix/tiny.cpio
    +append=console=ttyS0 systemd.tty.term.console=vt220 systemd.tty.rows.console=24 systemd.tty.columns.console=80 SYSTEMD_DEFAULT_MOUNT_RATE_LIMIT_BURST=1000 systemd.condition_first_boot=false quiet CLOSURE=/nix/store/...-nixos-system-bootstrap-...
 

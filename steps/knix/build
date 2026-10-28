@@ -3,10 +3,11 @@
 ## Usage: steps/knix/build [--base FILE]
 ##
 ## Build, in WORKTREES_DIR/knix, both kernels, QEMU and BusyBox from
-## steps/knix/flake.nix, linked from nix/, the guest's closure, and the
-## BusyBox initramfs; then write the drop-ins that hand the closure to the
-## two machines: bootstrap-knix through the initramfs, bootstrap-knix-peer through the
-## closure's own initrd and init:
+## steps/knix/flake.nix, linked from nix/, the guest's closure and its
+## initrd, and the BusyBox initramfs; then write the drop-ins that hand
+## the closure to the two machines: bootstrap-knix through the
+## initramfs, bootstrap-knix-peer through the initrd and init= links,
+## which it follows through the home, so WORKTREES_DIR must lie in it:
 ##
 ##   nix develop --ignore-env --keep-env-var HOME \
 ##       --command steps/knix/build
@@ -35,13 +36,12 @@ nix build "$flake#kernel^out,modules" --out-link nix/kernel
 nix build "$flake#fast-kernel^out,modules" --out-link nix/fast-kernel
 nix build "$flake#qemu" --out-link nix/qemu
 nix build "$flake#busybox" --out-link nix/busybox
-(cd guest && nix build .#toplevel)
+(cd guest && nix build .#toplevel && nix build .#initrd --out-link initrd)
 install --mode=0755 nix/busybox/bin/busybox tiny/bin/busybox
 chmod 0755 tiny tiny/bin
 (cd tiny && find . | cpio --quiet --create --format=newc --owner=0:0) >tiny.cpio
 WORKTREES_DIR=$WORKTREES_DIR closure=$(readlink guest/result) \
 	envsubst "\$WORKTREES_DIR \$closure" \
 	<"$files/10-closure.conf" >"$units/bootstrap-knix.qemu.d/10-closure.conf"
-jq --raw-output '."org.nixos.bootspec.v1" |
-    "[QEMU]\ninitrd=\(.initrd)\nappend=root=tmpfs console=ttyS0 systemd.hostname=peer init=\(.init)"' \
-	guest/result/boot.json >"$units/bootstrap-knix-peer.qemu.d/10-closure.conf"
+WORKTREES_DIR=$WORKTREES_DIR envsubst "\$WORKTREES_DIR" \
+	<"$files/peer-closure.conf" >"$units/bootstrap-knix-peer.qemu.d/10-closure.conf"

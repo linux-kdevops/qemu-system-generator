@@ -12,6 +12,7 @@ in
   fileSystems.${home} = {
     device = "home";
     fsType = "virtiofs";
+    neededForBoot = true;
   };
   fileSystems."${home}/.config/systemd" = mask;
   fileSystems."${home}/.local/share/systemd" = mask;
