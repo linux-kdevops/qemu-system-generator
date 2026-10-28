@@ -1,0 +1,19 @@
+# SPDX-License-Identifier: copyleft-next-0.3.1
+# Without nested KVM in this guest, QEMU falls back to TCG.
+[QEMU]
+machine=q35
+accel=kvm
+accel=tcg
+cpu=max
+m=256M
+nodefaults=
+nographic=
+no-reboot=
+serial=mon:stdio
+kernel=vmlinuz
+initrd=initrd
+append=console=ttyS0 rdinit=/init panic=-1
+device=vhost-vsock-pci-non-transitional,guest-cid=3
+
+[Install]
+WantedBy=machines.target

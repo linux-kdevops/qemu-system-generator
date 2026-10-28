@@ -1,0 +1,31 @@
+#!/usr/bin/env bash
+# SPDX-License-Identifier: copyleft-next-0.3.1
+## Usage: steps/nested/check [--base FILE]
+##
+## In the running bootstrap-nested, check that the system manager's unit
+## of the inner machine comes from /etc/qemu/systemd/inner.qemu, that the
+## machine started with this boot and printed its line on the console,
+## and that the system's machined records its vsock context id:
+##
+##   nix develop --ignore-env --keep-env-var HOME \
+##       --command steps/nested/check
+set -o errexit -o nounset -o pipefail
+
+while [ $# -gt 0 ]; do
+	case $1 in
+	--base) base=$2 ;;
+	*) sed --quiet 's/^## \{0,1\}//p' "$0" >&2 && exit 2 ;;
+	esac
+	shift 2
+done
+# shellcheck source=/dev/null
+[ -z "${base-}" ] || . "$base"
+# shellcheck source=steps/base
+. "$(dirname "$0")/../base"
+guest=(ssh -F "$SSH_DIR/config" bootstrap-nested)
+
+set -o xtrace
+[ "$("${guest[@]}" systemctl show --property=SourcePath --value qemu-system@inner.service)" = /etc/qemu/systemd/inner.qemu ]
+"${guest[@]}" "journalctl --boot --unit=qemu-system@inner.service --output=cat | grep 'inner machine up'"
+"${guest[@]}" machinectl list
+[ "$("${guest[@]}" machinectl show --property=VSockCID --value inner)" = 3 ]

@@ -1,0 +1,42 @@
+#!/usr/bin/env bash
+# SPDX-License-Identifier: copyleft-next-0.3.1
+## Usage: steps/nested/install_generator [--base FILE]
+##
+## Copy this checkout's HEAD into the running bootstrap-nested and, in
+## it, install the generator for the system manager and every user
+## manager with the commands of the installation page's system-wide
+## section:
+##
+##   nix develop --ignore-env --keep-env-var HOME \
+##       --command steps/nested/install_generator
+set -o errexit -o nounset -o pipefail
+
+while [ $# -gt 0 ]; do
+	case $1 in
+	--base) base=$2 ;;
+	*) sed --quiet 's/^## \{0,1\}//p' "$0" >&2 && exit 2 ;;
+	esac
+	shift 2
+done
+# shellcheck source=/dev/null
+[ -z "${base-}" ] || . "$base"
+# shellcheck source=steps/base
+. "$(dirname "$0")/../base"
+checkout=$(realpath "$(dirname "$0")/../..")
+profile=/nix/var/nix/profiles/qemu-system-generator
+guest=(ssh -F "$SSH_DIR/config" bootstrap-nested)
+
+set -o xtrace
+git -C "$checkout" archive --prefix=qemu-system-generator/ HEAD |
+	"${guest[@]}" 'rm --recursive --force qemu-system-generator && tar --extract'
+"${guest[@]}" "echo 'experimental-features = nix-command flakes' | sudo tee --append /etc/nix/nix.conf"
+out=$("${guest[@]}" 'cd qemu-system-generator && nix build --print-out-paths --no-link')
+"${guest[@]}" sudo '"$(command -v nix)"' build --profile "$profile" "$out"
+"${guest[@]}" sudo mkdir --parents /etc/systemd/system-generators /etc/systemd/user-generators
+"${guest[@]}" sudo ln --symbolic --force \
+	"$profile/lib/systemd/system-generators/qemu-system-system-generator" \
+	/etc/systemd/system-generators/
+"${guest[@]}" sudo ln --symbolic --force \
+	"$profile/lib/systemd/user-generators/qemu-system-user-generator" \
+	/etc/systemd/user-generators/
+"${guest[@]}" sudo systemctl daemon-reload

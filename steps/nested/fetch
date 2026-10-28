@@ -1,0 +1,29 @@
+#!/usr/bin/env bash
+# SPDX-License-Identifier: copyleft-next-0.3.1
+## Usage: steps/nested/fetch
+##
+## Download Debian 14's generic cloud image, whose kernel has KVM and
+## vhost-vsock for a machine inside it, into bootstrap-nested's state
+## directory, ~/.local/state/qemu-system/bootstrap-nested, unless the
+## image already there passes its checksum:
+##
+##   nix develop --ignore-env --keep-env-var HOME \
+##       --command steps/nested/fetch
+set -o errexit -o nounset -o pipefail
+
+if [ $# -gt 0 ]; then
+	sed --quiet 's/^## \{0,1\}//p' "$0" >&2 && exit 2
+fi
+
+url=https://cloud.debian.org/images/cloud/forky/daily/latest
+image=debian-14-generic-amd64-daily.qcow2
+state=$HOME/.local/state/qemu-system/bootstrap-nested
+set -o xtrace
+mkdir --parents "$state"
+cd "$state"
+curl --fail --silent --location "$url/SHA512SUMS" >SHA512SUMS
+if ! [ -e "$image" ] || ! sha512sum --check --ignore-missing SHA512SUMS; then
+	curl --fail --location --remote-name "$url/$image"
+	sha512sum --check --ignore-missing SHA512SUMS
+fi
+rm -- SHA512SUMS

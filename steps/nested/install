@@ -1,0 +1,34 @@
+#!/usr/bin/env bash
+# SPDX-License-Identifier: copyleft-next-0.3.1
+## Usage: steps/nested/install [--base FILE]
+##
+## Write bootstrap-nested's cloud-init user-data, which gives root the
+## public key of SSH_KEY and installs Nix, machined and a static busybox,
+## and its meta-data in WORKTREES_DIR/nested; and its .qemu file in
+## ~/.config/qemu/systemd:
+##
+##   nix develop --ignore-env --keep-env-var HOME \
+##       --command steps/nested/install
+set -o errexit -o nounset -o pipefail
+
+while [ $# -gt 0 ]; do
+	case $1 in
+	--base) base=$2 ;;
+	*) sed --quiet 's/^## \{0,1\}//p' "$0" >&2 && exit 2 ;;
+	esac
+	shift 2
+done
+# shellcheck source=/dev/null
+[ -z "${base-}" ] || . "$base"
+# shellcheck source=steps/base
+. "$(dirname "$0")/../base"
+units=$HOME/.config/qemu/systemd
+files=$(realpath "$(dirname "$0")/files")
+
+set -o xtrace
+mkdir --parents "$WORKTREES_DIR/nested" "$units"
+cd "$WORKTREES_DIR/nested"
+key=$(cat "$SSH_KEY.pub") envsubst "\$key" <"$files/user-data" >user-data
+cp "$files/meta-data" meta-data
+rm --recursive --force -- "$units/bootstrap-nested.qemu.d"
+cp "$files/machine.qemu" "$units/bootstrap-nested.qemu"

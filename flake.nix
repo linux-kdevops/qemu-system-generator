@@ -158,6 +158,7 @@
               pkgs.nix
               pkgs.openssh
               pkgs.procps
+              pkgs.qemu-utils
               pkgs.socat
               pkgs.util-linux
             ];

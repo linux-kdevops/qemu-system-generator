@@ -1,0 +1,42 @@
+#!/usr/bin/env bash
+# SPDX-License-Identifier: copyleft-next-0.3.1
+## Usage: steps/nested/install_inner [--base FILE]
+##
+## In the running bootstrap-nested, write /etc/qemu/systemd/inner.qemu,
+## which machines.target wants, and, in its state directory,
+## /var/lib/qemu-system/inner, the guest's own kernel and an initramfs of
+## a static busybox and an init that prints a line on the console and
+## powers off two minutes later; then have the guest's system manager
+## regenerate its units, and show the inner machine's:
+##
+##   nix develop --ignore-env --keep-env-var HOME \
+##       --command steps/nested/install_inner
+set -o errexit -o nounset -o pipefail
+
+while [ $# -gt 0 ]; do
+	case $1 in
+	--base) base=$2 ;;
+	*) sed --quiet 's/^## \{0,1\}//p' "$0" >&2 && exit 2 ;;
+	esac
+	shift 2
+done
+# shellcheck source=/dev/null
+[ -z "${base-}" ] || . "$base"
+# shellcheck source=steps/base
+. "$(dirname "$0")/../base"
+files=$(realpath "$(dirname "$0")/files")
+guest=(ssh -F "$SSH_DIR/config" bootstrap-nested)
+state=/var/lib/qemu-system/inner
+root=/var/tmp/inner
+
+set -o xtrace
+"${guest[@]}" rm --recursive --force "$root"
+"${guest[@]}" mkdir --parents /etc/qemu/systemd "$state" "$root/bin" "$root/dev"
+"${guest[@]}" "cat >/etc/qemu/systemd/inner.qemu" <"$files/inner.qemu"
+"${guest[@]}" "cat >$root/init && chmod +x $root/init" <"$files/init"
+"${guest[@]}" cp /bin/busybox "$root/bin/busybox"
+"${guest[@]}" mknod "$root/dev/console" c 5 1
+"${guest[@]}" "cd $root && find . | cpio --create --format=newc --quiet | gzip >$state/initrd"
+"${guest[@]}" 'cp "/boot/vmlinuz-$(uname --kernel-release)"' "$state/vmlinuz"
+"${guest[@]}" systemctl daemon-reload
+"${guest[@]}" systemctl cat qemu-system@inner.service

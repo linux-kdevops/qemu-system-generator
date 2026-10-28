@@ -1,0 +1,5 @@
+#!/bin/busybox sh
+# SPDX-License-Identifier: copyleft-next-0.3.1
+echo "bootstrap-nested: inner machine up"
+/bin/busybox sleep 120
+/bin/busybox poweroff -f

@@ -1,0 +1,86 @@
+# SPDX-License-Identifier: copyleft-next-0.3.1
+description: >-
+  Boot bootstrap-nested, a Debian cloud guest with nested KVM, install the
+  generator in it for the system manager as the installation page's
+  system-wide section does, write an inner machine to /etc/qemu/systemd/,
+  the guest's own kernel and a busybox initramfs that prints a line on its
+  console and powers off, and reboot the guest, whose system manager
+  generates the machine's unit at boot and starts it through
+  machines.target. Check that the unit comes from that file, that the
+  system's machined registers the machine, and that it ends without a
+  failure.
+working_dir: ..
+type: chain
+env:
+  - XDG_RUNTIME_DIR: ${XDG_RUNTIME_DIR}
+
+handler_on:
+  exit:
+    run: steps/machine/stop --name bootstrap-nested
+
+steps:
+  - id: host_check
+    run: steps/host/check
+
+  - id: ssh_generate_key
+    run: steps/ssh/generate_key
+
+  - id: host_install
+    run: steps/host/install
+
+  - id: generator_install
+    run: steps/generator/install
+
+  - id: nested_fetch
+    run: steps/nested/fetch
+
+  - id: nested_install
+    run: steps/nested/install
+
+  - id: nested_build
+    run: steps/nested/build
+
+  - id: generator_run
+    run: steps/generator/run
+
+  - id: machine_start
+    run: steps/machine/start --name bootstrap-nested
+
+  # cloud-init installs Nix, machined and busybox before boot completes.
+  - id: machine_wait
+    run: steps/machine/wait --name bootstrap-nested
+    retry_policy:
+      limit: 120
+      interval_sec: 5
+
+  - id: nested_install_generator
+    run: steps/nested/install_generator
+
+  - id: nested_install_inner
+    run: steps/nested/install_inner
+
+  # The system generator runs at boot, and machines.target starts the
+  # inner machine.
+  - id: machine_start_reboot
+    run: steps/machine/start --name bootstrap-nested
+
+  - id: machine_wait_reboot
+    run: steps/machine/wait --name bootstrap-nested
+    retry_policy:
+      limit: 60
+      interval_sec: 5
+
+  - id: nested_check
+    run: steps/nested/check
+    retry_policy:
+      limit: 24
+      interval_sec: 5
+
+  - id: nested_wait_poweroff
+    run: steps/nested/wait_poweroff
+    retry_policy:
+      limit: 36
+      interval_sec: 5
+
+  - id: machine_remove
+    run: steps/machine/remove --name bootstrap-nested
