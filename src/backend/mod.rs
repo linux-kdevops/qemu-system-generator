@@ -4,4 +4,5 @@
 //! named after a backend's binary is that binary's command line; QEMU is
 //! the first backend.
 
+mod json;
 pub mod qemu;

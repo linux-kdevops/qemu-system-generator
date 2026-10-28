@@ -170,7 +170,9 @@ lines are read, but still emitted exactly as written:
 	outside the file.
 
 A *device=* line names its driver in its first field or, as QEMU also
-reads it, in a *driver=* field.
+reads it, in a *driver=* field. A value that starts with *{* is the JSON
+form of the option, and its _driver_ and _guest-cid_ members are read
+the same way.
 
 The generator appends its own lines after the file's: the virtiofs wiring
 described below and *-qmp* on the control socket. The ids it gives them,

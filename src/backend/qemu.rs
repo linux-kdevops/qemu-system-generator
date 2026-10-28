@@ -11,6 +11,7 @@ use std::error::Error;
 use std::fmt;
 use std::path::{Path, PathBuf};
 
+use super::json;
 use crate::plan::{Arg, Helper, InvalidTag, Paths, Plan, SshPoweroff, Tag};
 use crate::search::UnitName;
 use crate::unitfile::{Entry, Section, UnitFile};
@@ -176,6 +177,31 @@ fn implied<'a>(value: &'a str, key: &str) -> Option<&'a str> {
     }
 }
 
+/// What the decoder reads from a `-device` value.
+struct Device<'a> {
+    driver: String,
+    guest_cid: Option<&'a str>,
+}
+
+/// A `-device` value in either form QEMU takes: a JSON object when it
+/// starts with `{`, comma-separated fields otherwise
+/// (`QEMU_OPTION_device` in `system/vl.c`).
+fn device(value: &str) -> Option<Device<'_>> {
+    if value.starts_with('{') {
+        let members = json::members(value)?;
+        let member = |key: &str| members.iter().find(|(k, _)| k == key).map(|&(_, v)| v);
+        Some(Device {
+            driver: json::string(member("driver")?)?,
+            guest_cid: member("guest-cid"),
+        })
+    } else {
+        Some(Device {
+            driver: implied(value, "driver")?.to_owned(),
+            guest_cid: property(value, "guest-cid"),
+        })
+    }
+}
+
 /// The `-object memory-backend-memfd,size=` matching `-m`, whose size is
 /// its first field or its `size=` field (`qemu-options.hx`). QEMU reads
 /// a bare number as mebibytes for `-m` but as bytes for `size=`, so a
@@ -272,12 +298,12 @@ fn observe<'a>(entries: &[&'a Entry]) -> Result<Observed<'a>, DecodeError> {
             "m" => seen.memory = Some(&entry.value),
             "uuid" => seen.uuid = Some(&entry.value),
             "device" => {
-                let Some(driver) = implied(&entry.value, "driver") else {
+                let Some(device) = device(&entry.value) else {
                     continue;
                 };
-                seen.vfio |= VFIO_DRIVERS.contains(&driver);
-                if driver.starts_with("vhost-vsock")
-                    && let Some(cid) = property(&entry.value, "guest-cid")
+                seen.vfio |= VFIO_DRIVERS.contains(&device.driver.as_str());
+                if device.driver.starts_with("vhost-vsock")
+                    && let Some(cid) = device.guest_cid
                 {
                     seen.vsock_cid = Some(
                         cid.parse()
@@ -655,6 +681,34 @@ mod tests {
         .unwrap();
         assert!(plan.lock_memory);
         assert_eq!(plan.vsock_cid, Some(5));
+    }
+
+    #[test]
+    fn json_devices() {
+        let plan = decode_text(concat!(
+            "[QEMU]\n",
+            r#"device={"driver": "vfio-pci", "host": "0000:01:00.0"}"#,
+            "\n",
+            r"device={'driver': 'vhost-vsock-pci', 'guest-cid': 7}",
+            "\n",
+        ))
+        .unwrap();
+        assert!(plan.lock_memory);
+        assert_eq!(plan.vsock_cid, Some(7));
+        let plan = decode_text(concat!(
+            "[QEMU]\n",
+            r#"device={"driver":"vfio-user-pci","socket":{"type":"unix","path":"/path/to/sock"}}"#,
+            "\n",
+            r#"device={"driver":"vfio-pci","#,
+            "\n",
+        ))
+        .unwrap();
+        assert!(!plan.lock_memory);
+        assert_eq!(
+            decode_text("[QEMU]\ndevice={\"driver\":\"vhost-vsock-pci\",\"guest-cid\":\"7\"}\n")
+                .err(),
+            Some(DecodeError::GuestCid("\"7\"".to_owned()))
+        );
     }
 
     #[test]
