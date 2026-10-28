@@ -242,6 +242,7 @@ fn observe<'a>(entries: &[&'a Entry]) -> Result<Observed<'a>, DecodeError> {
                 }
                 seen.own_memory_backend |= property(&entry.value, "memory-backend").is_some();
             }
+            "numa" => seen.own_memory_backend |= property(&entry.value, "memdev").is_some(),
             "m" => seen.memory = Some(&entry.value),
             "uuid" => seen.uuid = Some(&entry.value),
             "device" => {
@@ -544,6 +545,17 @@ mod tests {
             line.iter()
                 .any(|a| a.starts_with("-device vhost-user-fs-device,"))
         );
+    }
+
+    #[test]
+    fn numa_memdev_is_own_memory_backend() {
+        let plan = decode_text(
+            "[QEMU]\nobject=memory-backend-memfd,id=m0,size=1G,share=on\nnuma=node,memdev=m0\n[virtiofsd]\ntag=a\n",
+        )
+        .unwrap();
+        let line = command_line(&plan);
+        assert!(line.iter().all(|a| !a.starts_with("-machine")));
+        assert_eq!(line.iter().filter(|a| a.starts_with("-object")).count(), 1);
     }
 
     #[test]

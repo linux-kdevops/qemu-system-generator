@@ -59,8 +59,8 @@ This is one more machine-dependent branch next to the microvm one. The
 
 The generator's ports must not collide with the ports a file declares,
 and the backend does not interpret `[QEMU]` lines beyond the few it
-reads (`m=`, `machine=` or `M=`, `uuid=`, `device=` for what it
-needs). Three ways out, none chosen:
+reads (`m=`, `machine=` or `M=`, `numa=`, `uuid=`, `device=` for what
+it needs). Three ways out, none chosen:
 
 1. Reserve a chassis for the generator (a high number, slots 1 to N for
    the shares) and document it in `qemu-systemd.unit(5)`. Simple, but a

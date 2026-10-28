@@ -28,7 +28,7 @@ The backend section is a decoder. `[QEMU]` lines are QEMU options, key
 generator never translates, validates or reorders them, and holds no
 list of QEMU options; QEMU is the validator and `man qemu-system` the
 documentation. `[virtiofsd]` follows the same rule for virtiofsd. A
-line the generator reads (`m=`, `machine=` or `M=`, `uuid=`,
+line the generator reads (`m=`, `machine=` or `M=`, `numa=`, `uuid=`,
 `device=`) is still emitted as written.
 
 Zero tool at run time. The generator runs at `daemon-reload` and exits.

@@ -144,6 +144,12 @@ lines are read, but still emitted exactly as written:
 	copied, and a bare number, which *-m* reads as mebibytes, is given an
 	*M*.
 
+*numa=*
+	A _memdev=_ field means the file supplies the memory of each node,
+	which QEMU refuses to combine with *-machine memory-backend*, so the
+	generator adds no memory backend for virtiofs; each node's backend
+	needs _share=on_.
+
 *uuid=*
 	Sent as the _id_ of the machined registration, so that
 	*machinectl status* shows the UUID the guest sees.
