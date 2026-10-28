@@ -5,7 +5,8 @@
 `steps/` holds the commands that do what each guide of `docs/bootstrap/`
 teaches, `dags/` wires them into runs for [Dagu], one DAG per guide, and
 `.github/` starts those DAGs on GitHub-hosted runners. `CONTEXT.md` has
-the terms.
+the terms. `steps/generator/test` and `dags/test.yaml` run the
+`cargo test` of the README's checks, and deploy no machine.
 
 ## Steps
 

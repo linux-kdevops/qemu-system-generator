@@ -20,8 +20,9 @@ _Avoid_: task, action, script
 
 **DAG**:
 A file under `dags/` that wires steps into a run for Dagu, one per guide
-and named after it. Control flow lives here, in Dagu's own terms:
-retries, preconditions, loops, handlers.
+and named after it, and `test`, which runs the generator's own tests.
+Control flow lives here, in Dagu's own terms: retries, preconditions,
+loops, handlers.
 _Avoid_: flow, pipeline, workflow
 
 **Workflow**:
