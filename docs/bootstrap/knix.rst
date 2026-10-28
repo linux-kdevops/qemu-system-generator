@@ -117,8 +117,8 @@ key from ``~/bootstrap/system/ssh/id_ed25519.pub`` into ``default.nix``:
       # SSH keys for the root and unprivileged accounts.
    -  # users.users.root.openssh.authorizedKeys.keys = [ "ssh-ed25519 ..." ];
    -  # users.users.${config.knix.user.name}.openssh.authorizedKeys.keys = [ "ssh-ed25519 ..." ];
-   +  users.users.root.openssh.authorizedKeys.keys = [ "ssh-ed25519 AAAA... bootstrap" ];
-   +  users.users.${config.knix.user.name}.openssh.authorizedKeys.keys = [ "ssh-ed25519 AAAA... bootstrap" ];
+   +  users.users.root.openssh.authorizedKeys.keys = [ "ssh-ed25519 AAAA... bootstrap" ]; # from ~/bootstrap/system/ssh/id_ed25519.pub
+   +  users.users.${config.knix.user.name}.openssh.authorizedKeys.keys = [ "ssh-ed25519 AAAA... bootstrap" ]; # from ~/bootstrap/system/ssh/id_ed25519.pub
 
 .. code-block:: console
    :class: cmd-host

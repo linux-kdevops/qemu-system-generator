@@ -92,7 +92,7 @@ public key from ``~/bootstrap/system/ssh/id_ed25519.pub`` pasted in:
    #cloud-config
    disable_root: false
    ssh_authorized_keys:
-     - ssh-ed25519 AAAA... bootstrap
+     - ssh-ed25519 AAAA... bootstrap # from ~/bootstrap/system/ssh/id_ed25519.pub
 
 ``disable_root: false`` gives root the key, and cloud-init's `module
 reference`_ documents each key. Each machine's meta-data names it, and
@@ -794,7 +794,7 @@ in place of ``/home/user``:
    :caption: ~/bootstrap/cloud/user-data
 
     ssh_authorized_keys:
-      - ssh-ed25519 AAAA... bootstrap
+      - ssh-ed25519 AAAA... bootstrap # from ~/bootstrap/system/ssh/id_ed25519.pub
    +write_files:
    +  - path: /etc/fstab
    +    append: true
