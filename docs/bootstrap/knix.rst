@@ -69,7 +69,7 @@ Build the release inside the ``build-qemu`` shell and install it in
 .. code-block:: console
    :class: cmd-host
 
-   $ git clone --depth 1 --branch v11.1.2 \
+   $ git clone --depth 1 --branch v11.1.0 \
        https://gitlab.com/qemu-project/qemu.git ~/bootstrap/knix/qemu
    $ cd ~/bootstrap/knix/qemu
    $ nix develop github:linux-kdevops/knix#build-qemu
@@ -82,7 +82,7 @@ Build the release inside the ``build-qemu`` shell and install it in
    :class: cmd-host
 
    $ ~/bootstrap/knix/qemu/destdir/bin/qemu-system-x86_64 --version
-   QEMU emulator version 11.1.2 (v11.1.2)
+   QEMU emulator version 11.1.0 (v11.1.0)
 
 The guest
 ---------

@@ -56,10 +56,10 @@
 
         qemu = knix.lib.buildQemu pkgs {
           src = pkgs.fetchurl {
-            url = "https://download.qemu.org/qemu-11.1.2.tar.xz";
-            sha256 = "05l0hfx3kdkl719xqdps2nqcb5h2zn79nmri68qvw65vwj0mc6vk";
+            url = "https://download.qemu.org/qemu-11.1.0.tar.xz";
+            hash = "sha256-buHRph9oISR2snEIwm2l9EncCbYm1C+CeboNwuCPqFg=";
           };
-          version = "11.1.2";
+          version = "11.1.0";
           configureFlags = [
             "--target-list=x86_64-softmmu"
             "--enable-kvm"
