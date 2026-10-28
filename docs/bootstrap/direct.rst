@@ -403,7 +403,7 @@ the way a hand-written unit does:
     gid-map=:0:%G:1:
    +
    +[Unit]
-   +Description=NixOS bootstrap guest
+   +Description=NixOS Bootstrap Guest
    +
    +[Service]
    +MemoryMax=3G
@@ -416,7 +416,7 @@ the way a hand-written unit does:
    :class: cmd-host
 
    $ systemctl --user status qemu-system@bootstrap-direct.service
-   ● qemu-system@bootstrap-direct.service - NixOS bootstrap guest
+   ● qemu-system@bootstrap-direct.service - NixOS Bootstrap Guest
         Loaded: loaded (/home/user/.config/qemu/systemd/bootstrap-direct.qemu; enabled-runtime; preset: enabled)
         Active: active (running) since Thu 2026-10-22 16:46:55 CEST; 13s ago
         Memory: 340.4M (max: 3G, available: 2.6G, peak: 341.5M)

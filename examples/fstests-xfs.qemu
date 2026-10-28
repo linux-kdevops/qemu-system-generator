@@ -5,7 +5,7 @@
 # machine shares. Each gets its own state and runtime directories.
 
 [Unit]
-Description=fstests on xfs
+Description=fstests on XFS
 
 [QEMU]
 append=console=ttyS0 root=/dev/vda rw fstests=xfs

@@ -7,7 +7,7 @@
 # limit, which pinning guest memory needs.
 
 [Unit]
-Description=GPU passthrough guest
+Description=GPU Passthrough Guest
 
 [QEMU]
 machine=q35

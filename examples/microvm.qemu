@@ -6,7 +6,7 @@
 # daemon.
 
 [Unit]
-Description=microvm guest
+Description=microvm Guest
 
 [QEMU]
 machine=microvm,rtc=on,acpi=on

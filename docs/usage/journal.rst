@@ -91,7 +91,7 @@ units:
    :caption: ~/.config/systemd/user/journal-remote.socket
 
    [Unit]
-   Description=Journal entries from the guests
+   Description=Journal Entries from the Guests
 
    [Socket]
    ListenStream=vsock:2:19532
@@ -103,7 +103,7 @@ units:
    :caption: ~/.config/systemd/user/journal-remote.service
 
    [Unit]
-   Description=Journal entries from the guests
+   Description=Journal Entries from the Guests
 
    [Service]
    ExecStart=/usr/lib/systemd/systemd-journal-remote --output=%h/bootstrap/journal/guests.journal --split-mode=none

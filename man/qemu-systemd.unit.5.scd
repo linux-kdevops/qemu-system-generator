@@ -309,7 +309,7 @@ or *systemd.service*(5).
 
 ```
 [Unit]
-Description=Fedora cloud image
+Description=Fedora Cloud Image
 
 [QEMU]
 machine=q35
@@ -336,7 +336,7 @@ shares; each file holds what differs:
 
 ```
 [Unit]
-Description=fstests on xfs
+Description=fstests on XFS
 
 [QEMU]
 append=console=ttyS0 root=/dev/vda rw fstests=xfs
