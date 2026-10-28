@@ -313,13 +313,15 @@ Description=Fedora Cloud Image
 
 [QEMU]
 machine=q35
+nodefaults=
 accel=kvm
 cpu=host
 m=2048
 smp=2
 drive=file=fedora.raw,if=virtio,format=raw
 drive=file=seed.iso,if=virtio,format=raw,readonly=on
-nic=user,model=virtio-net-pci-non-transitional,hostfwd=tcp:127.0.0.1:10022-:22
+netdev=user,id=net0,hostfwd=tcp:127.0.0.1:10022-:22
+device=virtio-net-pci-non-transitional,netdev=net0,romfile=
 device=virtio-rng-pci-non-transitional
 device=vhost-vsock-pci-non-transitional,guest-cid=42
 nographic=

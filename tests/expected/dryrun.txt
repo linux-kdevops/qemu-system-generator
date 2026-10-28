@@ -20,16 +20,18 @@ StateDirectory=qemu-system/%i
 WorkingDirectory=%S/qemu-system/%i
 ExecStart=@QEMU@ \
     -machine q35 \
+    -nodefaults \
     -accel kvm \
     -cpu host \
     -m 2048 \
     -smp 2 \
     -drive file=fedora.raw,if=virtio,format=raw \
     -drive file=seed.iso,if=virtio,format=raw,readonly=on \
-    -nic user,model=virtio-net-pci-non-transitional,hostfwd=tcp:127.0.0.1:10022-:22 \
+    -netdev user,id=net0,hostfwd=tcp:127.0.0.1:10022-:22 \
+    -device virtio-net-pci-non-transitional,netdev=net0,romfile= \
     -device virtio-rng-pci-non-transitional \
     -device vhost-vsock-pci-non-transitional,guest-cid=42 \
-    -device virtio-serial-pci \
+    -device virtio-serial-pci-non-transitional \
     -chardev socket,id=console0,path=%t/qemu-system/%i/console.sock,server=on,wait=off \
     -device virtconsole,chardev=console0 \
     -nographic \
@@ -122,6 +124,7 @@ WorkingDirectory=%S/qemu-system/%i
 ExecStart=@QEMU@ \
     -append "console=ttyS0 root=/dev/vda rw fstests=btrfs" \
     -machine q35 \
+    -nodefaults \
     -accel kvm \
     -cpu host \
     -m 8G \
@@ -132,7 +135,8 @@ ExecStart=@QEMU@ \
     -device nvme,serial=test,drive=test \
     -drive file=scratch.qcow2,if=none,format=qcow2,id=scratch \
     -device nvme,serial=scratch,drive=scratch \
-    -nic user,model=virtio-net-pci-non-transitional \
+    -netdev user,id=net0 \
+    -device virtio-net-pci-non-transitional,netdev=net0,romfile= \
     -device virtio-rng-pci-non-transitional \
     -nographic \
     -serial mon:stdio \
@@ -181,6 +185,7 @@ WorkingDirectory=%S/qemu-system/%i
 ExecStart=@QEMU@ \
     -append "console=ttyS0 root=/dev/vda rw fstests=xfs" \
     -machine q35 \
+    -nodefaults \
     -accel kvm \
     -cpu host \
     -m 8G \
@@ -191,7 +196,8 @@ ExecStart=@QEMU@ \
     -device nvme,serial=test,drive=test \
     -drive file=scratch.qcow2,if=none,format=qcow2,id=scratch \
     -device nvme,serial=scratch,drive=scratch \
-    -nic user,model=virtio-net-pci-non-transitional \
+    -netdev user,id=net0 \
+    -device virtio-net-pci-non-transitional,netdev=net0,romfile= \
     -device virtio-rng-pci-non-transitional \
     -nographic \
     -serial mon:stdio \
@@ -241,6 +247,7 @@ StateDirectory=qemu-system/%i
 WorkingDirectory=%S/qemu-system/%i
 ExecStart=@QEMU@ \
     -machine microvm,rtc=on,acpi=on \
+    -nodefaults \
     -accel kvm \
     -cpu host \
     -m 1024 \
@@ -341,6 +348,7 @@ StateDirectory=qemu-system/%i
 WorkingDirectory=%S/qemu-system/%i
 ExecStart=@QEMU@ \
     -machine q35 \
+    -nodefaults \
     -accel kvm \
     -cpu host,pmu=on \
     -m 4G \
@@ -356,10 +364,11 @@ ExecStart=@QEMU@ \
     -device nvme-ns,drive=nvme1-ns1,bus=nvme1,nsid=1 \
     -drive driver=null-co,if=none,size=1G,read-zeroes=on,id=nvme1-ns2 \
     -device nvme-ns,drive=nvme1-ns2,bus=nvme1,nsid=2,zoned=on,zoned.zone_size=64M \
-    -nic user,model=virtio-net-pci-non-transitional,hostfwd=tcp:127.0.0.1:10122-:22 \
+    -netdev user,id=net0,hostfwd=tcp:127.0.0.1:10122-:22 \
+    -device virtio-net-pci-non-transitional,netdev=net0,romfile= \
     -device virtio-rng-pci-non-transitional \
     -device vhost-vsock-pci-non-transitional,guest-cid=155 \
-    -device virtio-serial-pci \
+    -device virtio-serial-pci-non-transitional \
     -chardev socket,id=console0,path=%t/qemu-system/%i/console.sock,server=on,wait=off \
     -device virtconsole,chardev=console0 \
     -nographic \
@@ -521,6 +530,7 @@ StateDirectory=qemu-system/%i
 WorkingDirectory=%S/qemu-system/%i
 ExecStart=@QEMU@ \
     -machine q35 \
+    -nodefaults \
     -accel kvm,kernel-irqchip=split \
     -cpu host \
     -m 8G \
@@ -530,7 +540,8 @@ ExecStart=@QEMU@ \
     -drive if=pflash,format=raw,file=ovmf-vars.fd \
     -drive file=root.qcow2,if=virtio,format=qcow2 \
     -device vfio-pci,host=0000:01:00.0 \
-    -nic user,model=virtio-net-pci-non-transitional \
+    -netdev user,id=net0 \
+    -device virtio-net-pci-non-transitional,netdev=net0,romfile= \
     -device virtio-rng-pci-non-transitional \
     -nographic \
     -serial mon:stdio \

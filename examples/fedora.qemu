@@ -18,16 +18,18 @@ SshPrivateKey=%h/.ssh/id_ed25519
 # Each key is a QEMU option without its dash; the value is passed
 # verbatim as the option's argument. See: man qemu-system.
 machine=q35
+nodefaults=
 accel=kvm
 cpu=host
 m=2048
 smp=2
 drive=file=fedora.raw,if=virtio,format=raw
 drive=file=seed.iso,if=virtio,format=raw,readonly=on
-nic=user,model=virtio-net-pci-non-transitional,hostfwd=tcp:127.0.0.1:10022-:22
+netdev=user,id=net0,hostfwd=tcp:127.0.0.1:10022-:22
+device=virtio-net-pci-non-transitional,netdev=net0,romfile=
 device=virtio-rng-pci-non-transitional
 device=vhost-vsock-pci-non-transitional,guest-cid=42
-device=virtio-serial-pci
+device=virtio-serial-pci-non-transitional
 chardev=socket,id=console0,path=%t/qemu-system/%i/console.sock,server=on,wait=off
 device=virtconsole,chardev=console0
 nographic=

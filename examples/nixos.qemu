@@ -9,6 +9,7 @@ Description=NixOS over virtiofs
 
 [QEMU]
 machine=q35
+nodefaults=
 accel=kvm
 cpu=host,pmu=on
 m=4G
@@ -24,10 +25,11 @@ drive=file=nvme1n1.qcow2,if=none,format=qcow2,id=nvme1-ns1
 device=nvme-ns,drive=nvme1-ns1,bus=nvme1,nsid=1
 drive=driver=null-co,if=none,size=1G,read-zeroes=on,id=nvme1-ns2
 device=nvme-ns,drive=nvme1-ns2,bus=nvme1,nsid=2,zoned=on,zoned.zone_size=64M
-nic=user,model=virtio-net-pci-non-transitional,hostfwd=tcp:127.0.0.1:10122-:22
+netdev=user,id=net0,hostfwd=tcp:127.0.0.1:10122-:22
+device=virtio-net-pci-non-transitional,netdev=net0,romfile=
 device=virtio-rng-pci-non-transitional
 device=vhost-vsock-pci-non-transitional,guest-cid=155
-device=virtio-serial-pci
+device=virtio-serial-pci-non-transitional
 chardev=socket,id=console0,path=%t/qemu-system/%i/console.sock,server=on,wait=off
 device=virtconsole,chardev=console0
 nographic=

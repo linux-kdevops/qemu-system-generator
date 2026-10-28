@@ -11,6 +11,7 @@ Description=GPU Passthrough Guest
 
 [QEMU]
 machine=q35
+nodefaults=
 accel=kvm,kernel-irqchip=split
 cpu=host
 m=8G
@@ -20,7 +21,8 @@ drive=if=pflash,format=raw,readonly=on,file=/usr/share/OVMF/OVMF_CODE_4M.fd
 drive=if=pflash,format=raw,file=ovmf-vars.fd
 drive=file=root.qcow2,if=virtio,format=qcow2
 device=vfio-pci,host=0000:01:00.0
-nic=user,model=virtio-net-pci-non-transitional
+netdev=user,id=net0
+device=virtio-net-pci-non-transitional,netdev=net0,romfile=
 device=virtio-rng-pci-non-transitional
 nographic=
 serial=mon:stdio
