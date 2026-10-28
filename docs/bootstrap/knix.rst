@@ -31,8 +31,9 @@ The kernel
 ----------
 
 Configure the release as a `KVM`_ guest with virtiofs built in, build it
-and install its modules next to it, inside the ``build-kernel`` shell
-(:cmd:`nix develop`):
+in ``build/`` and install its modules in ``destdir/``, both in the tree,
+inside the ``build-kernel`` shell (:cmd:`nix develop`), and leave the
+shell:
 
 .. code-block:: console
    :class: cmd-host
@@ -40,43 +41,47 @@ and install its modules next to it, inside the ``build-kernel`` shell
    $ git clone --depth 1 --branch v7.3 \
        https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git ~/bootstrap/knix/linux
    $ cd ~/bootstrap/knix/linux
-   $ K="nix develop github:linux-kdevops/knix#build-kernel --command"
-   $ B=$HOME/bootstrap/knix/linux-build
-   $ $K make O=$B defconfig kvm_guest.config
-   $ $K scripts/config --file $B/.config \
+   $ nix develop github:linux-kdevops/knix#build-kernel
+   $ make O=build defconfig kvm_guest.config
+   $ scripts/config --file build/.config \
        --enable FUSE_FS --enable VIRTIO_FS \
        --enable VSOCKETS --enable VIRTIO_VSOCKETS
-   $ $K make O=$B olddefconfig
-   $ $K make O=$B --jobs=$(nproc)
-   $ $K make O=$B INSTALL_MOD_PATH=$HOME/bootstrap/knix/linux-install modules_install
+   $ make O=build olddefconfig
+   $ make O=build --jobs=$(nproc)
+   $ make O=build INSTALL_MOD_PATH=../destdir modules_install
+   $ exit
 
 ``kvm_guest.config`` turns on the virtio drivers; the
 `kernel build documentation`_ covers ``O=`` and the configuration targets.
-The kernel is ``~/bootstrap/knix/linux-build/arch/x86/boot/bzImage``, and
-the modules are under ``~/bootstrap/knix/linux-install/lib/modules/``.
+kbuild writes a ``.gitignore`` into ``build/``, so git ignores it. Under
+``O=``, :cmd:`make` runs from ``build/``, so ``INSTALL_MOD_PATH`` is
+relative to it. The kernel is
+``~/bootstrap/knix/linux/build/arch/x86/boot/bzImage``, and the modules
+are under ``~/bootstrap/knix/linux/destdir/lib/modules/``.
 
 QEMU
 ----
 
-Build the release inside the ``build-qemu`` shell and install it in the
-workspace (`QEMU build system`_):
+Build the release inside the ``build-qemu`` shell and install it in
+``destdir/`` in the tree (`QEMU build system`_). Run from the tree,
+``configure`` builds in ``build/``, which QEMU's ``.gitignore`` lists:
 
 .. code-block:: console
    :class: cmd-host
 
    $ git clone --depth 1 --branch v11.1.2 \
        https://gitlab.com/qemu-project/qemu.git ~/bootstrap/knix/qemu
-   $ mkdir --parents ~/bootstrap/knix/qemu-build
-   $ cd ~/bootstrap/knix/qemu-build
-   $ Q="nix develop github:linux-kdevops/knix#build-qemu --command"
-   $ $Q ~/bootstrap/knix/qemu/configure --prefix=$HOME/bootstrap/knix/qemu-install \
+   $ cd ~/bootstrap/knix/qemu
+   $ nix develop github:linux-kdevops/knix#build-qemu
+   $ ./configure --prefix=$HOME/bootstrap/knix/qemu/destdir \
        --target-list=x86_64-softmmu --enable-kvm --enable-slirp --disable-docs
-   $ $Q make --jobs=$(nproc) install
+   $ make --jobs=$(nproc) install
+   $ exit
 
 .. code-block:: console
    :class: cmd-host
 
-   $ ~/bootstrap/knix/qemu-install/bin/qemu-system-x86_64 --version
+   $ ~/bootstrap/knix/qemu/destdir/bin/qemu-system-x86_64 --version
    QEMU emulator version 11.1.2 (v11.1.2)
 
 The guest
@@ -165,7 +170,7 @@ home:
    smp=2
    nographic=
    serial=mon:stdio
-   kernel=%h/bootstrap/knix/linux-build/arch/x86/boot/bzImage
+   kernel=%h/bootstrap/knix/linux/build/arch/x86/boot/bzImage
    netdev=user,id=net0,hostfwd=tcp:127.0.0.1:10049-:22
    device=virtio-net-pci-non-transitional,netdev=net0,romfile=
    device=vhost-vsock-pci-non-transitional,guest-cid=49
@@ -178,7 +183,7 @@ home:
    gid-map=:0:%G:1:
 
    [virtiofsd]
-   shared-dir=%h/bootstrap/knix/linux-install/lib/modules
+   shared-dir=%h/bootstrap/knix/linux/destdir/lib/modules
    tag=modules
    sandbox=namespace
    uid-map=:0:%U:1:
@@ -265,7 +270,7 @@ the first word of :cmd:`ExecStart=`:
    :caption: ~/.config/qemu/systemd/bootstrap-knix.qemu
 
     [VM]
-   +QemuBinary=%h/bootstrap/knix/qemu-install/bin/qemu-system-x86_64
+   +QemuBinary=%h/bootstrap/knix/qemu/destdir/bin/qemu-system-x86_64
     SshPrivateKey=%h/bootstrap/system/ssh/id_ed25519
 
 :ref:`Regenerate <host-regenerate>` and :ref:`restart <host-start>`, then
@@ -277,7 +282,7 @@ check which binary runs:
    $ systemctl --user start qemu-system-generator.service
    $ systemctl --user restart qemu-system@bootstrap-knix.service
    $ readlink /proc/$(systemctl --user show --property=MainPID --value qemu-system@bootstrap-knix.service)/exe
-   /home/user/bootstrap/knix/qemu-install/bin/qemu-system-x86_64
+   /home/user/bootstrap/knix/qemu/destdir/bin/qemu-system-x86_64
 
 The guest boots in about 9 seconds and stops in 2.
 
@@ -335,7 +340,7 @@ context id of its own and no forwarded port, since ``bootstrap-knix`` holds
    :caption: ~/.config/qemu/systemd/bootstrap-knix-peer.qemu
 
    [VM]
-   QemuBinary=%h/bootstrap/knix/qemu-install/bin/qemu-system-x86_64
+   QemuBinary=%h/bootstrap/knix/qemu/destdir/bin/qemu-system-x86_64
    SshPrivateKey=%h/bootstrap/system/ssh/id_ed25519
 
    [QEMU]
@@ -347,7 +352,7 @@ context id of its own and no forwarded port, since ``bootstrap-knix`` holds
    smp=2
    nographic=
    serial=mon:stdio
-   kernel=%h/bootstrap/knix/linux-build/arch/x86/boot/bzImage
+   kernel=%h/bootstrap/knix/linux/build/arch/x86/boot/bzImage
    netdev=user,id=net0
    device=virtio-net-pci-non-transitional,netdev=net0,romfile=
    netdev=dgram,id=lan,remote.type=inet,remote.host=239.255.0.1,remote.port=5557,local.type=inet,local.host=127.0.0.1,local.port=0
@@ -362,7 +367,7 @@ context id of its own and no forwarded port, since ``bootstrap-knix`` holds
    gid-map=:0:%G:1:
 
    [virtiofsd]
-   shared-dir=%h/bootstrap/knix/linux-install/lib/modules
+   shared-dir=%h/bootstrap/knix/linux/destdir/lib/modules
    tag=modules
    sandbox=namespace
    uid-map=:0:%U:1:
@@ -467,45 +472,43 @@ What this machine needs beyond them goes in a fragment of your own:
    CONFIG_KERNEL_ZSTD=y
 
 Merge it with the fragments for a systemd guest with virtiofs, virtio-net
-and vsock built in, into a build directory of its own so that
-``bootstrap-knix-peer`` keeps the first kernel (`kfragments`_ has the merge
-rules):
+and vsock built in (`kfragments`_ has the merge rules). The kernel
+replaces the first one in ``build/`` and ``destdir/``, so remove both
+first, and both machines boot it from then on:
 
 .. code-block:: console
    :class: cmd-host
 
    $ cd ~/bootstrap/knix/linux
-   $ K="nix develop github:linux-kdevops/knix#build-kernel --command"
-   $ B=$HOME/bootstrap/knix/linux-fast-build
-   $ F=$HOME/bootstrap/knix/kfragments/kernel/configs
-   $ $K make O=$B allnoconfig
-   $ $K scripts/kconfig/merge_config.sh -y -n -O $B $B/.config \
-       $F/core/64bit.config $F/core/core.config $F/core/modules.config \
-       $F/core/systemd.config $F/core/initrd.config $F/arch/x86_64.config \
-       $F/core/acpi-poweroff.config $F/virt/virtio-fs.config \
-       $F/virt/virtio-net.config $F/virt/vsock.config $F/core/localversion.config \
-       $F/builtin/core/systemd.config $F/builtin/virt/virtio-fs.config \
-       $F/builtin/virt/virtio-net.config $F/builtin/virt/vsock.config \
-       $HOME/bootstrap/knix/fast.config
-   $ $K make O=$B olddefconfig
-   $ $K make O=$B --jobs=$(nproc)
-   $ $K make O=$B INSTALL_MOD_PATH=$HOME/bootstrap/knix/linux-fast-install modules_install
+   $ rm --recursive build destdir
+   $ nix develop github:linux-kdevops/knix#build-kernel
+   $ make O=build allnoconfig
+   $ scripts/kconfig/merge_config.sh -y -n -O build build/.config \
+       ../kfragments/kernel/configs/core/64bit.config \
+       ../kfragments/kernel/configs/core/core.config \
+       ../kfragments/kernel/configs/core/modules.config \
+       ../kfragments/kernel/configs/core/systemd.config \
+       ../kfragments/kernel/configs/core/initrd.config \
+       ../kfragments/kernel/configs/arch/x86_64.config \
+       ../kfragments/kernel/configs/core/acpi-poweroff.config \
+       ../kfragments/kernel/configs/virt/virtio-fs.config \
+       ../kfragments/kernel/configs/virt/virtio-net.config \
+       ../kfragments/kernel/configs/virt/vsock.config \
+       ../kfragments/kernel/configs/core/localversion.config \
+       ../kfragments/kernel/configs/builtin/core/systemd.config \
+       ../kfragments/kernel/configs/builtin/virt/virtio-fs.config \
+       ../kfragments/kernel/configs/builtin/virt/virtio-net.config \
+       ../kfragments/kernel/configs/builtin/virt/vsock.config \
+       ../fast.config
+   $ make O=build olddefconfig
+   $ make O=build --jobs=$(nproc)
+   $ make O=build INSTALL_MOD_PATH=../destdir modules_install
+   $ exit
 
-It builds in about a minute and a half, into a 4.4 MB image. Point the
-machine at it and at its modules:
-
-.. code-block:: diff
-   :caption: ~/.config/qemu/systemd/bootstrap-knix.qemu
-
-   -kernel=%h/bootstrap/knix/linux-build/arch/x86/boot/bzImage
-   +kernel=%h/bootstrap/knix/linux-fast-build/arch/x86/boot/bzImage
-   ...
-    [virtiofsd]
-   -shared-dir=%h/bootstrap/knix/linux-install/lib/modules
-   +shared-dir=%h/bootstrap/knix/linux-fast-install/lib/modules
-
-7.6 seconds. The kernel's share falls from 0.8 to 0.3 seconds, but
-userspace takes longer and eats most of that back.
+It builds in about a minute and a half, into a 4.4 MB image.
+:ref:`Restart <host-start>`: 7.6 seconds. The kernel's share falls from
+0.8 to 0.3 seconds, but userspace takes longer and eats most of that
+back.
 
 The console
 -----------
