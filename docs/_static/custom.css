@@ -156,3 +156,57 @@ table.foot {
     color: inherit;
     text-decoration: none;
 }
+
+/* The permalink "#" after a caption or heading is not part of its text: a
+   path selected from a caption would otherwise copy as "path#". */
+a.headerlink {
+    user-select: none;
+}
+
+/* The caption's copy button (caption-copy.js) sits at the caption's right
+   edge and shows on hover, as sphinx-copybutton's does on the code. It has
+   a class of its own: sphinx-copybutton's ClipboardJS claims every click on
+   a .copybtn and would copy nothing. */
+.code-block-caption {
+    position: relative;
+}
+
+button.caption-copybtn {
+    position: absolute;
+    top: 50%;
+    right: 0.3em;
+    transform: translateY(-50%);
+    display: flex;
+    width: 1.7em;
+    height: 1.7em;
+    padding: 0;
+    border: none;
+    border-radius: 0.4em;
+    outline: none;
+    background-color: transparent;
+    color: var(--pst-color-text-muted);
+    opacity: 0;
+    transition: opacity 0.3s, background-color 0.3s;
+    user-select: none;
+    cursor: pointer;
+}
+
+button.caption-copybtn svg {
+    stroke: currentColor;
+    width: 1.5em;
+    height: 1.5em;
+    padding: 0.1em;
+}
+
+.code-block-caption:hover button.caption-copybtn,
+button.caption-copybtn.success {
+    opacity: 1;
+}
+
+button.caption-copybtn.success {
+    color: #22863a;
+}
+
+button.caption-copybtn:hover {
+    background-color: var(--pst-color-surface);
+}
