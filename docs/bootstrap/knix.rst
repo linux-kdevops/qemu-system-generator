@@ -159,7 +159,7 @@ home:
    :caption: ~/.config/qemu/systemd/bootstrap-knix.qemu
 
    [VM]
-   SshPrivateKey=%h/bootstrap/system/ssh/id_ed25519
+   SSHPrivateKey=%h/bootstrap/system/ssh/id_ed25519
 
    [QEMU]
    machine=q35
@@ -202,7 +202,7 @@ port to the guest's SSH over QEMU's `user-mode network`_, and the
 ``device=`` after it is the card; ``romfile=`` with no value leaves out
 its iPXE boot ROM, which the firmware would otherwise load. The `vsock`_
 device gives the guest the context id :ref:`host-ssh` names.
-:key:`SshPrivateKey=` has a stop power the guest off over SSH first
+:key:`SSHPrivateKey=` has a stop power the guest off over SSH first
 (:ref:`SSH poweroff <host-poweroff>`), and each :key:`[virtiofsd]`
 section shares one directory without root (:ref:`host-virtiofsd`).
 
@@ -263,15 +263,15 @@ with links.
 2. Your QEMU
 ============
 
-:key:`QemuBinary=` replaces the QEMU the generator was built with. It becomes
+:key:`QEMUBinary=` replaces the QEMU the generator was built with. It becomes
 the first word of :cmd:`ExecStart=`:
 
 .. code-block:: diff
    :caption: ~/.config/qemu/systemd/bootstrap-knix.qemu
 
     [VM]
-   +QemuBinary=%h/bootstrap/knix/qemu/destdir/bin/qemu-system-x86_64
-    SshPrivateKey=%h/bootstrap/system/ssh/id_ed25519
+   +QEMUBinary=%h/bootstrap/knix/qemu/destdir/bin/qemu-system-x86_64
+    SSHPrivateKey=%h/bootstrap/system/ssh/id_ed25519
 
 :ref:`Regenerate <host-regenerate>` and :ref:`restart <host-start>`, then
 check which binary runs:
@@ -340,8 +340,8 @@ context id of its own and no forwarded port, since ``bootstrap-knix`` holds
    :caption: ~/.config/qemu/systemd/bootstrap-knix-peer.qemu
 
    [VM]
-   QemuBinary=%h/bootstrap/knix/qemu/destdir/bin/qemu-system-x86_64
-   SshPrivateKey=%h/bootstrap/system/ssh/id_ed25519
+   QEMUBinary=%h/bootstrap/knix/qemu/destdir/bin/qemu-system-x86_64
+   SSHPrivateKey=%h/bootstrap/system/ssh/id_ed25519
 
    [QEMU]
    machine=q35

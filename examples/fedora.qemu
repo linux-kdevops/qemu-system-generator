@@ -12,7 +12,7 @@ Description=Fedora Cloud Image
 [VM]
 # With a key, stopping the service asks the guest to power off over SSH
 # through the vsock device below, before the QMP power button.
-SshPrivateKey=%h/.ssh/id_ed25519
+SSHPrivateKey=%h/.ssh/id_ed25519
 
 [QEMU]
 # Each key is a QEMU option without its dash; the value is passed

@@ -290,14 +290,14 @@ names the machine by this context id:
 5. Poweroff over SSH
 ====================
 
-With :key:`SshPrivateKey=` in :key:`[VM]`, the stop powers the guest off
+With :key:`SSHPrivateKey=` in :key:`[VM]`, the stop powers the guest off
 over SSH first (:ref:`SSH poweroff <host-poweroff>`):
 
 .. code-block:: diff
    :caption: ~/.config/qemu/systemd/bootstrap-direct.qemu
 
    +[VM]
-   +SshPrivateKey=%h/bootstrap/system/ssh/id_ed25519
+   +SSHPrivateKey=%h/bootstrap/system/ssh/id_ed25519
    +
     [QEMU]
     machine=q35
@@ -581,7 +581,7 @@ mounts, a context id of its own and no forwarded port, since
    :caption: ~/.config/qemu/systemd/bootstrap-direct-peer.qemu
 
    [VM]
-   SshPrivateKey=%h/bootstrap/system/ssh/id_ed25519
+   SSHPrivateKey=%h/bootstrap/system/ssh/id_ed25519
 
    [QEMU]
    machine=q35

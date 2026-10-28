@@ -21,9 +21,9 @@ const VIRTIOFSD_SECTION: &str = "virtiofsd";
 /// The sections the backend reads.
 pub const SECTIONS: [&str; 3] = [VM_SECTION, SECTION, VIRTIOFSD_SECTION];
 
-const QEMU_BINARY_KEY: &str = "QemuBinary";
+const QEMU_BINARY_KEY: &str = "QEMUBinary";
 const VIRTIOFSD_BINARY_KEY: &str = "VirtiofsdBinary";
-const SSH_PRIVATE_KEY_KEY: &str = "SshPrivateKey";
+const SSH_PRIVATE_KEY_KEY: &str = "SSHPrivateKey";
 const VM_KEYS: [&str; 3] = [QEMU_BINARY_KEY, VIRTIOFSD_BINARY_KEY, SSH_PRIVATE_KEY_KEY];
 
 /// The machine's process, as its units and its registration name it.
@@ -545,7 +545,7 @@ mod tests {
 
     #[test]
     fn vm_section() {
-        let file: UnitFile = "[VM]\nQemuBinary=/opt/qemu\nVirtiofsdBinary=/opt/virtiofsd\nSshPrivateKey=%h/.ssh/key\nColour=blue\n[QEMU]\nm=1\ndevice=vhost-vsock-pci,guest-cid=3\n[virtiofsd]\ntag=t\n"
+        let file: UnitFile = "[VM]\nQEMUBinary=/opt/qemu\nVirtiofsdBinary=/opt/virtiofsd\nSSHPrivateKey=%h/.ssh/key\nColour=blue\n[QEMU]\nm=1\ndevice=vhost-vsock-pci,guest-cid=3\n[virtiofsd]\ntag=t\n"
             .parse()
             .unwrap();
         let name: UnitName = "vm".parse().unwrap();
@@ -598,7 +598,7 @@ mod tests {
             Some(DecodeError::GuestCid("0x2a".to_owned()))
         );
         assert_eq!(
-            decode_text("[VM]\nSshPrivateKey=/k\n[QEMU]\nm=1\n").err(),
+            decode_text("[VM]\nSSHPrivateKey=/k\n[QEMU]\nm=1\n").err(),
             Some(DecodeError::SshWithoutVsock)
         );
     }

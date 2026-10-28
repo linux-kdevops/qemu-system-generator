@@ -163,7 +163,7 @@ the part of the name up to a dash, ``cloud-.qemu.d/``, applies to every
    :caption: ~/.config/qemu/systemd/cloud-.qemu.d/10-cloud.conf
 
    [VM]
-   SshPrivateKey=%h/bootstrap/system/ssh/id_ed25519
+   SSHPrivateKey=%h/bootstrap/system/ssh/id_ed25519
 
    [QEMU]
    machine=q35
@@ -398,7 +398,7 @@ is an :cmd:`ssh` alias:
          cloud-ubuntu
          7.3.0-9-generic
 
-With :key:`SshPrivateKey=` from the drop-in, the stop powers the guest off
+With :key:`SSHPrivateKey=` from the drop-in, the stop powers the guest off
 over SSH first (:ref:`SSH poweroff <host-poweroff>`):
 
 .. tab-set::

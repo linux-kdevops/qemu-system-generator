@@ -93,7 +93,7 @@ skipped, the rule systemd applies to a drop-in.
 
 Values that are not options of a backend binary.
 
-*QemuBinary=*
+*QEMUBinary=*
 	The QEMU binary, the first word of *ExecStart=*: an absolute path,
 	which may begin with a specifier such as *%h*, or a file name that
 	systemd looks up in its search path (*systemd.service*(5), "Command
@@ -102,9 +102,9 @@ Values that are not options of a backend binary.
 
 *VirtiofsdBinary=*
 	The virtiofsd binary used by every *[virtiofsd]* section, read as
-	*QemuBinary=* is. Default: compiled into the generator.
+	*QEMUBinary=* is. Default: compiled into the generator.
 
-*SshPrivateKey=*
+*SSHPrivateKey=*
 	Path of a private key with which root logs in to the guest. When set,
 	stopping the service first runs *systemctl poweroff* in the guest over
 	SSH through *root@vsock/*_cid_, which *systemd-ssh-proxy*(1) routes,
@@ -150,7 +150,7 @@ lines are read, but still emitted exactly as written:
 *device=vhost-vsock...,guest-cid=N*
 	The CID, a decimal number, is sent as _vSockCid_ of the registration;
 	afterwards *ssh machine/*_name_ reaches the guest through
-	*systemd-ssh-proxy*(1). *SshPrivateKey=* uses the same device.
+	*systemd-ssh-proxy*(1). *SSHPrivateKey=* uses the same device.
 
 *device=vfio-...*
 	Grants the service the VFIO device nodes and sets
@@ -254,7 +254,7 @@ SyslogIdentifier=qemu-system@%i
 RuntimeDirectory=qemu-system/%i
 StateDirectory=qemu-system/%i
 WorkingDirectory=%S/qemu-system/%i
-ExecStart=<QemuBinary> <[QEMU] lines> <virtiofs lines> \\
+ExecStart=<QEMUBinary> <[QEMU] lines> <virtiofs lines> \\
     -qmp unix:%t/qemu-system/%i/qmp.sock,server=on,wait=off
 ExecStartPost=-varlinkctl call %t/systemd/machine/io.systemd.Machine \\
     io.systemd.Machine.Register "{...}"
@@ -283,7 +283,7 @@ button, by writing the two commands in _qmp-powerdown_ to the socket.
 QEMU exits on *SIGTERM* without powering the guest down, so the kill
 signal is *SIGCONT*, which it ignores, and systemd waits for the process
 to exit on its own; a guest that does not act within *TimeoutStopSec=* is
-killed. With *SshPrivateKey=* a guest-side *systemctl poweroff* over SSH
+killed. With *SSHPrivateKey=* a guest-side *systemctl poweroff* over SSH
 runs first and the QMP command is the fallback.
 
 A VFIO device adds *DeviceAllow=/dev/vfio/vfio rw*, *DeviceAllow=char-vfio

@@ -159,7 +159,7 @@ answers it:
 
 .. _host-poweroff:
 
-With :key:`SshPrivateKey=` in :key:`[VM]`, which holds what is not a QEMU
+With :key:`SSHPrivateKey=` in :key:`[VM]`, which holds what is not a QEMU
 option, the stop first runs ``systemctl poweroff`` in the guest over
 vsock, and presses the power button only if that fails.
 

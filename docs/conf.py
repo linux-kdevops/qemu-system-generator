@@ -202,15 +202,15 @@ def _link_role(name, rawtext, text, lineno, inliner, options=None, content=None)
     return [nodes.reference(rawtext, "", code, refuri=_LINKS[name].format(target))], []
 
 
-# ":key:`SshPrivateKey=`" links a key or section of the .qemu format to where
+# ":key:`SSHPrivateKey=`" links a key or section of the .qemu format to where
 # qemu-systemd.unit(5) defines it, rendered as a literal like ":cmd:". The
 # anchors are the ids mandoc gives the man page's section headings.
 _KEYS = {
     ".qemu": "FILE_FORMAT",
     "[VM]": "The__VM__section",
-    "QemuBinary=": "The__VM__section",
+    "QEMUBinary=": "The__VM__section",
     "VirtiofsdBinary=": "The__VM__section",
-    "SshPrivateKey=": "The__VM__section",
+    "SSHPrivateKey=": "The__VM__section",
     "[QEMU]": "The__QEMU__section",
     "[virtiofsd]": "The__virtiofsd__section",
     "qemu-system@.service": "GENERATED_UNITS",

@@ -10,7 +10,7 @@
   systemd,
   openssh,
   # Directory holding the qemu-system-* binaries the generated units run
-  # when a file sets no QemuBinary=.
+  # when a file sets no QEMUBinary=.
   qemuBinDir ? "${qemu}/bin",
   # The virtiofsd binary the generated units run when a file sets no
   # VirtiofsdBinary=.

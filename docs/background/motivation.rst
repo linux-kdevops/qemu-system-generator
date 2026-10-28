@@ -176,7 +176,7 @@ generated lines are in :doc:`/man/qemu-systemd.unit.5`'s GENERATED UNITS.
   :cmd:`KillMode=mixed <KillMode=>`,
   :cmd:`TimeoutStopSec=2min <TimeoutStopSec=>` and an :cmd:`ExecStop=` that
   sends ``system_powerdown`` over `QMP`_, preceded by a guest-side
-  :cmd:`systemctl poweroff <systemctl>` over SSH when :key:`SshPrivateKey=`
+  :cmd:`systemctl poweroff <systemctl>` over SSH when :key:`SSHPrivateKey=`
   is set. ``SIGTERM`` would skip the guest's shutdown (above); ``SIGCONT``
   is a signal QEMU ignores, so systemd waits for the guest to power off.
   ``KillMode=mixed`` and the two-minute timeout are what systemd's own
