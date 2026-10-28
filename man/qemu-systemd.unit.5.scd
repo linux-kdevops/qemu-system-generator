@@ -132,10 +132,11 @@ reference, and *systemd-analyze verify* cannot catch it. The following
 lines are read, but still emitted exactly as written:
 
 *machine=*, *M=*
-	A value containing _microvm_ switches the generated vhost-user-fs
-	device to its virtio-mmio name. A value containing _memory-backend=_
-	tells the generator that the file supplies its own shared memory
-	backend for virtiofs.
+	The machine type _microvm_, as the first field or as _type=_,
+	switches the generated vhost-user-fs device to its virtio-mmio name;
+	as in QEMU, the last line that names a type decides. A
+	_memory-backend=_ field tells the generator that the file supplies its
+	own shared memory backend for virtiofs.
 
 *m=*
 	The guest memory. A *[virtiofsd]* section needs a shared memory

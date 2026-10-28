@@ -138,6 +138,18 @@ fn property<'a>(value: &'a str, key: &str) -> Option<&'a str> {
         .find_map(|f| f.strip_prefix(key)?.strip_prefix('='))
 }
 
+/// The machine type a `-machine` value names, if it names one: its first
+/// field unless that is a `key=value`, else its `type=` field (QEMU
+/// parses the option with "type" as the implied key).
+fn machine_type(value: &str) -> Option<&str> {
+    let first = first_field(value);
+    if first.contains('=') {
+        property(value, "type")
+    } else {
+        Some(first)
+    }
+}
+
 /// The `-object memory-backend-memfd,size=` matching `-m`, whose size is
 /// its first field or its `size=` field (`qemu-options.hx`). QEMU reads
 /// a bare number as mebibytes for `-m` but as bytes for `size=`, so a
@@ -223,8 +235,12 @@ fn observe<'a>(entries: &[&'a Entry]) -> Result<Observed<'a>, DecodeError> {
     for entry in entries {
         match entry.key.as_str() {
             "machine" | "M" => {
-                seen.microvm |= entry.value.contains("microvm");
-                seen.own_memory_backend |= entry.value.contains("memory-backend=");
+                // QEMU keeps the last value of a property repeated
+                // across -machine options.
+                if let Some(name) = machine_type(&entry.value) {
+                    seen.microvm = name == "microvm";
+                }
+                seen.own_memory_backend |= property(&entry.value, "memory-backend").is_some();
             }
             "m" => seen.memory = Some(&entry.value),
             "uuid" => seen.uuid = Some(&entry.value),
@@ -452,6 +468,9 @@ mod tests {
         );
         assert_eq!(property("vhost-vsock-pci", "guest-cid"), None);
         assert_eq!(property("a,guest-cidx=1", "guest-cid"), None);
+        assert_eq!(machine_type("q35,accel=kvm"), Some("q35"));
+        assert_eq!(machine_type("accel=kvm,type=microvm"), Some("microvm"));
+        assert_eq!(machine_type("accel=kvm"), None);
     }
 
     #[test]
@@ -539,6 +558,31 @@ mod tests {
             &decode_text("[QEMU]\nM=q35,memory-backend=ram\n[virtiofsd]\ntag=a\n").unwrap(),
         );
         assert!(line.iter().all(|a| !a.starts_with("-object")));
+    }
+
+    #[test]
+    fn machine_type_is_a_field() {
+        for (qemu, device) in [
+            ("machine=type=microvm\n", "vhost-user-fs-device"),
+            (
+                "machine=microvm\nmachine=accel=kvm\n",
+                "vhost-user-fs-device",
+            ),
+            ("machine=microvm\nmachine=q35\n", "vhost-user-fs-pci"),
+            (
+                "machine=q35,memory-backend=microvm-ram\n",
+                "vhost-user-fs-pci",
+            ),
+        ] {
+            let line = command_line(
+                &decode_text(&format!("[QEMU]\n{qemu}m=1G\n[virtiofsd]\ntag=a\n")).unwrap(),
+            );
+            assert!(
+                line.iter()
+                    .any(|a| a.starts_with(&format!("-device {device},"))),
+                "{qemu}"
+            );
+        }
     }
 
     #[test]
