@@ -134,9 +134,10 @@ nix flake check
 format change.
 
 `steps/` holds the commands that do what each guide of `docs/bootstrap/`
-teaches, and `dags/` wires them for [Dagu], one DAG per guide and `test`,
-which runs `cargo test`; `.github/workflows/bootstrap.yaml` runs every
-DAG. A guide's run writes where the guide writes, so it replaces
+teaches, and what else CI checks, and `dags/` wires them for [Dagu], one
+DAG per guide and others of CI's own, such as `test`, which runs
+`cargo test`; `.github/workflows/bootstrap.yaml` runs every DAG. A
+guide's run writes where the guide writes, so it replaces
 `~/bootstrap/<guide>` and the machines' `.qemu` files, and adds the
 generator to your Nix profile:
 

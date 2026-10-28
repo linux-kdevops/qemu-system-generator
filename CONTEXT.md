@@ -14,13 +14,14 @@ _Avoid_: recipe, script
 
 **Step**:
 A bash executable under `steps/<subsystem>/<verb>`: the commands a person
-would type to do what a guide teaches, on the happy path, with as few
-options as possible.
+would type to do what a guide teaches, or what else CI checks, on the
+happy path, with as few options as possible.
 _Avoid_: task, action, script
 
 **DAG**:
 A file under `dags/` that wires steps into a run for Dagu, one per guide
-and named after it, and `test`, which runs the generator's own tests.
+and named after it, and others for what only CI checks, such as `test`,
+which runs the generator's own tests.
 Control flow lives here, in Dagu's own terms: retries, preconditions,
 loops, handlers.
 _Avoid_: flow, pipeline, workflow
@@ -56,7 +57,8 @@ _Avoid_: config, env file, profile
 
 - A **Guide** and its **Steps** are independent documents, kept by hand.
   Neither reads, includes or names the other; a file may be shared, but
-  need not be.
+  need not be. The **Steps** prove that what the **Guide** teaches works,
+  and may do more for CI, which no **Guide** explains.
 - A **DAG** runs **Steps**; a **Workflow** starts one **DAG**.
 - Every run of one **DAG** writes to the same places: its
   **Worktree-group**, its machines' files in `~/.config/qemu/systemd` and

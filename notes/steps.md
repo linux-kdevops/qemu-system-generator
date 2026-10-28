@@ -3,10 +3,11 @@
 # Steps, DAGs and CI
 
 `steps/` holds the commands that do what each guide of `docs/bootstrap/`
-teaches, `dags/` wires them into runs for [Dagu], one DAG per guide, and
-`.github/` starts those DAGs on GitHub-hosted runners. `CONTEXT.md` has
-the terms. `steps/generator/test` and `dags/test.yaml` run the
-`cargo test` of the README's checks, and deploy no machine.
+teaches, and what else CI checks; `dags/` wires them into runs for
+[Dagu], one DAG per guide and others of CI's own, and `.github/` starts
+those DAGs on GitHub-hosted runners. `CONTEXT.md` has the terms.
+`steps/generator/test` and `dags/test.yaml` run the `cargo test` of the
+README's checks, and deploy no machine.
 
 ## Steps
 
@@ -29,8 +30,10 @@ the step. The step copies it, or fills in its `$name` placeholders with
 systemd's `%` specifiers pass through as written.
 
 A guide and its steps are independent documents, kept by hand: neither
-reads, includes or names the other, and a change to one needs the
-matching change to the other.
+reads, includes or names the other. The steps prove that what a guide
+teaches works, so a change to a guide needs the matching change to its
+steps. They may also do what no guide explains, for CI's sake; a DAG's
+`description` says what its run covers, and no page repeats it.
 
 ## The base
 
