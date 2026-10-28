@@ -159,11 +159,15 @@ lines are read, but still emitted exactly as written:
 	afterwards *ssh machine/*_name_ reaches the guest through
 	*systemd-ssh-proxy*(1). *SSHPrivateKey=* uses the same device.
 
-*device=vfio-...*
+*device=vfio-pci,...*
 	Grants the service the VFIO device nodes and sets
 	*LimitMEMLOCK=infinity*, since assigned devices pin guest memory; a
-	tighter limit written in *[Service]* replaces it. Binding the device
-	to the vfio-pci driver is host configuration outside the file.
+	tighter limit written in *[Service]* replaces it. *vfio-pci-nohotplug*,
+	*vfio-ccw*, *vfio-ap* and, before QEMU 10.2, *vfio-platform*,
+	*vfio-amd-xgbe* and *vfio-calxeda-xgmac* are read the same way;
+	*vfio-user-pci* reaches its server over a socket and gets neither.
+	Binding the host device to its VFIO driver is host configuration
+	outside the file.
 
 The generator appends its own lines after the file's: the virtiofs wiring
 described below and *-qmp* on the control socket. The ids it gives them,

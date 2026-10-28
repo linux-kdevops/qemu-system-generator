@@ -58,6 +58,20 @@ const VFIO_DEVICE_ALLOW: [&str; 4] = [
     "char-vfio-dev rw",
 ];
 
+/// The `-device` drivers that assign a host device through the kernel's
+/// VFIO (`hw/vfio/`), with the vfio-platform family that QEMU 10.2
+/// removed (`docs/about/removed-features.rst`). `vfio-user-pci` talks to
+/// a server over a socket instead and needs none of it.
+const VFIO_DRIVERS: [&str; 7] = [
+    "vfio-pci",
+    "vfio-pci-nohotplug",
+    "vfio-ccw",
+    "vfio-ap",
+    "vfio-platform",
+    "vfio-amd-xgbe",
+    "vfio-calxeda-xgmac",
+];
+
 /// Virtqueue size of the generated vhost-user-fs device.
 const VHOST_USER_FS_QUEUE_SIZE: u32 = 1024;
 
@@ -258,7 +272,7 @@ fn observe<'a>(entries: &[&'a Entry]) -> Result<Observed<'a>, DecodeError> {
             "uuid" => seen.uuid = Some(&entry.value),
             "device" => {
                 let driver = first_field(&entry.value);
-                seen.vfio |= driver.starts_with("vfio-");
+                seen.vfio |= VFIO_DRIVERS.contains(&driver);
                 if driver.starts_with("vhost-vsock")
                     && let Some(cid) = property(&entry.value, "guest-cid")
                 {
@@ -624,6 +638,22 @@ mod tests {
         assert!(plan.device_allow.contains(&"char-vfio rw"));
         assert!(plan.device_allow.contains(&"/dev/iommu rw"));
         assert!(plan.device_allow.contains(&"char-vfio-dev rw"));
+    }
+
+    #[test]
+    fn vfio_drivers() {
+        for (driver, vfio) in [
+            ("vfio-pci", true),
+            ("vfio-pci-nohotplug", true),
+            ("vfio-ccw", true),
+            ("vfio-ap", true),
+            ("vfio-platform", true),
+            ("vfio-user-pci", false),
+            ("vfio-pci-igd-lpc-bridge", false),
+        ] {
+            let plan = decode_text(&format!("[QEMU]\ndevice={driver},x=y\n")).unwrap();
+            assert_eq!(plan.lock_memory, vfio, "{driver}");
+        }
     }
 
     #[test]
