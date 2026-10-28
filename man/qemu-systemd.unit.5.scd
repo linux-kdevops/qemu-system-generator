@@ -295,9 +295,12 @@ to exit on its own; a guest that does not act within *TimeoutStopSec=* is
 killed. With *SSHPrivateKey=* a guest-side *systemctl poweroff* over SSH
 runs first and the QMP command is the fallback.
 
-A VFIO device adds *DeviceAllow=/dev/vfio/vfio rw*, *DeviceAllow=char-vfio
-rw*, which covers every IOMMU group node, and *LimitMEMLOCK=infinity*,
-which a user manager can raise only to the hard limit set for the user
+A VFIO device adds *DeviceAllow=/dev/vfio/vfio rw* and
+*DeviceAllow=char-vfio rw*, which covers every IOMMU group node, and for
+the *iommufd* backend *DeviceAllow=/dev/iommu rw* and
+*DeviceAllow=char-vfio-dev rw*, which covers every node under
+_/dev/vfio/devices/_. It also sets *LimitMEMLOCK=infinity*, which a user
+manager can raise only to the hard limit set for the user
 (*systemd.exec*(5), "Process Properties").
 
 The registration names the machine after the file, with class _vm_ and

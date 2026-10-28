@@ -80,20 +80,24 @@ The generator grants the service the VFIO device nodes and sets
 pins guest memory. The rest is host configuration, done once as root.
 
 Bind each device to the ``vfio-pci`` driver, as the kernel's `VFIO`_
-documentation shows. Its ``/dev/vfio/<group>`` node belongs to root; a
-udev rule gives the nodes to the ``kvm`` group, and :cmd:`udevadm` applies
-it:
+documentation shows. Its ``/dev/vfio/<group>`` node belongs to root, as
+do ``/dev/iommu`` and ``/dev/vfio/devices/vfio<N>``, which QEMU opens
+instead when a file picks its ``iommufd`` backend. A udev rule gives the
+nodes to the ``kvm`` group, and :cmd:`udevadm` applies it:
 
 .. code-block:: text
    :caption: /etc/udev/rules.d/10-vfio-kvm.rules
 
    SUBSYSTEM=="vfio", GROUP="kvm", MODE="0660"
+   SUBSYSTEM=="vfio-dev", GROUP="kvm", MODE="0660"
+   SUBSYSTEM=="misc", KERNEL=="iommu", GROUP="kvm", MODE="0660"
 
 .. code-block:: console
    :class: cmd-host
 
    $ sudo udevadm control --reload-rules
-   $ sudo udevadm trigger --subsystem-match=vfio
+   $ sudo udevadm trigger --subsystem-match=vfio --subsystem-match=vfio-dev
+   $ sudo udevadm trigger --subsystem-match=misc --sysname-match=iommu
 
 A user unit cannot raise a limit above the hard limit of the manager
 that runs it, and a user manager inherits the system's default of 8 MiB

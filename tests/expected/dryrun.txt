@@ -566,4 +566,6 @@ DeviceAllow=/dev/net/tun rwm
 DeviceAllow=char-pts rw
 DeviceAllow=/dev/vfio/vfio rw
 DeviceAllow=char-vfio rw
+DeviceAllow=/dev/iommu rw
+DeviceAllow=char-vfio-dev rw
 LimitMEMLOCK=infinity

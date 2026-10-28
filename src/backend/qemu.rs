@@ -47,7 +47,16 @@ const DEVICE_ALLOW: [&str; 5] = [
 /// The VFIO container is a misc device; the IOMMU group nodes under
 /// `/dev/vfio/` share the "vfio" character device region
 /// (`drivers/vfio/group.c`), so one group entry covers every group.
-const VFIO_DEVICE_ALLOW: [&str; 2] = ["/dev/vfio/vfio rw", "char-vfio rw"];
+/// With an iommufd backend QEMU opens `/dev/iommu`, a misc device, and
+/// `/dev/vfio/devices/vfio*`, which share "vfio-dev"
+/// (`drivers/vfio/device_cdev.c`); a group entry matches one region name
+/// exactly.
+const VFIO_DEVICE_ALLOW: [&str; 4] = [
+    "/dev/vfio/vfio rw",
+    "char-vfio rw",
+    "/dev/iommu rw",
+    "char-vfio-dev rw",
+];
 
 /// Virtqueue size of the generated vhost-user-fs device.
 const VHOST_USER_FS_QUEUE_SIZE: u32 = 1024;
@@ -613,6 +622,8 @@ mod tests {
             DEVICE_ALLOW.len() + VFIO_DEVICE_ALLOW.len()
         );
         assert!(plan.device_allow.contains(&"char-vfio rw"));
+        assert!(plan.device_allow.contains(&"/dev/iommu rw"));
+        assert!(plan.device_allow.contains(&"char-vfio-dev rw"));
     }
 
     #[test]
