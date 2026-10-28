@@ -23,7 +23,7 @@ Prepare the host as :doc:`host` shows.
 .. _cloud-images:
 
 The images
-----------
+==========
 
 A relative path in a ``.qemu`` file resolves in the machine's state
 directory, ``~/.local/state/qemu-system/<name>/`` under a user manager.
@@ -80,7 +80,7 @@ checksums its distribution publishes:
 .. _cloud-seeds:
 
 The seeds
----------
+=========
 
 Each machine reads its seed as a `NoCloud`_ source.
 ``~/bootstrap/cloud/user-data`` holds what every machine gets, with the

@@ -12,7 +12,7 @@ then `OVMF`_ and `systemd-boot`_.
 Prepare the host as :doc:`host` shows.
 
 The guest
----------
+=========
 
 The guest is an ordinary NixOS configuration. Create
 ``~/bootstrap/disk/flake.nix``:

@@ -12,7 +12,7 @@ host's own, shared over `virtiofs`_.
 Prepare the host as :doc:`host` shows.
 
 The guest
----------
+=========
 
 The guest is an ordinary NixOS configuration. Create
 ``~/bootstrap/direct/flake.nix``:

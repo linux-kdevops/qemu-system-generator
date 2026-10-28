@@ -14,7 +14,7 @@ shared the same way.
 Prepare the host as :doc:`host` shows.
 
 The guest
----------
+=========
 
 The guest is an ordinary NixOS configuration, and the UKI is built from
 it. Create ``~/bootstrap/uki/flake.nix``:
