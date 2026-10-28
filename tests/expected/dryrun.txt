@@ -36,10 +36,10 @@ ExecStart=@QEMU@ \
     -device virtconsole,chardev=console0 \
     -nographic \
     -serial mon:stdio \
-    -object memory-backend-memfd,id=mem,size=2048M,share=on \
-    -machine memory-backend=mem \
-    -chardev socket,id=virtiofs_home,path=%t/virtiofsd/%i-home/virtiofsd.sock \
-    -device vhost-user-fs-pci,queue-size=1024,chardev=virtiofs_home,tag=home \
+    -object memory-backend-memfd,id=systemd-mem,size=2048M,share=on \
+    -machine memory-backend=systemd-mem \
+    -chardev socket,id=systemd-virtiofs-home,path=%t/virtiofsd/%i-home/virtiofsd.sock \
+    -device vhost-user-fs-pci,queue-size=1024,chardev=systemd-virtiofs-home,tag=home \
     -qmp unix:%t/qemu-system/%i/qmp.sock,server=on,wait=off
 ExecStartPost=-@VARLINKCTL@ \
     call \
@@ -264,10 +264,10 @@ ExecStart=@QEMU@ \
     -device virtio-9p-device,fsdev=fsdev_share,mount_tag=share \
     -nographic \
     -serial mon:stdio \
-    -object memory-backend-memfd,id=mem,size=1024M,share=on \
-    -machine memory-backend=mem \
-    -chardev socket,id=virtiofs_home,path=%t/virtiofsd/%i-home/virtiofsd.sock \
-    -device vhost-user-fs-device,queue-size=1024,chardev=virtiofs_home,tag=home \
+    -object memory-backend-memfd,id=systemd-mem,size=1024M,share=on \
+    -machine memory-backend=systemd-mem \
+    -chardev socket,id=systemd-virtiofs-home,path=%t/virtiofsd/%i-home/virtiofsd.sock \
+    -device vhost-user-fs-device,queue-size=1024,chardev=systemd-virtiofs-home,tag=home \
     -qmp unix:%t/qemu-system/%i/qmp.sock,server=on,wait=off
 ExecStartPost=-@VARLINKCTL@ \
     call \
@@ -375,14 +375,14 @@ ExecStart=@QEMU@ \
     -serial mon:stdio \
     -gdb unix:%t/qemu-system/%i/gdb.sock,server=on,wait=off \
     -S \
-    -object memory-backend-memfd,id=mem,size=4G,share=on \
-    -machine memory-backend=mem \
-    -chardev socket,id=virtiofs_store,path=%t/virtiofsd/%i-store/virtiofsd.sock \
-    -device vhost-user-fs-pci,queue-size=1024,chardev=virtiofs_store,tag=store \
-    -chardev socket,id=virtiofs_modules,path=%t/virtiofsd/%i-modules/virtiofsd.sock \
-    -device vhost-user-fs-pci,queue-size=1024,chardev=virtiofs_modules,tag=modules \
-    -chardev socket,id=virtiofs_home,path=%t/virtiofsd/%i-home/virtiofsd.sock \
-    -device vhost-user-fs-pci,queue-size=1024,chardev=virtiofs_home,tag=home \
+    -object memory-backend-memfd,id=systemd-mem,size=4G,share=on \
+    -machine memory-backend=systemd-mem \
+    -chardev socket,id=systemd-virtiofs-store,path=%t/virtiofsd/%i-store/virtiofsd.sock \
+    -device vhost-user-fs-pci,queue-size=1024,chardev=systemd-virtiofs-store,tag=store \
+    -chardev socket,id=systemd-virtiofs-modules,path=%t/virtiofsd/%i-modules/virtiofsd.sock \
+    -device vhost-user-fs-pci,queue-size=1024,chardev=systemd-virtiofs-modules,tag=modules \
+    -chardev socket,id=systemd-virtiofs-home,path=%t/virtiofsd/%i-home/virtiofsd.sock \
+    -device vhost-user-fs-pci,queue-size=1024,chardev=systemd-virtiofs-home,tag=home \
     -qmp unix:%t/qemu-system/%i/qmp.sock,server=on,wait=off
 ExecStartPost=-@VARLINKCTL@ \
     call \

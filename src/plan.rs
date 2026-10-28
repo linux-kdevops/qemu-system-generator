@@ -20,7 +20,7 @@ use crate::search::UnitName;
 pub type Arg = Vec<String>;
 
 /// The mount tag of a share, which also names the helper that serves it.
-/// It must fit in a unit name, in a QEMU id after `virtiofs_`
+/// It must fit in a unit name, in a QEMU id after `systemd-virtiofs-`
 /// (`id_wellformed()` in QEMU's `util/id.c`), and in a `-device` value,
 /// where a comma would start a new property.
 #[derive(Debug, PartialEq, Eq)]

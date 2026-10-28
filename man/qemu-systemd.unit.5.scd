@@ -166,9 +166,10 @@ lines are read, but still emitted exactly as written:
 	to the vfio-pci driver is host configuration outside the file.
 
 The generator appends its own lines after the file's: the virtiofs wiring
-described below and *-qmp* on the control socket. The ids _mem_ and
-_virtiofs\__tag_ are its; a file that defines them collides in QEMU. A
-second *-qmp* from the file is fine; QEMU serves several.
+described below and *-qmp* on the control socket. The ids it gives them,
+_systemd-mem_ and _systemd-virtiofs-tag_, start with _systemd-_, a prefix
+the file leaves to the generator. A second *-qmp* from the file is fine;
+QEMU serves several.
 
 A 9p share is two ordinary lines and needs no daemon:
 
@@ -201,9 +202,10 @@ The generator runs the daemon socket-activated, appending *--fd=3* to its
 command line, so *socket-path=* and *socket=* must not be set. On the
 QEMU side it adds a *-chardev socket* and a *-device vhost-user-fs-pci*
 (or *-device vhost-user-fs-device* on microvm) per section and, once, an
-*-object memory-backend-memfd* with *-machine memory-backend=mem* unless
-the file names its own memory backend. The unprivileged sandbox that
-virtiofsd needs is written in the file, as the examples do:
+*-object memory-backend-memfd* with
+*-machine memory-backend=systemd-mem* unless the file names its own
+memory backend. The unprivileged sandbox that virtiofsd needs is written
+in the file, as the examples do:
 
 ```
 [virtiofsd]

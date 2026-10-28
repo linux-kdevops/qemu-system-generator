@@ -840,8 +840,8 @@ The generator follows the machine type for the virtiofs devices it adds:
    :class: cmd-host
 
    $ qemu-system-generator --user --dryrun | grep vhost-user-fs
-       -device vhost-user-fs-device,queue-size=1024,chardev=virtiofs_store,tag=store \
-       -device vhost-user-fs-device,queue-size=1024,chardev=virtiofs_home,tag=home \
+       -device vhost-user-fs-device,queue-size=1024,chardev=systemd-virtiofs-store,tag=store \
+       -device vhost-user-fs-device,queue-size=1024,chardev=systemd-virtiofs-home,tag=home \
 
 On microvm this guest's ``systemd-ssh-generator`` opens no vsock
 listener by itself, so ask for one on the kernel command line with

@@ -52,8 +52,10 @@ const VFIO_DEVICE_ALLOW: [&str; 2] = ["/dev/vfio/vfio rw", "char-vfio rw"];
 /// Virtqueue size of the generated vhost-user-fs device.
 const VHOST_USER_FS_QUEUE_SIZE: u32 = 1024;
 
-/// Id of the generated shared memory backend.
-const MEMORY_BACKEND_ID: &str = "mem";
+/// Ids of the objects the generator adds start with `systemd-`, which
+/// leaves the short ids a file picks for itself free.
+const MEMORY_BACKEND_ID: &str = "systemd-mem";
+const CHARDEV_ID_PREFIX: &str = "systemd-virtiofs-";
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum DecodeError {
@@ -346,7 +348,7 @@ fn share_args(
     };
     for helper in helpers {
         let tag = &helper.tag;
-        let chardev = format!("virtiofs_{tag}");
+        let chardev = format!("{CHARDEV_ID_PREFIX}{tag}");
         let socket = paths.helper_socket(machine, helper.program, tag);
         args.push(vec![
             "-chardev".to_owned(),
@@ -519,12 +521,12 @@ mod tests {
         assert_eq!(
             command_line(&plan)[1..],
             [
-                "-object memory-backend-memfd,id=mem,size=2G,share=on",
-                "-machine memory-backend=mem",
-                "-chardev socket,id=virtiofs_a,path=/run/virtiofsd/vm-a.sock",
-                "-device vhost-user-fs-pci,queue-size=1024,chardev=virtiofs_a,tag=a",
-                "-chardev socket,id=virtiofs_b,path=/run/virtiofsd/vm-b.sock",
-                "-device vhost-user-fs-pci,queue-size=1024,chardev=virtiofs_b,tag=b",
+                "-object memory-backend-memfd,id=systemd-mem,size=2G,share=on",
+                "-machine memory-backend=systemd-mem",
+                "-chardev socket,id=systemd-virtiofs-a,path=/run/virtiofsd/vm-a.sock",
+                "-device vhost-user-fs-pci,queue-size=1024,chardev=systemd-virtiofs-a,tag=a",
+                "-chardev socket,id=systemd-virtiofs-b,path=/run/virtiofsd/vm-b.sock",
+                "-device vhost-user-fs-pci,queue-size=1024,chardev=systemd-virtiofs-b,tag=b",
                 "-qmp unix:/run/qemu-system/vm/qmp.sock,server=on,wait=off",
             ]
         );
