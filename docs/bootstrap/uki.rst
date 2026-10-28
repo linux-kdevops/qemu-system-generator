@@ -161,8 +161,8 @@ without root (:ref:`host-virtiofsd`).
 
 With the trailing slash on ``shared-dir=``, the path resolves through
 the ``result`` link when the daemon starts, so every start serves the
-latest build. Without it, the sandbox cannot bind-mount the link and the daemon
-exits with
+latest build. Without it, the sandbox cannot bind-mount the link, and
+the daemon exits with
 ``Error entering sandbox: BindMountSharedDir(... "Invalid argument" })``.
 
 OVMF's `EDK II`_ code includes a virtiofs driver, and its boot manager

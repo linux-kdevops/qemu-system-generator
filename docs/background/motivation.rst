@@ -70,10 +70,10 @@ Integration with the host
 
 systemd documents what a VM manager does on the host:
 `Writing VM and Container Managers`_ asks it to register each machine with
-:cmd:`systemd-machined` and place it in :cmd:`machine.slice`, and
+:cmd:`systemd-machined` and place it in :cmd:`machine.slice`.
 `The VM Interface`_ describes what the guest side can expect, such as
 credentials over `SMBIOS`_ and readiness over :cmd:`AF_VSOCK <vsock(7)>`.
-QEMU does none of this itself, and ``systemd-machined`` cannot report a
+QEMU does none of this itself. ``systemd-machined`` cannot report a
 virtual machine's OS or addresses: in systemd v262,
 ``machine_get_os_release()`` and ``machine_get_addresses()`` in
 :gh:`src/machine/machine.c <systemd/systemd/blob/v262/src/machine/machine.c>`
@@ -108,7 +108,7 @@ with "no new daemon, no new wrapper": `Jinja2`_ templates render systemd
 units that run QEMU. It still has a vocabulary. Its variables are named
 after concepts rather than options (``image`` for ``-drive``, ``cpus`` for
 ``-smp``, ``ssh_port`` for a ``hostfwd=`` rule, ``autostart: false`` for
-``-S``), and its templates fix part of the command line: every virtio device
+``-S``). Its templates fix part of the command line: every virtio device
 is non-transitional, a ``virtio-rng`` device is always present,
 ``-nographic`` and ``-serial mon:stdio`` are not configurable, networking is
 ``-nic user`` only, and `virtiofsd`_ always gets ``--xattr`` and

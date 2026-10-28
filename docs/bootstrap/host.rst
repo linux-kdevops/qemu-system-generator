@@ -12,8 +12,8 @@ configuration below. Nothing in these guides runs as root.
 The workspace
 =============
 
-Everything you write or build lives in ``~/bootstrap``: a directory per
-guide, and in ``system/`` what every guide shares, the SSH key and
+Everything you write or build lives in ``~/bootstrap``, a directory per
+guide. What every guide shares lives in ``system/``, and the SSH key and
 configuration in ``system/ssh/``:
 
 .. code-block:: console

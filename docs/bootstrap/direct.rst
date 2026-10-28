@@ -472,9 +472,9 @@ your home in place of ``/home/user``, and add it to the guest:
    +          ./home.nix
             ];
 
-Rebuild, put the path ``readlink result`` prints, and ``/init``, in the
-drop-in's ``init=``, :ref:`regenerate <host-regenerate>` and
-:ref:`restart <host-start>`.
+Rebuild and put the path ``readlink result`` prints, followed by
+``/init``, in the drop-in's ``init=``. Then
+:ref:`regenerate <host-regenerate>` and :ref:`restart <host-start>`.
 Root's home is now yours, with the two systemd directories empty, and a
 file the guest writes belongs to you on the host:
 

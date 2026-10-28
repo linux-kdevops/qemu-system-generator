@@ -4,11 +4,11 @@
 machined, machinectl, varlink
 =============================
 
-Each user manager has its own :cmd:`systemd-machined`, since
-`systemd`_ 259, and every machine the generator writes registers with
-yours as it starts (:ref:`host-machined`): its name, class ``vm``,
-service ``qemu-system``, `QEMU`_'s process as its leader, the `vsock`_ context
-id from a ``vhost-vsock`` device, and the UUID from ``uuid=``.
+Since `systemd`_ 259, each user manager has its own
+:cmd:`systemd-machined`. Every machine the generator writes registers
+with yours as it starts (:ref:`host-machined`): its name, class ``vm``,
+service ``qemu-system``, `QEMU`_'s process as its leader, the `vsock`_
+context id from a ``vhost-vsock`` device, and the UUID from ``uuid=``.
 Registration is best effort: a machine runs without machined. It leaves
 the list when QEMU exits.
 

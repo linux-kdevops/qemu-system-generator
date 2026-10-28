@@ -94,7 +94,7 @@ public key from ``~/bootstrap/system/ssh/id_ed25519.pub`` pasted in:
    ssh_authorized_keys:
      - ssh-ed25519 AAAA... bootstrap # from ~/bootstrap/system/ssh/id_ed25519.pub
 
-``disable_root: false`` gives root the key, and cloud-init's `module
+``disable_root: false`` gives root the key. cloud-init's `module
 reference`_ documents each key. Each machine's meta-data names it, and
 :cmd:`cloud-localds` writes its seed into its state directory:
 
@@ -184,7 +184,7 @@ which the firmware would otherwise load. The file keeps the devices QEMU
 adds on its own: without the VGA card, Debian's kernel resets the
 machine right after GRUB's ``Loading Linux``. The machine's own file
 keeps only its disk and a `vsock`_ device whose context id is the
-machine's own, as :ref:`host-ssh` names it; it replaces the quick start's
+machine's own, as :ref:`host-ssh` names it. It replaces the quick start's
 file:
 
 .. tab-set::

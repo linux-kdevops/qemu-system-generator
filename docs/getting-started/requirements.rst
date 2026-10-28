@@ -5,10 +5,10 @@ Requirements
 ============
 
 The host needs two things installed: `systemd`_ and `Nix`_. systemd runs
-the machines, as services of your user's manager or of the system's, and
-Nix builds the generator together with the `QEMU`_, `virtiofsd`_, :cmd:`socat`
-and :cmd:`varlinkctl` its units call, pinned to store paths, so the host needs
-no QEMU package from its distribution.
+the machines, as services of your user's manager or of the system's. Nix
+builds the generator together with the `QEMU`_, `virtiofsd`_, :cmd:`socat`
+and :cmd:`varlinkctl` its units call, pinned to store paths, so the host
+needs no QEMU package from its distribution.
 
 systemd
 =======

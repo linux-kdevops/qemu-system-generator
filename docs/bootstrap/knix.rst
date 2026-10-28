@@ -30,9 +30,9 @@ Prepare the host as :doc:`host` shows.
 The kernel
 ----------
 
-Configure the release as a `KVM`_ guest with virtiofs built in, build it
-in ``build/`` and install its modules in ``destdir/``, both in the tree,
-inside the ``build-kernel`` shell (:cmd:`nix develop`), and leave the
+Inside the ``build-kernel`` shell (:cmd:`nix develop`), configure the
+release as a `KVM`_ guest with virtiofs built in, build it in ``build/``
+and install its modules in ``destdir/``, both in the tree. Then leave the
 shell:
 
 .. code-block:: console
@@ -422,9 +422,9 @@ other:
 ============================
 
 Every closure rebuild so far meant two new paths in each drop-in. QEMU
-reads ``initrd=`` on the host, so it can name a link there, and the
-initrd resolves ``init=`` inside the guest's root and follows symbolic
-links on the way (``initrd-find-nixos-closure`` in nixpkgs'
+reads ``initrd=`` on the host, so it can name a link there. The initrd
+resolves ``init=`` inside the guest's root and follows symbolic links on
+the way (``initrd-find-nixos-closure`` in nixpkgs'
 ``nixos/modules/system/boot/systemd/initrd.nix``), so ``init=`` can name
 ``result`` in your home, once the initrd mounts the home. The closure
 has no ``initrd`` link, so build the initrd as a package of its own:
@@ -729,8 +729,8 @@ mounted first. A static `BusyBox`_ does that from an initramfs of 1.4 MB:
 
 ``prepare-root`` reads ``/proc/cmdline`` and writes through ``/dev/fd``,
 hence the two lines before the store. The archive's root becomes the
-guest's ``/``, and :cmd:`sshd <sshd(8)>` refuses an authorized keys file
-when it or any directory above it is writable by group or others
+guest's ``/``. :cmd:`sshd <sshd(8)>` refuses an authorized keys file when
+it or any directory above it is writable by group or others
 (``safe_path()`` in `OpenSSH`_'s ``misc.c``), so set the modes before
 packing it:
 

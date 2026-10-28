@@ -62,8 +62,8 @@ that loads the new units, and a run of the new generator:
 
    `systemd`_ runs user generators only from the directories
    :cmd:`systemd.generator(7)` lists, such as
-   ``/etc/systemd/user-generators/``, and none of them is in your home, so
-   a user manager never runs the one in your profile on its own. The two
+   ``/etc/systemd/user-generators/``. None of them is in your home, so a
+   user manager never runs the one in your profile on its own. The two
    units do it instead. The service turns every ``.qemu`` file in
    ``~/.config/qemu/systemd/`` into units and reloads the manager; it runs
    at login, and the :cmd:`systemd.path(5)` unit runs it again whenever
@@ -80,8 +80,8 @@ the build ships a link for each. Build it as yourself; then, as root,
 point a profile at the build and link both generators from it.
 
 Root needs the experimental features too: the line in your own
-``~/.config/nix/nix.conf`` does not reach root (`configuration file`_). Enable them for every
-user:
+``~/.config/nix/nix.conf`` does not reach root (`configuration file`_).
+Enable them for every user:
 
 .. code-block:: console
    :class: cmd-host
@@ -106,9 +106,9 @@ Then build and install:
        /etc/systemd/user-generators/
    $ sudo systemctl daemon-reload
 
-The profile keeps the build from garbage collection, and
-running the first two commands again moves it to a newer build. A user
-manager picks the generator up at its next ``daemon-reload`` or login.
+The profile keeps the build from garbage collection, and running the
+first two commands again moves it to a newer build. A user manager picks
+the generator up at its next ``daemon-reload`` or login.
 Leave out the user units of :ref:`install-user`, or every machine's units
 are generated twice.
 

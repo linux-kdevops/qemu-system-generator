@@ -156,8 +156,8 @@ what the guest wrote is gone when it stops.
 :ref:`Regenerate <host-regenerate>` and :ref:`start <host-start>`. SeaBIOS
 finds the disk, GRUB loads the kernel and the `initrd`_ with the command
 line from ``disk.nix``, and NixOS boots in about 18 seconds. With no VGA
-card, SeaBIOS hands GRUB the serial console, and GRUB, finding no video
-mode, draws its menu there:
+card, SeaBIOS hands GRUB the serial console. GRUB finds no video mode
+and draws its menu there:
 
 .. code-block:: console
    :class: cmd-guest

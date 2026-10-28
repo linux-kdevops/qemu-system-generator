@@ -57,9 +57,10 @@ answer (``CONSOLE_ANSI_SEQUENCE_TIMEOUT_USEC`` in systemd's
 never answers. The initrd's systemd waits out a query for the terminal's
 name and two for its size, and the system's systemd waits again after the
 switch to the real root. Three settings on the kernel command line answer
-them in advance (:cmd:`kernel-command-line(7)`): ``systemd.tty.term.console=``
-names the terminal, and ``systemd.tty.rows.console=`` and
-``systemd.tty.columns.console=`` give its size:
+them in advance (:cmd:`kernel-command-line(7)`).
+``systemd.tty.term.console=`` names the terminal, and
+``systemd.tty.rows.console=`` and ``systemd.tty.columns.console=`` give its
+size:
 
 .. code-block:: text
 
@@ -84,8 +85,8 @@ The closure
 ===========
 
 The guests forget everything when they stop, so every boot is a first
-boot, and four things on the way to a login are first-boot work or not
-needed here:
+boot. Four things on the way to a login are first-boot work or not needed
+here:
 
 - `NixOS`_ generates an RSA key of 4096 bits and an Ed25519 key for
   :cmd:`sshd <sshd(8)>` (``services.openssh.hostKeys``), and the first
@@ -148,7 +149,7 @@ The mount rate limit
 
 systemd holds back starting a mount while more than five mount events a
 second arrive (``mount_rate_limit_burst`` in systemd's
-``src/core/mount.c``), and early boot mounts more than five file systems;
+``src/core/mount.c``). Early boot mounts more than five file systems, and
 the initrd waits about 0.8 seconds before it mounts ``/sysroot``.
 ``SYSTEMD_DEFAULT_MOUNT_RATE_LIMIT_BURST=`` raises the limit. The kernel
 passes a ``key=value`` parameter it does not know to init as an

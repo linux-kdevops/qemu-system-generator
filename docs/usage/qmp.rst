@@ -45,9 +45,9 @@ Replace ``query-status`` with another command of the `QMP reference`_:
 
       {"execute":"human-monitor-command","arguments":{"command-line":"info status"}}
 
-QEMU serves one client at a time and makes the others
-wait, the stop's power button included, so do not keep a session open
-while you stop the machine.
+QEMU serves one client at a time and makes the others wait, the stop's
+power button included, so do not keep a session open while you stop the
+machine.
 
 The ``mon:`` in ``serial=mon:stdio`` multiplexes the human monitor onto
 the serial console. The service's standard input is ``/dev/null``,
