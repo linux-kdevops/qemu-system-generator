@@ -142,9 +142,9 @@ command line instead, before the rest of ``append=``:
    [QEMU]
    append=console=ttyS0 systemd.set_credential=journal.forward_to_socket:vsock:2:19532 ...
 
-Restart the machine. The guest's journal then reaches the host from its
-first kernel message on, and :cmd:`journalctl` reads it with
-``--directory``, picking one guest by its hostname:
+:ref:`Restart <usage-start>` the machine. The guest's journal then
+reaches the host from its first kernel message on, and :cmd:`journalctl`
+reads it with ``--directory``, picking one guest by its hostname:
 
 .. code-block:: console
    :class: cmd-host

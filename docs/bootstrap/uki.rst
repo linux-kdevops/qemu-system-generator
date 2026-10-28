@@ -269,9 +269,10 @@ the command line:
 4. Your home
 ============
 
-A change to the guest is a rebuild and a restart. Sharing your home, as
-:doc:`home` describes, takes both: another ``[virtiofsd]`` section in the
-file, and a module in the guest. Add the section:
+A change to the guest is a rebuild and a :ref:`restart <host-start>`.
+Sharing your home, as :doc:`home` describes, takes both: another
+``[virtiofsd]`` section in the file, and a module in the guest. Add the
+section:
 
 .. code-block:: diff
    :caption: ~/.config/qemu/systemd/bootstrap-uki.qemu

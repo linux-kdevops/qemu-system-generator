@@ -349,8 +349,7 @@ Press :kbd:`Enter` for the prompt and log in as root with no password:
 ``kernel=`` and ``initrd=`` follow the ``result`` link, but ``init=`` names one
 build, and every ``nix build`` makes a new one. Move ``append=`` to a
 drop-in: the files in ``bootstrap-direct.qemu.d/`` are appended to
-``bootstrap-direct.qemu``, so a command can rewrite that one line without
-touching the file you edit by hand.
+``bootstrap-direct.qemu``, so a rebuild changes only the drop-in.
 
 .. code-block:: diff
    :caption: ~/.config/qemu/systemd/bootstrap-direct.qemu
@@ -359,14 +358,16 @@ touching the file you edit by hand.
    -append=console=ttyS0 console=hvc0 init=/nix/store/i7s2903dhm9g5z73vkcbpggmv1iqnvwy-nixos-system-bootstrap-26.11.20261020.02c087f/init
     nic=user,model=virtio-net-pci-non-transitional,hostfwd=tcp:127.0.0.1:10047-:22
 
-.. code-block:: shell
+.. code-block:: console
    :class: cmd-host
 
-   mkdir --parents ~/.config/qemu/systemd/bootstrap-direct.qemu.d
-   cat > ~/.config/qemu/systemd/bootstrap-direct.qemu.d/10-closure.conf <<EOF
+   $ mkdir --parents ~/.config/qemu/systemd/bootstrap-direct.qemu.d
+
+.. code-block:: ini
+   :caption: ~/.config/qemu/systemd/bootstrap-direct.qemu.d/10-closure.conf
+
    [QEMU]
-   append=console=ttyS0 console=hvc0 init=$(readlink ~/bootstrap/direct/result)/init
-   EOF
+   append=console=ttyS0 console=hvc0 init=/nix/store/i7s2903dhm9g5z73vkcbpggmv1iqnvwy-nixos-system-bootstrap-26.11.20261020.02c087f/init
 
 To see what the generator makes of the two files without writing
 anything:
@@ -384,7 +385,7 @@ anything:
    ---virtiofsd@bootstrap-direct-store.service---
    ...
 
-:ref:`Regenerate <host-regenerate>` by hand after rewriting the drop-in.
+:ref:`Regenerate <host-regenerate>` by hand after editing the drop-in.
 
 .. _direct-settings:
 
@@ -458,8 +459,9 @@ your home in place of ``/home/user``, and add it to the guest:
    +          ./home.nix
             ];
 
-Rebuild, rewrite the drop-in as in :ref:`step 7 <direct-drop-in>`,
-:ref:`regenerate <host-regenerate>` and :ref:`restart <host-start>`.
+Rebuild, put the new path :cmd:`readlink` prints for ``result`` in the
+drop-in's ``init=``, :ref:`regenerate <host-regenerate>` and
+:ref:`restart <host-start>`.
 Root's home is now yours, with the two systemd directories empty, and a
 file the guest writes belongs to you on the host:
 
@@ -551,16 +553,14 @@ follows the machine type for the virtiofs devices it adds:
 
 On microvm this guest's ``systemd-ssh-generator`` opens no vsock
 listener by itself, so ask for one on the kernel command line with
-``systemd.ssh_listen=vsock::22``. Rewrite the drop-in with the new
-closure and that option:
+``systemd.ssh_listen=vsock::22``. Add it to the drop-in:
 
-.. code-block:: shell
-   :class: cmd-host
+.. code-block:: diff
+   :caption: ~/.config/qemu/systemd/bootstrap-direct.qemu.d/10-closure.conf
 
-   cat > ~/.config/qemu/systemd/bootstrap-direct.qemu.d/10-closure.conf <<EOF
-   [QEMU]
-   append=console=ttyS0 console=hvc0 systemd.ssh_listen=vsock::22 init=$(readlink ~/bootstrap/direct/result)/init
-   EOF
+    [QEMU]
+   -append=console=ttyS0 console=hvc0 init=/nix/store/...-nixos-system-bootstrap-.../init
+   +append=console=ttyS0 console=hvc0 systemd.ssh_listen=vsock::22 init=/nix/store/...-nixos-system-bootstrap-.../init
 
 :ref:`Regenerate <host-regenerate>`, :ref:`restart <host-start>` and log in:
 
@@ -608,8 +608,7 @@ addresses (:doc:`network`):
 With ``networking.useNetworkd``, NixOS asks for the user-mode card's
 address over DHCP through systemd-networkd too, from its
 ``99-ethernet-default-dhcp`` network, and the two ``10-`` networks come
-before it. Rebuild, and rewrite the drop-in as in
-:ref:`step 10 <direct-microvm>`:
+before it. Rebuild, and put the new path in the drop-in's ``init=``:
 
 .. code-block:: console
    :class: cmd-host
@@ -619,14 +618,7 @@ before it. Rebuild, and rewrite the drop-in as in
    $ cp --dereference --force result/initrd initrd
    $ chmod u+w initrd
    $ truncate --size=%4096 initrd
-
-.. code-block:: shell
-   :class: cmd-host
-
-   cat > ~/.config/qemu/systemd/bootstrap-direct.qemu.d/10-closure.conf <<EOF
-   [QEMU]
-   append=console=ttyS0 console=hvc0 systemd.ssh_listen=vsock::22 init=$(readlink ~/bootstrap/direct/result)/init
-   EOF
+   $ readlink result
 
 Give ``bootstrap-direct`` its card:
 
@@ -683,14 +675,16 @@ mounts, a context id of its own and no forwarded port, since
 Its drop-in names the same closure, and gives the machine its own
 hostname:
 
-.. code-block:: shell
+.. code-block:: console
    :class: cmd-host
 
-   mkdir --parents ~/.config/qemu/systemd/bootstrap-direct-peer.qemu.d
-   cat > ~/.config/qemu/systemd/bootstrap-direct-peer.qemu.d/10-closure.conf <<EOF
+   $ mkdir --parents ~/.config/qemu/systemd/bootstrap-direct-peer.qemu.d
+
+.. code-block:: ini
+   :caption: ~/.config/qemu/systemd/bootstrap-direct-peer.qemu.d/10-closure.conf
+
    [QEMU]
-   append=console=ttyS0 systemd.hostname=peer systemd.ssh_listen=vsock::22 init=$(readlink ~/bootstrap/direct/result)/init
-   EOF
+   append=console=ttyS0 systemd.hostname=peer systemd.ssh_listen=vsock::22 init=/nix/store/...-nixos-system-bootstrap-.../init
 
 :ref:`Regenerate <host-regenerate>`, :ref:`restart <host-start>`
 ``bootstrap-direct``, start ``bootstrap-direct-peer``, and each reaches
@@ -729,13 +723,12 @@ The console
 
 Add them to the drop-in:
 
-.. code-block:: shell
-   :class: cmd-host
+.. code-block:: diff
+   :caption: ~/.config/qemu/systemd/bootstrap-direct.qemu.d/10-closure.conf
 
-   cat > ~/.config/qemu/systemd/bootstrap-direct.qemu.d/10-closure.conf <<EOF
-   [QEMU]
-   append=console=ttyS0 console=hvc0 systemd.ssh_listen=vsock::22 systemd.tty.term.console=vt220 systemd.tty.rows.console=24 systemd.tty.columns.console=80 init=$(readlink ~/bootstrap/direct/result)/init
-   EOF
+    [QEMU]
+   -append=console=ttyS0 console=hvc0 systemd.ssh_listen=vsock::22 init=/nix/store/...-nixos-system-bootstrap-.../init
+   +append=console=ttyS0 console=hvc0 systemd.ssh_listen=vsock::22 systemd.tty.term.console=vt220 systemd.tty.rows.console=24 systemd.tty.columns.console=80 init=/nix/store/...-nixos-system-bootstrap-.../init
 
 :ref:`Regenerate <host-regenerate>` and :ref:`restart <host-start>`: 7.0
 seconds, and the initrd's share falls from 3.1 to 2.1.
@@ -778,7 +771,7 @@ The closure
    +    "systemd-update-done.service"
    +  ];
 
-Rebuild, and rewrite the drop-in with the new closure:
+Rebuild, and put the new path in the drop-in's ``init=``:
 
 .. code-block:: console
    :class: cmd-host
@@ -788,17 +781,10 @@ Rebuild, and rewrite the drop-in with the new closure:
    $ cp --dereference --force result/initrd initrd
    $ chmod u+w initrd
    $ truncate --size=%4096 initrd
-
-.. code-block:: shell
-   :class: cmd-host
-
-   cat > ~/.config/qemu/systemd/bootstrap-direct.qemu.d/10-closure.conf <<EOF
-   [QEMU]
-   append=console=ttyS0 console=hvc0 systemd.ssh_listen=vsock::22 systemd.tty.term.console=vt220 systemd.tty.rows.console=24 systemd.tty.columns.console=80 init=$(readlink ~/bootstrap/direct/result)/init
-   EOF
+   $ readlink result
 
 5.1 seconds. ``bootstrap-direct-peer`` keeps the closure its own drop-in
-names until you rewrite that one too.
+names until you edit that one too.
 
 More processors
 ---------------
@@ -818,13 +804,12 @@ Quiet
 
 :ref:`fast-quiet` explains what it costs.
 
-.. code-block:: shell
-   :class: cmd-host
+.. code-block:: diff
+   :caption: ~/.config/qemu/systemd/bootstrap-direct.qemu.d/10-closure.conf
 
-   cat > ~/.config/qemu/systemd/bootstrap-direct.qemu.d/10-closure.conf <<EOF
-   [QEMU]
-   append=console=ttyS0 console=hvc0 systemd.ssh_listen=vsock::22 systemd.tty.term.console=vt220 systemd.tty.rows.console=24 systemd.tty.columns.console=80 quiet init=$(readlink ~/bootstrap/direct/result)/init
-   EOF
+    [QEMU]
+   -append=console=ttyS0 console=hvc0 systemd.ssh_listen=vsock::22 systemd.tty.term.console=vt220 systemd.tty.rows.console=24 systemd.tty.columns.console=80 init=/nix/store/...-nixos-system-bootstrap-.../init
+   +append=console=ttyS0 console=hvc0 systemd.ssh_listen=vsock::22 systemd.tty.term.console=vt220 systemd.tty.rows.console=24 systemd.tty.columns.console=80 quiet init=/nix/store/...-nixos-system-bootstrap-.../init
 
 4.7 seconds, half the time this section started from.
 
