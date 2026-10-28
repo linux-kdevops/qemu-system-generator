@@ -161,8 +161,8 @@ lines are read, but still emitted exactly as written:
 
 *device=vfio-pci,...*
 	Grants the service the VFIO device nodes and sets
-	*LimitMEMLOCK=infinity*, since assigned devices pin guest memory; a
-	tighter limit written in *[Service]* replaces it. *vfio-pci-nohotplug*,
+	*LimitMEMLOCK=infinity*, since assigned devices pin guest memory;
+	*GENERATED UNITS* says what still bounds it. *vfio-pci-nohotplug*,
 	*vfio-ccw*, *vfio-ap* and, before QEMU 10.2, *vfio-platform*,
 	*vfio-amd-xgbe* and *vfio-calxeda-xgmac* are read the same way;
 	*vfio-user-pci* reaches its server over a socket and gets neither.
@@ -308,9 +308,17 @@ A VFIO device adds *DeviceAllow=/dev/vfio/vfio rw* and
 *DeviceAllow=char-vfio rw*, which covers every IOMMU group node, and for
 the *iommufd* backend *DeviceAllow=/dev/iommu rw* and
 *DeviceAllow=char-vfio-dev rw*, which covers every node under
-_/dev/vfio/devices/_. It also sets *LimitMEMLOCK=infinity*, which a user
-manager can raise only to the hard limit set for the user
-(*systemd.exec*(5), "Process Properties").
+_/dev/vfio/devices/_. It also sets *LimitMEMLOCK=infinity*.
+
+Under the system manager that limit has no effect: QEMU runs as root,
+and *CAP_IPC_LOCK* lets it pin past any limit, so a tighter
+*LimitMEMLOCK=* written in *[Service]* binds only with
+*CapabilityBoundingSet=~CAP_IPC_LOCK* beside it. A user manager lowers
+the value to the hard limit set for the user, which is
+*DefaultLimitMEMLOCK=*, by default 8 MiB, until PAM or *LimitMEMLOCK=* on
+_user@.service_ raises it (*systemd.exec*(5), "Process Properties").
+With the *iommufd* backend the kernel charges all of the user's guests
+together against that one limit.
 
 The registration names the machine after the file, with class _vm_ and
 service _qemu-system_. It is best effort: without
