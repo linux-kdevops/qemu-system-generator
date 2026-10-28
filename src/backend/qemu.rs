@@ -222,7 +222,7 @@ fn observe<'a>(entries: &[&'a Entry]) -> Result<Observed<'a>, DecodeError> {
     let mut seen = Observed::default();
     for entry in entries {
         match entry.key.as_str() {
-            "machine" => {
+            "machine" | "M" => {
                 seen.microvm |= entry.value.contains("microvm");
                 seen.own_memory_backend |= entry.value.contains("memory-backend=");
             }
@@ -525,6 +525,20 @@ mod tests {
             line.iter()
                 .any(|a| a.starts_with("-device vhost-user-fs-device,"))
         );
+    }
+
+    #[test]
+    fn m_is_machine() {
+        let line =
+            command_line(&decode_text("[QEMU]\nM=microvm\nm=1G\n[virtiofsd]\ntag=a\n").unwrap());
+        assert!(
+            line.iter()
+                .any(|a| a.starts_with("-device vhost-user-fs-device,"))
+        );
+        let line = command_line(
+            &decode_text("[QEMU]\nM=q35,memory-backend=ram\n[virtiofsd]\ntag=a\n").unwrap(),
+        );
+        assert!(line.iter().all(|a| !a.starts_with("-object")));
     }
 
     #[test]

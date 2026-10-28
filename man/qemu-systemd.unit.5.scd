@@ -131,7 +131,7 @@ and fails there; *qemu-system*(1) and *qemu-system-\* -help* are the
 reference, and *systemd-analyze verify* cannot catch it. The following
 lines are read, but still emitted exactly as written:
 
-*machine=*
+*machine=*, *M=*
 	A value containing _microvm_ switches the generated vhost-user-fs
 	device to its virtio-mmio name. A value containing _memory-backend=_
 	tells the generator that the file supplies its own shared memory
