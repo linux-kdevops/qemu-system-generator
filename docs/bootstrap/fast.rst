@@ -17,8 +17,8 @@ A faster boot
      - 8.7 s
      - 5.3 s
    * - :ref:`direct <direct-fast>`
-     - 8.5 s
-     - 4.5 s
+     - 8.4 s
+     - 4.4 s
    * - :ref:`knix <knix-fast>`
      - 7.7 s
      - 1.5 s

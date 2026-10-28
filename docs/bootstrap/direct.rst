@@ -490,9 +490,44 @@ file the guest writes belongs to you on the host:
    $ ls --format=long ~/bootstrap/direct/from-guest
    -rw-r--r-- 1 user user 0 Oct 27 13:47 /home/user/bootstrap/direct/from-guest
 
+.. _direct-link:
+
+10. The closure through the link
+================================
+
+Every rebuild so far meant a new path in ``init=``. The initrd resolves
+``init=`` inside the guest's root and follows symbolic links on the way
+(``initrd-find-nixos-closure`` in nixpkgs'
+``nixos/modules/system/boot/systemd/initrd.nix``), so ``init=`` can name
+the ``result`` link in your home, once the initrd mounts the home:
+
+.. code-block:: diff
+   :caption: ~/bootstrap/direct/home.nix
+
+      fileSystems.${home} = {
+        device = "home";
+        fsType = "virtiofs";
+   +    neededForBoot = true;
+      };
+
+Rebuild, and change the drop-in one last time. ``%h`` is your home on
+the host, and the guest mounts it at the same path:
+
+.. code-block:: diff
+   :caption: ~/.config/qemu/systemd/bootstrap-direct.qemu.d/10-closure.conf
+
+    [QEMU]
+   -append=console=ttyS0 console=hvc0 init=/nix/store/...-nixos-system-bootstrap-.../init
+   +append=console=ttyS0 console=hvc0 init=%h/bootstrap/direct/result/init
+
+:ref:`Regenerate <host-regenerate>` and :ref:`restart <host-start>`.
+From here a change to the guest is a rebuild and a restart, and the
+drop-in stays as it is. The boot now depends on the home share: if it
+fails to mount, the guest stops in the initrd.
+
 .. _direct-peer:
 
-10. A second machine on one network
+11. A second machine on one network
 ===================================
 
 A second machine, ``bootstrap-direct-peer``, joins ``bootstrap-direct`` on a
@@ -519,15 +554,13 @@ addresses (:doc:`network`):
 With ``networking.useNetworkd``, NixOS asks for the user-mode card's
 address over DHCP through systemd-networkd too, from its
 ``99-ethernet-default-dhcp`` network, and the two ``10-`` networks come
-before it. Rebuild, and put the new path and ``/init`` in the drop-in's
-``init=``:
+before it. Rebuild:
 
 .. code-block:: console
    :class: cmd-host
 
    $ cd ~/bootstrap/direct
    $ nix build
-   $ readlink result
 
 Give ``bootstrap-direct`` its card:
 
@@ -581,7 +614,7 @@ mounts, a context id of its own and no forwarded port, since
    uid-map=:0:%U:1:
    gid-map=:0:%G:1:
 
-Its drop-in names the same closure, and gives the machine its own
+Its drop-in names the same link, and gives the machine its own
 hostname:
 
 .. code-block:: console
@@ -593,7 +626,7 @@ hostname:
    :caption: ~/.config/qemu/systemd/bootstrap-direct-peer.qemu.d/10-closure.conf
 
    [QEMU]
-   append=console=ttyS0 systemd.hostname=peer init=/nix/store/...-nixos-system-bootstrap-.../init
+   append=console=ttyS0 systemd.hostname=peer init=%h/bootstrap/direct/result/init
 
 :ref:`Regenerate <host-regenerate>`, :ref:`restart <host-start>`
 ``bootstrap-direct``, start ``bootstrap-direct-peer``, and each reaches
@@ -618,12 +651,12 @@ the other:
 
 .. _direct-fast:
 
-11. A faster boot
+12. A faster boot
 =================
 
 Each step is timed as :ref:`fast-measure` shows.
 
-The machine as it stands takes 8.3 to 8.9 seconds.
+The machine as it stands takes 8.4 to 8.5 seconds.
 
 The console
 -----------
@@ -636,11 +669,11 @@ Add them to the drop-in:
    :caption: ~/.config/qemu/systemd/bootstrap-direct.qemu.d/10-closure.conf
 
     [QEMU]
-   -append=console=ttyS0 console=hvc0 init=/nix/store/...-nixos-system-bootstrap-.../init
-   +append=console=ttyS0 console=hvc0 systemd.tty.term.console=vt220 systemd.tty.rows.console=24 systemd.tty.columns.console=80 init=/nix/store/...-nixos-system-bootstrap-.../init
+   -append=console=ttyS0 console=hvc0 init=%h/bootstrap/direct/result/init
+   +append=console=ttyS0 console=hvc0 systemd.tty.term.console=vt220 systemd.tty.rows.console=24 systemd.tty.columns.console=80 init=%h/bootstrap/direct/result/init
 
-:ref:`Regenerate <host-regenerate>` and :ref:`restart <host-start>`: 6.6
-seconds, and the initrd's share falls from 3.0 to 1.9.
+:ref:`Regenerate <host-regenerate>` and :ref:`restart <host-start>`: 6.3
+seconds, and the initrd's share falls from 2.9 to 2.0.
 
 The store
 ---------
@@ -656,7 +689,7 @@ The store
    +cache=always
     sandbox=namespace
 
-5.5 seconds.
+5.7 seconds.
 
 The closure
 -----------
@@ -680,17 +713,15 @@ The closure
    +    "systemd-update-done.service"
    +  ];
 
-Rebuild, and put the new path and ``/init`` in the drop-in's ``init=``:
+Rebuild and :ref:`restart <host-start>`:
 
 .. code-block:: console
    :class: cmd-host
 
    $ cd ~/bootstrap/direct
    $ nix build
-   $ readlink result
 
-4.9 seconds. ``bootstrap-direct-peer`` keeps the closure its own drop-in
-names until you edit that one too.
+4.9 seconds.
 
 More processors
 ---------------
@@ -703,7 +734,7 @@ systemd starts what it can in parallel:
    -smp=2
    +smp=4
 
-4.8 seconds.
+4.9 seconds, no faster than two processors on this guest.
 
 Quiet
 -----
@@ -714,17 +745,17 @@ Quiet
    :caption: ~/.config/qemu/systemd/bootstrap-direct.qemu.d/10-closure.conf
 
     [QEMU]
-   -append=console=ttyS0 console=hvc0 systemd.tty.term.console=vt220 systemd.tty.rows.console=24 systemd.tty.columns.console=80 init=/nix/store/...-nixos-system-bootstrap-.../init
-   +append=console=ttyS0 console=hvc0 systemd.tty.term.console=vt220 systemd.tty.rows.console=24 systemd.tty.columns.console=80 quiet init=/nix/store/...-nixos-system-bootstrap-.../init
+   -append=console=ttyS0 console=hvc0 systemd.tty.term.console=vt220 systemd.tty.rows.console=24 systemd.tty.columns.console=80 init=%h/bootstrap/direct/result/init
+   +append=console=ttyS0 console=hvc0 systemd.tty.term.console=vt220 systemd.tty.rows.console=24 systemd.tty.columns.console=80 quiet init=%h/bootstrap/direct/result/init
 
-4.5 seconds, about half the time this section started from.
+4.4 seconds, about half the time this section started from.
 
 The initrd still waits about 0.8 seconds on systemd's mount rate limit,
 which this guest cannot lift safely (:ref:`fast-mounts`).
 
 .. _direct-microvm:
 
-12. A microvm
+13. A microvm
 =============
 
 This step is optional, and the machine is no faster for it. QEMU's
@@ -774,7 +805,7 @@ offer virtio 1.0, as a non-transitional PCI device does; QEMU defaults
 to the legacy transport (``force-legacy`` in ``hw/virtio/virtio-mmio.c``).
 Under `KVM`_, microvm leaves the RTC out unless ``rtc=on`` asks for it
 (``hw/i386/microvm.c``). Without it the kernel's RTC probe fails, and
-``/init`` started at 1.51 seconds instead of 0.29 here:
+``/init`` started at 1.50 seconds instead of 0.30 here:
 
 .. code-block:: diff
    :caption: ~/.config/qemu/systemd/bootstrap-direct.qemu
@@ -820,8 +851,8 @@ listener by itself, so ask for one on the kernel command line with
    :caption: ~/.config/qemu/systemd/bootstrap-direct.qemu.d/10-closure.conf
 
     [QEMU]
-   -append=console=ttyS0 console=hvc0 systemd.tty.term.console=vt220 systemd.tty.rows.console=24 systemd.tty.columns.console=80 quiet init=/nix/store/...-nixos-system-bootstrap-.../init
-   +append=console=ttyS0 console=hvc0 systemd.ssh_listen=vsock::22 systemd.tty.term.console=vt220 systemd.tty.rows.console=24 systemd.tty.columns.console=80 quiet init=/nix/store/...-nixos-system-bootstrap-.../init
+   -append=console=ttyS0 console=hvc0 systemd.tty.term.console=vt220 systemd.tty.rows.console=24 systemd.tty.columns.console=80 quiet init=%h/bootstrap/direct/result/init
+   +append=console=ttyS0 console=hvc0 systemd.ssh_listen=vsock::22 systemd.tty.term.console=vt220 systemd.tty.rows.console=24 systemd.tty.columns.console=80 quiet init=%h/bootstrap/direct/result/init
 
 :ref:`Regenerate <host-regenerate>`, :ref:`restart <host-start>` and log in:
 
@@ -834,9 +865,9 @@ listener by itself, so ask for one on the kernel command line with
    Warning: Permanently added 'vsock/47' (ED25519) to the list of known hosts.
    6.18.59
 
-The kernel reaches ``/init`` at 0.29 seconds against 0.49 on q35, and
-the initrd mounts the store at 1.43 seconds against 1.67, but ``ssh``
-answers after 4.8 seconds against 4.5. NixOS's userspace outweighs what
+The kernel reaches ``/init`` at 0.30 seconds against 0.44 on q35, and
+the initrd mounts the store at 1.44 seconds against 1.61, but ``ssh``
+answers after 4.9 seconds against 4.4. NixOS's userspace outweighs what
 microvm saves before it, so this guide, and the others, keep q35.
 ``bootstrap-direct-peer`` stays on q35; the LAN does not depend on the
 machine type.

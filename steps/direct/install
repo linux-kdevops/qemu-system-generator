@@ -7,7 +7,9 @@
 ## latest kernel, the public key of SSH_KEY for root and the machine's
 ## address on the LAN, the machine boots directly; and in
 ## ~/.config/qemu/systemd, VM.qemu, which boots it with the host's Nix
-## store and the home over virtiofs and puts it on the LAN:
+## store and the home over virtiofs and puts it on the LAN, and its
+## drop-in, whose init= follows the result link through the home, so
+## WORKTREES_DIR must lie in it:
 ##
 ##   nix develop --ignore-env --keep-env-var HOME \
 ##       --command steps/direct/install --name bootstrap-direct
@@ -49,3 +51,6 @@ name=$name cid=$cid cpus=$cpus WORKTREES_DIR=$WORKTREES_DIR \
 	envsubst "\$name \$cid \$cpus \$WORKTREES_DIR" \
 	<"$files/machine.qemu" >"$units/$name.qemu"
 rm --recursive --force -- "${units:?}/${name:?}.qemu.d"
+mkdir --parents "$units/$name.qemu.d"
+name=$name WORKTREES_DIR=$WORKTREES_DIR envsubst "\$name \$WORKTREES_DIR" \
+	<"$files/10-closure.conf" >"$units/$name.qemu.d/10-closure.conf"
