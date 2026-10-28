@@ -100,8 +100,8 @@ Create ``~/.config/qemu/systemd/bootstrap-disk.qemu``:
    nographic=
    serial=mon:stdio
 
-Regenerate and start it as :ref:`host-start` shows; the journal has the
-serial console.
+:ref:`Regenerate <host-regenerate>` and :ref:`start <host-start>` it; the
+journal has the serial console.
 
 With nothing to boot, the firmware tries the disk, the CD and the
 network, and gives up:
@@ -154,9 +154,9 @@ Give the machine the disk. ``%h`` is your home directory (`specifiers`_):
 The image is in the store, which is read-only. With ``snapshot=on``,
 what the guest wrote is gone when it stops.
 
-:ref:`Regenerate and start <host-start>`. SeaBIOS finds the disk, GRUB
-loads the kernel and the `initrd`_ with the command line from
-``disk.nix``, and NixOS boots in about 18 seconds:
+:ref:`Regenerate <host-regenerate>` and :ref:`start <host-start>`. SeaBIOS
+finds the disk, GRUB loads the kernel and the `initrd`_ with the command
+line from ``disk.nix``, and NixOS boots in about 18 seconds:
 
 .. code-block:: console
    :class: cmd-guest
@@ -171,8 +171,8 @@ loads the kernel and the `initrd`_ with the command line from
    ...
    <<< Welcome to NixOS qcow2-26.11.20261020.02c087f (x86_64) - ttyS0 >>>
 
-The guest answers the power button now, so stop it the normal way, which
-takes 1.4 seconds:
+The guest answers the power button now, so :ref:`stop it <host-stop>` the
+normal way, which takes 1.4 seconds:
 
 .. code-block:: console
    :class: cmd-host
@@ -206,11 +206,11 @@ writes, so it takes ``snapshot=on`` too:
    +drive=if=pflash,format=raw,snapshot=on,file=%h/bootstrap/disk/ovmf-fd/FV/OVMF_VARS.fd
    +drive=file=%h/bootstrap/disk/efi/bootstrap.qcow2,if=virtio,format=qcow2,snapshot=on
 
-The firmware starts the disk's boot loader, whose menu counts down on
-the serial console. The menu is drawn with terminal escape sequences,
-which :cmd:`journalctl` shows as blob data unless given ``--all``.
-:ref:`Regenerate and start <host-start>`, and follow the journal with
-it:
+The firmware starts the disk's boot loader, whose menu counts down on the
+serial console. The menu is drawn with terminal escape sequences, which
+:cmd:`journalctl` shows as blob data unless given ``--all``.
+:ref:`Regenerate <host-regenerate>` and :ref:`start <host-start>`, and
+follow the journal with it:
 
 .. code-block:: console
    :class: cmd-host
@@ -247,9 +247,10 @@ and add the `vsock`_ device with the context id :ref:`host-ssh` names:
    +nic=user,model=virtio-net-pci-non-transitional,hostfwd=tcp:127.0.0.1:10042-:22
    +device=vhost-vsock-pci-non-transitional,guest-cid=42
 
-Regenerate and restart. :ref:`host-ssh` already names the machine by
-this context id; without that ``Include`` in your ``~/.ssh/config``, the
-forwarded port takes the key on the command line:
+:ref:`Regenerate <host-regenerate>` and :ref:`restart <host-start>`.
+:ref:`host-ssh` already names the machine by this context id; without that
+``Include`` in your ``~/.ssh/config``, the forwarded port takes the key on
+the command line:
 
 .. code-block:: console
    :class: cmd-host
@@ -297,9 +298,10 @@ your home in place of ``/home/user``, and add it to the guest:
    +          ./home.nix
             ];
 
-The mount is part of the image, so build a new one, then regenerate and
-restart. Root's home is now yours, with the two systemd directories
-empty, and a file the guest writes belongs to you on the host:
+The mount is part of the image, so build a new one, then
+:ref:`regenerate <host-regenerate>` and :ref:`restart <host-start>`.
+Root's home is now yours, with the two systemd directories empty, and a
+file the guest writes belongs to you on the host:
 
 .. code-block:: console
    :class: cmd-host

@@ -93,47 +93,81 @@ Then ``ssh bootstrap-disk`` reaches the disk guide's machine once it runs.
 The guests listen for SSH on vsock through
 :cmd:`systemd-ssh-generator(8)`.
 
-.. _host-start:
+.. _host-file:
 
-Starting and stopping a machine
-===============================
+Running a machine
+=================
 
 A ``.qemu`` file is named after the machine, and the unit after the file.
 Each line of :key:`[QEMU]` is one QEMU option with its dash removed, passed
 on as written: ``m=2G`` is ``-m 2G``, and ``nographic=`` with an empty value
 is the bare flag ``-nographic``. :cmd:`qemu-system-x86_64(1)` documents them
 all, and :doc:`qemu-systemd.unit(5) </man/qemu-systemd.unit.5>` the rest of
-the file.
+the file. :doc:`/usage/index` shows what else :cmd:`systemctl`,
+:cmd:`journalctl`, :cmd:`machinectl` and `QMP`_ do with a running machine.
 
-A save takes a moment to reach the path unit, so the guides regenerate by
-hand before starting a machine; the start waits until the reload is done.
-:cmd:`journalctl` shows the serial console:
+.. _host-regenerate:
+
+Regenerating
+------------
+
+The generator turns the ``.qemu`` files into units. Its path unit runs it
+a moment after a ``.qemu`` file changes, but not after a change in a
+drop-in directory, so the guides regenerate by hand after every change:
 
 .. code-block:: console
    :class: cmd-host
 
    $ systemctl --user start qemu-system-generator.service
+
+The start returns once the user manager has loaded the new units.
+
+.. _host-start:
+
+Starting
+--------
+
+Start the machine and follow its serial console in the journal:
+
+.. code-block:: console
+   :class: cmd-host
+
    $ systemctl --user start qemu-system@bootstrap-disk.service
    $ journalctl --user-unit=qemu-system@bootstrap-disk.service --follow
 
-"Regenerate and restart" in a guide means the first line, then
-``systemctl --user restart``.
+A running machine keeps the command line it started with. After
+regenerating, restart it to boot with the new one:
 
-:doc:`/usage/index` shows what else :cmd:`systemctl`, ``journalctl``,
-:cmd:`machinectl` and `QMP`_ do with a running machine.
+.. code-block:: console
+   :class: cmd-host
+
+   $ systemctl --user restart qemu-system@bootstrap-disk.service
+
+.. _host-stop:
+
+Stopping
+--------
+
+``systemctl --user stop`` presses the guest's power button and waits up
+to two minutes for QEMU to exit. A guest whose operating system runs
+answers it:
+
+.. code-block:: console
+   :class: cmd-host
+
+   $ systemctl --user stop qemu-system@bootstrap-disk.service
 
 .. _host-poweroff:
 
-:key:`[VM]` holds what is not a QEMU option. With
-:key:`SshPrivateKey=` there, stopping the machine first runs ``systemctl
-poweroff`` in the guest over vsock, and presses the power button only if
-that fails.
+With :key:`SshPrivateKey=` in :key:`[VM]`, which holds what is not a QEMU
+option, the stop first runs ``systemctl poweroff`` in the guest over
+vsock, and presses the power button only if that fails.
 
 .. _host-kill:
 
-``systemctl --user stop`` presses the power button and waits two minutes
-for a guest that cannot answer it yet. Kill such a guest instead; QEMU
-exits on ``SIGTERM``:
+Firmware with nothing to boot, or a guest still booting, does not answer
+the power button, and the stop would wait the full two minutes. Kill such
+a guest instead; QEMU exits on ``SIGTERM``:
 
 .. code-block:: console
    :class: cmd-host

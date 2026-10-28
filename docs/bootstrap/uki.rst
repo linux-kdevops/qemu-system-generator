@@ -145,8 +145,8 @@ Create ``~/.config/qemu/systemd/bootstrap-uki.qemu``:
    uid-map=:0:%U:1:
    gid-map=:0:%G:1:
 
-Regenerate and start it as :ref:`host-start` shows; the journal has the
-serial console.
+:ref:`Regenerate <host-regenerate>` and :ref:`start <host-start>` it; the
+journal has the serial console.
 
 The second flash device holds OVMF's variable store, which the firmware
 writes; with ``snapshot=on``, QEMU writes to a temporary file instead.
@@ -201,8 +201,8 @@ Share the host's store under the tag ``store``:
    +uid-map=:0:%U:1:
    +gid-map=:0:%G:1:
 
-:ref:`Regenerate and start <host-start>`. NixOS boots in about 14
-seconds:
+:ref:`Regenerate <host-regenerate>` and :ref:`start <host-start>`. NixOS
+boots in about 14 seconds:
 
 .. code-block:: console
    :class: cmd-guest
@@ -216,8 +216,8 @@ seconds:
 
    <<< Welcome to NixOS 26.11.20261020.02c087f (x86_64) - ttyS0 >>>
 
-The guest answers the power button now, so stop it the normal way, which
-takes 1.8 seconds:
+The guest answers the power button now, so :ref:`stop it <host-stop>` the
+normal way, which takes 1.8 seconds:
 
 .. code-block:: console
    :class: cmd-host
@@ -239,9 +239,10 @@ and add the `vsock`_ device with the context id :ref:`host-ssh` names:
    +nic=user,model=virtio-net-pci-non-transitional,hostfwd=tcp:127.0.0.1:10046-:22
    +device=vhost-vsock-pci-non-transitional,guest-cid=46
 
-Regenerate and restart. :ref:`host-ssh` already names the machine by
-this context id; without that ``Include`` in your ``~/.ssh/config``, the
-forwarded port takes the key on the command line:
+:ref:`Regenerate <host-regenerate>` and :ref:`start <host-start>`.
+:ref:`host-ssh` already names the machine by this context id; without that
+``Include`` in your ``~/.ssh/config``, the forwarded port takes the key on
+the command line:
 
 .. code-block:: console
    :class: cmd-host
@@ -290,7 +291,8 @@ your home in place of ``/home/user``, and add it to the guest:
    +          ./home.nix
             ];
 
-Rebuild, regenerate and restart. Root's home is now yours, with the two
+Rebuild, :ref:`regenerate <host-regenerate>` and
+:ref:`restart <host-start>`. Root's home is now yours, with the two
 systemd directories empty, and a file the guest writes belongs to you on
 the host:
 

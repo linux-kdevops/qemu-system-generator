@@ -120,8 +120,8 @@ the closure's kernel and initrd; ``%h`` is your home directory
    initrd=%h/bootstrap/direct/result/initrd
    append=console=ttyS0
 
-Regenerate and start it as :ref:`host-start` shows; the journal has the
-serial console.
+:ref:`Regenerate <host-regenerate>` and :ref:`start <host-start>` it; the
+journal has the serial console.
 
 No boot loader reads the closure's command line, so ``append=`` is all
 the kernel gets. `Linux`_ boots, and the initrd stops where it looks for the
@@ -178,8 +178,8 @@ Add both, with your own path in ``init=``:
 The :key:`[virtiofsd]` section runs a daemon that shares the store
 without root (:ref:`host-virtiofsd`).
 
-:ref:`Regenerate and start <host-start>`. NixOS boots in about 14
-seconds:
+:ref:`Regenerate <host-regenerate>` and :ref:`start <host-start>`. NixOS
+boots in about 14 seconds:
 
 .. code-block:: console
    :class: cmd-guest
@@ -201,7 +201,8 @@ The daemon came up with the machine:
      virtiofsd@bootstrap-direct-store.service loaded active running virtiofsd Service for bootstrap-direct-store
      virtiofsd@bootstrap-direct-store.socket  loaded active running virtiofsd Socket for bootstrap-direct-store
 
-The guest answers the power button now, so stop it the normal way:
+The guest answers the power button now, so :ref:`stop it <host-stop>` the
+normal way:
 
 .. code-block:: console
    :class: cmd-host
@@ -231,8 +232,8 @@ Forward a local port to the guest's SSH over QEMU's `user-mode network`_:
     append=console=ttyS0 init=/nix/store/i7s2903dhm9g5z73vkcbpggmv1iqnvwy-nixos-system-bootstrap-26.11.20261020.02c087f/init
    +nic=user,model=virtio-net-pci-non-transitional,hostfwd=tcp:127.0.0.1:10047-:22
 
-Regenerate, restart with ``systemctl --user restart``, and log in with
-:cmd:`ssh`:
+:ref:`Regenerate <host-regenerate>`, :ref:`start <host-start>`, and log
+in with :cmd:`ssh`:
 
 .. code-block:: console
    :class: cmd-host
@@ -376,8 +377,7 @@ anything:
    ---virtiofsd@bootstrap-direct-store.service---
    ...
 
-The path unit does not watch the drop-in directory, so regenerate by
-hand after rewriting it.
+:ref:`Regenerate <host-regenerate>` by hand after rewriting the drop-in.
 
 .. _direct-settings:
 
@@ -452,9 +452,9 @@ your home in place of ``/home/user``, and add it to the guest:
             ];
 
 Rebuild, rewrite the drop-in as in :ref:`step 7 <direct-drop-in>`,
-regenerate and restart. Root's home is now yours, with the two systemd
-directories empty, and a file the guest writes belongs to you on the
-host:
+:ref:`regenerate <host-regenerate>` and :ref:`restart <host-start>`.
+Root's home is now yours, with the two systemd directories empty, and a
+file the guest writes belongs to you on the host:
 
 .. code-block:: console
    :class: cmd-host
@@ -555,7 +555,7 @@ closure and that option:
    append=console=ttyS0 console=hvc0 systemd.ssh_listen=vsock::22 init=$(readlink ~/bootstrap/direct/result)/init
    EOF
 
-Regenerate, restart and log in:
+:ref:`Regenerate <host-regenerate>`, :ref:`restart <host-start>` and log in:
 
 .. code-block:: console
    :class: cmd-host
@@ -685,8 +685,9 @@ hostname:
    append=console=ttyS0 systemd.hostname=peer systemd.ssh_listen=vsock::22 init=$(readlink ~/bootstrap/direct/result)/init
    EOF
 
-Regenerate, restart ``bootstrap-direct``, start ``bootstrap-direct-peer``,
-and each reaches the other:
+:ref:`Regenerate <host-regenerate>`, :ref:`restart <host-start>`
+``bootstrap-direct``, start ``bootstrap-direct-peer``, and each reaches
+the other:
 
 .. code-block:: console
    :class: cmd-host
@@ -729,8 +730,8 @@ Add them to the drop-in:
    append=console=ttyS0 console=hvc0 systemd.ssh_listen=vsock::22 systemd.tty.term.console=vt220 systemd.tty.rows.console=24 systemd.tty.columns.console=80 init=$(readlink ~/bootstrap/direct/result)/init
    EOF
 
-Regenerate and restart: 7.0 seconds, and the initrd's share falls from
-3.1 to 2.1.
+:ref:`Regenerate <host-regenerate>` and :ref:`restart <host-start>`: 7.0
+seconds, and the initrd's share falls from 3.1 to 2.1.
 
 The store
 ---------

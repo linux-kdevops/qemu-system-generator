@@ -211,8 +211,8 @@ the command line:
        ~/bootstrap/knix/guest/result/boot.json \
        > ~/.config/qemu/systemd/bootstrap-knix.qemu.d/10-closure.conf
 
-Regenerate and start it as :ref:`host-start` shows; the journal has the
-serial console.
+:ref:`Regenerate <host-regenerate>` and :ref:`start <host-start>` it; the
+journal has the serial console.
 
 :ref:`host-ssh` already names the machine by its context id. Log in and
 look at the shares:
@@ -230,7 +230,8 @@ look at the shares:
    /home/user   home    virtiofs
 
 After a kernel rebuild, ``make modules_install`` again and restart. After
-a closure rebuild, rerun the ``jq`` command, regenerate and restart; the
+a closure rebuild, rerun the ``jq`` command,
+:ref:`regenerate <host-regenerate>` and :ref:`restart <host-start>`; the
 path unit does not watch the drop-in directory.
 
 .. _knix-qemu:
@@ -248,7 +249,8 @@ the first word of :cmd:`ExecStart=`:
    +QemuBinary=%h/bootstrap/knix/qemu-install/bin/qemu-system-x86_64
     SshPrivateKey=%h/bootstrap/system/ssh/id_ed25519
 
-Regenerate and restart, then check which binary runs:
+:ref:`Regenerate <host-regenerate>` and :ref:`restart <host-start>`, then
+check which binary runs:
 
 .. code-block:: console
    :class: cmd-host
@@ -370,8 +372,9 @@ hostname:
        ~/bootstrap/knix/guest/result/boot.json \
        > ~/.config/qemu/systemd/bootstrap-knix-peer.qemu.d/10-closure.conf
 
-Regenerate, restart ``bootstrap-knix``, start ``bootstrap-knix-peer``, and each
-reaches the other:
+:ref:`Regenerate <host-regenerate>`, :ref:`restart <host-start>`
+``bootstrap-knix``, start ``bootstrap-knix-peer``, and each reaches the
+other:
 
 .. code-block:: console
    :class: cmd-host
@@ -499,7 +502,8 @@ The console
        ~/bootstrap/knix/guest/result/boot.json \
        > ~/.config/qemu/systemd/bootstrap-knix.qemu.d/10-closure.conf
 
-Regenerate and restart: 5.6 seconds.
+:ref:`Regenerate <host-regenerate>` and :ref:`restart <host-start>`: 5.6
+seconds.
 
 The store
 ---------

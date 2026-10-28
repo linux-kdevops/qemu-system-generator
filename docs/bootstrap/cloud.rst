@@ -682,8 +682,9 @@ only, so the first machine's meta-data gets a new one:
          instance-id: cloud-ubuntu-peer
          local-hostname: cloud-ubuntu-peer
 
-Write both seeds, regenerate, restart the first machine and start the
-peer, and each reaches the other:
+Write both seeds, :ref:`regenerate <host-regenerate>`,
+:ref:`start <host-start>` the first machine and the peer, and each
+reaches the other:
 
 .. tab-set::
    :sync-group: distro
@@ -703,7 +704,7 @@ peer, and each reaches the other:
              ~/.local/state/qemu-system/cloud-debian-peer/seed.iso \
              ~/bootstrap/cloud/user-data ~/bootstrap/cloud/cloud-debian-peer.meta-data
          $ systemctl --user start qemu-system-generator.service
-         $ systemctl --user restart qemu-system@cloud-debian.service
+         $ systemctl --user start qemu-system@cloud-debian.service
          $ systemctl --user start qemu-system@cloud-debian-peer.service
          $ ssh cloud-debian ping -c 1 10.0.100.51
          PING 10.0.100.51 (10.0.100.51) 56(84) bytes of data.
@@ -729,7 +730,7 @@ peer, and each reaches the other:
              ~/.local/state/qemu-system/cloud-fedora-peer/seed.iso \
              ~/bootstrap/cloud/user-data ~/bootstrap/cloud/cloud-fedora-peer.meta-data
          $ systemctl --user start qemu-system-generator.service
-         $ systemctl --user restart qemu-system@cloud-fedora.service
+         $ systemctl --user start qemu-system@cloud-fedora.service
          $ systemctl --user start qemu-system@cloud-fedora-peer.service
          $ ssh cloud-fedora ping -c 1 10.0.100.52
          PING 10.0.100.52 (10.0.100.52) 56(84) bytes of data.
@@ -755,7 +756,7 @@ peer, and each reaches the other:
              ~/.local/state/qemu-system/cloud-ubuntu-peer/seed.iso \
              ~/bootstrap/cloud/user-data ~/bootstrap/cloud/cloud-ubuntu-peer.meta-data
          $ systemctl --user start qemu-system-generator.service
-         $ systemctl --user restart qemu-system@cloud-ubuntu.service
+         $ systemctl --user start qemu-system@cloud-ubuntu.service
          $ systemctl --user start qemu-system@cloud-ubuntu-peer.service
          $ ssh cloud-ubuntu ping -c 1 10.0.100.53
          PING 10.0.100.53 (10.0.100.53) 56(84) bytes of data.
@@ -844,10 +845,10 @@ a new one:
          instance-id: cloud-ubuntu-home
          local-hostname: cloud-ubuntu
 
-Write its seed again, with its network configuration, then regenerate and
-restart. Root's home is now yours, with the two systemd directories and
-``~/.ssh`` covered, and a file root writes there belongs to you on the
-host:
+Write its seed again, with its network configuration, then
+:ref:`regenerate <host-regenerate>` and :ref:`restart <host-start>`.
+Root's home is now yours, with the two systemd directories and ``~/.ssh``
+covered, and a file root writes there belongs to you on the host:
 
 .. tab-set::
    :sync-group: distro
