@@ -154,9 +154,9 @@ Give the machine the disk. ``%h`` is your home directory (`specifiers`_):
 The image is in the store, which is read-only. With ``snapshot=on``,
 what the guest wrote is gone when it stops.
 
-Regenerate and start as in :ref:`step 1 <disk-machine>`. SeaBIOS finds
-the disk, GRUB loads the kernel and the `initrd`_ with the command line
-from ``disk.nix``, and NixOS boots in about 18 seconds:
+:ref:`Regenerate and start <host-start>`. SeaBIOS finds the disk, GRUB
+loads the kernel and the `initrd`_ with the command line from
+``disk.nix``, and NixOS boots in about 18 seconds:
 
 .. code-block:: console
    :class: cmd-guest
@@ -206,8 +206,16 @@ writes, so it takes ``snapshot=on`` too:
    +drive=if=pflash,format=raw,snapshot=on,file=%h/bootstrap/disk/ovmf-fd/FV/OVMF_VARS.fd
    +drive=file=%h/bootstrap/disk/efi/bootstrap.qcow2,if=virtio,format=qcow2,snapshot=on
 
-Regenerate and start. The firmware starts the disk's boot loader, whose
-menu counts down on the serial console:
+The firmware starts the disk's boot loader, whose menu counts down on
+the serial console. The menu is drawn with terminal escape sequences,
+which :cmd:`journalctl` shows as blob data unless given ``--all``.
+:ref:`Regenerate and start <host-start>`, and follow the journal with
+it:
+
+.. code-block:: console
+   :class: cmd-host
+
+   $ journalctl --user-unit=qemu-system@bootstrap-disk.service --follow --all
 
 .. code-block:: console
    :class: cmd-guest
@@ -219,6 +227,10 @@ menu counts down on the serial console:
    Boot in 5s.
    ...
    <<< Welcome to NixOS efi-qcow2-26.11.20261020.02c087f (x86_64) - ttyS0 >>>
+
+From here on the machine boots ``efi``. After a change to the Nix
+configuration, rebuild it with ``nix build .#efi --out-link efi``; a
+plain ``nix build`` rebuilds only the SeaBIOS image.
 
 .. _disk-ssh:
 

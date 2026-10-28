@@ -178,7 +178,8 @@ Add both, with your own path in ``init=``:
 The :key:`[virtiofsd]` section runs a daemon that shares the store
 without root (:ref:`host-virtiofsd`).
 
-Regenerate and start. NixOS boots in about 14 seconds:
+:ref:`Regenerate and start <host-start>`. NixOS boots in about 14
+seconds:
 
 .. code-block:: console
    :class: cmd-guest

@@ -201,7 +201,8 @@ Share the host's store under the tag ``store``:
    +uid-map=:0:%U:1:
    +gid-map=:0:%G:1:
 
-Regenerate and start. NixOS boots in about 14 seconds:
+:ref:`Regenerate and start <host-start>`. NixOS boots in about 14
+seconds:
 
 .. code-block:: console
    :class: cmd-guest
