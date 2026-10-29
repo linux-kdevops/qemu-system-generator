@@ -130,7 +130,7 @@ key from ``~/bootstrap/system/ssh/id_ed25519.pub`` into ``default.nix``:
 
    $ nix build .#toplevel
 
-This closure has no ``kernel`` or ``initrd`` link. Its ``boot.json``, a NixOS
+This closure has no ``kernel`` link. Its ``boot.json``, a NixOS
 `bootspec`_ document, names the initrd and ``init``:
 
 .. code-block:: console
@@ -422,18 +422,12 @@ other:
 ============================
 
 Every closure rebuild so far meant two new paths in each drop-in. QEMU
-reads ``initrd=`` on the host, so it can name a link there. The initrd
-resolves ``init=`` inside the guest's root and follows symbolic links on
-the way (``initrd-find-nixos-closure`` in nixpkgs'
+reads ``initrd=`` on the host, so it can name the closure's ``initrd``
+link, ``result/initrd``. The initrd resolves ``init=`` inside the
+guest's root and follows symbolic links on the way
+(``initrd-find-nixos-closure`` in nixpkgs'
 ``nixos/modules/system/boot/systemd/initrd.nix``), so ``init=`` can name
-``result`` in your home, once the initrd mounts the home. The closure
-has no ``initrd`` link, so build the initrd as a package of its own:
-
-.. code-block:: diff
-   :caption: ~/bootstrap/knix/guest/flake.nix
-
-            toplevel = self.nixosConfigurations.vm.config.system.build.toplevel;
-   +        initrd = self.nixosConfigurations.vm.config.system.build.initialRamdisk;
+``result`` in your home, once the initrd mounts the home:
 
 .. code-block:: diff
    :caption: ~/bootstrap/knix/guest/home.nix
@@ -444,14 +438,13 @@ has no ``initrd`` link, so build the initrd as a package of its own:
    +    neededForBoot = true;
       };
 
-Rebuild the closure and the initrd:
+Rebuild the closure:
 
 .. code-block:: console
    :class: cmd-host
 
    $ cd ~/bootstrap/knix/guest
    $ nix build .#toplevel
-   $ nix build .#initrd --out-link initrd
 
 Change each drop-in one last time. ``%h`` is your home on the host, and
 the guest mounts it at the same path:
@@ -462,7 +455,7 @@ the guest mounts it at the same path:
     [QEMU]
    -initrd=/nix/store/...-initrd-linux-.../initrd
    -append=root=tmpfs console=ttyS0 init=/nix/store/...-nixos-system-bootstrap-.../init
-   +initrd=%h/bootstrap/knix/guest/initrd/initrd
+   +initrd=%h/bootstrap/knix/guest/result/initrd
    +append=root=tmpfs console=ttyS0 init=%h/bootstrap/knix/guest/result/init
 
 .. code-block:: diff
@@ -471,11 +464,11 @@ the guest mounts it at the same path:
     [QEMU]
    -initrd=/nix/store/...-initrd-linux-.../initrd
    -append=root=tmpfs console=ttyS0 systemd.hostname=peer init=/nix/store/...-nixos-system-bootstrap-.../init
-   +initrd=%h/bootstrap/knix/guest/initrd/initrd
+   +initrd=%h/bootstrap/knix/guest/result/initrd
    +append=root=tmpfs console=ttyS0 systemd.hostname=peer init=%h/bootstrap/knix/guest/result/init
 
 :ref:`Regenerate <host-regenerate>` and :ref:`restart <host-start>` both.
-From here a change to the guest is the two builds above and a restart,
+From here a change to the guest is the build above and a restart,
 and the drop-ins stay as they are. The boot now depends on the home
 share: if it fails to mount, the guest stops in the initrd.
 
@@ -582,7 +575,7 @@ The console
    :caption: ~/.config/qemu/systemd/bootstrap-knix.qemu.d/10-closure.conf
 
     [QEMU]
-    initrd=%h/bootstrap/knix/guest/initrd/initrd
+    initrd=%h/bootstrap/knix/guest/result/initrd
    -append=root=tmpfs console=ttyS0 init=%h/bootstrap/knix/guest/result/init
    +append=root=tmpfs console=ttyS0 systemd.tty.term.console=vt220 systemd.tty.rows.console=24 systemd.tty.columns.console=80 init=%h/bootstrap/knix/guest/result/init
 
@@ -631,7 +624,7 @@ This kernel has virtiofs built in, so the limit can go
    :caption: ~/.config/qemu/systemd/bootstrap-knix.qemu.d/10-closure.conf
 
     [QEMU]
-    initrd=%h/bootstrap/knix/guest/initrd/initrd
+    initrd=%h/bootstrap/knix/guest/result/initrd
    -append=root=tmpfs console=ttyS0 systemd.tty.term.console=vt220 systemd.tty.rows.console=24 systemd.tty.columns.console=80 init=%h/bootstrap/knix/guest/result/init
    +append=root=tmpfs console=ttyS0 systemd.tty.term.console=vt220 systemd.tty.rows.console=24 systemd.tty.columns.console=80 SYSTEMD_DEFAULT_MOUNT_RATE_LIMIT_BURST=1000 init=%h/bootstrap/knix/guest/result/init
 
@@ -665,7 +658,6 @@ tells it this is not one (:cmd:`kernel-command-line(7)`).
 
    $ cd ~/bootstrap/knix/guest
    $ nix build .#toplevel
-   $ nix build .#initrd --out-link initrd
 
 Add the option to the drop-in:
 
@@ -673,7 +665,7 @@ Add the option to the drop-in:
    :caption: ~/.config/qemu/systemd/bootstrap-knix.qemu.d/10-closure.conf
 
     [QEMU]
-    initrd=%h/bootstrap/knix/guest/initrd/initrd
+    initrd=%h/bootstrap/knix/guest/result/initrd
    -append=root=tmpfs console=ttyS0 systemd.tty.term.console=vt220 systemd.tty.rows.console=24 systemd.tty.columns.console=80 SYSTEMD_DEFAULT_MOUNT_RATE_LIMIT_BURST=1000 init=%h/bootstrap/knix/guest/result/init
    +append=root=tmpfs console=ttyS0 systemd.tty.term.console=vt220 systemd.tty.rows.console=24 systemd.tty.columns.console=80 SYSTEMD_DEFAULT_MOUNT_RATE_LIMIT_BURST=1000 systemd.condition_first_boot=false init=%h/bootstrap/knix/guest/result/init
 
@@ -688,7 +680,7 @@ Quiet
    :caption: ~/.config/qemu/systemd/bootstrap-knix.qemu.d/10-closure.conf
 
     [QEMU]
-    initrd=%h/bootstrap/knix/guest/initrd/initrd
+    initrd=%h/bootstrap/knix/guest/result/initrd
    -append=root=tmpfs console=ttyS0 systemd.tty.term.console=vt220 systemd.tty.rows.console=24 systemd.tty.columns.console=80 SYSTEMD_DEFAULT_MOUNT_RATE_LIMIT_BURST=1000 systemd.condition_first_boot=false init=%h/bootstrap/knix/guest/result/init
    +append=root=tmpfs console=ttyS0 systemd.tty.term.console=vt220 systemd.tty.rows.console=24 systemd.tty.columns.console=80 SYSTEMD_DEFAULT_MOUNT_RATE_LIMIT_BURST=1000 systemd.condition_first_boot=false quiet init=%h/bootstrap/knix/guest/result/init
 
@@ -759,7 +751,7 @@ closure's path:
    :caption: ~/.config/qemu/systemd/bootstrap-knix.qemu.d/10-closure.conf
 
     [QEMU]
-   -initrd=%h/bootstrap/knix/guest/initrd/initrd
+   -initrd=%h/bootstrap/knix/guest/result/initrd
    -append=root=tmpfs console=ttyS0 systemd.tty.term.console=vt220 systemd.tty.rows.console=24 systemd.tty.columns.console=80 SYSTEMD_DEFAULT_MOUNT_RATE_LIMIT_BURST=1000 systemd.condition_first_boot=false quiet init=%h/bootstrap/knix/guest/result/init
    +initrd=%h/bootstrap/knix/tiny.cpio
    +append=console=ttyS0 systemd.tty.term.console=vt220 systemd.tty.rows.console=24 systemd.tty.columns.console=80 SYSTEMD_DEFAULT_MOUNT_RATE_LIMIT_BURST=1000 systemd.condition_first_boot=false quiet CLOSURE=/nix/store/...-nixos-system-bootstrap-...

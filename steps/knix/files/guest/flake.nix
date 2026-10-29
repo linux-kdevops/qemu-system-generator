@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: copyleft-next-0.3.1
 {
-  inputs.knix.url = "github:linux-kdevops/knix/0c95b7e564bda2d1ca91d5e8e832ea11508d97dd";
+  inputs.knix.url = "github:linux-kdevops/knix/8816d6c12b9b422812757d0e6ed5508e5eff8971";
   inputs.nixpkgs.follows = "knix/nixpkgs";
 
   outputs =
@@ -22,6 +22,5 @@
         ];
       };
       packages.x86_64-linux.toplevel = self.nixosConfigurations.vm.config.system.build.toplevel;
-      packages.x86_64-linux.initrd = self.nixosConfigurations.vm.config.system.build.initialRamdisk;
     };
 }
