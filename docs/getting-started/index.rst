@@ -5,8 +5,10 @@ Getting started
 ===============
 
 :doc:`requirements` lists what the host needs, :doc:`installation`
-installs the generator per user, system-wide or on `NixOS`_, and
-:doc:`quickstart` boots a distribution's cloud image.
+installs the generator per user, system-wide or on `NixOS`_,
+:doc:`quickstart` boots a distribution's cloud image, and
+:doc:`example` writes out every file of a NixOS guest on your own
+kernel.
 
 .. toctree::
    :maxdepth: 1
@@ -14,5 +16,6 @@ installs the generator per user, system-wide or on `NixOS`_, and
    requirements
    installation
    quickstart
+   example
 
 .. _NixOS: https://nixos.org/manual/nixos/stable/
