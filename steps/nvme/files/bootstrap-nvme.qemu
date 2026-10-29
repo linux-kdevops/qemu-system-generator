@@ -1,0 +1,49 @@
+# SPDX-License-Identifier: copyleft-next-0.3.1
+[QEMU]
+machine=q35
+nodefaults=
+accel=kvm
+cpu=host
+m=2G
+smp=4
+nographic=
+serial=mon:stdio
+kernel=$WORKTREES_DIR/nvme/result/kernel
+initrd=$WORKTREES_DIR/nvme/result/initrd
+device=vhost-vsock-pci-non-transitional,guest-cid=56
+drive=file=nvme0.qcow2,if=none,format=qcow2,discard=unmap,detect-zeroes=unmap,id=nvme0
+device=nvme,serial=nvme0,drive=nvme0,logical_block_size=4096,physical_block_size=4096,mdts=9
+# aio=native opens only with O_DIRECT, which cache=none sets.
+drive=file=nvme1.raw,if=none,format=raw,aio=native,cache=none,file.aio-max-batch=32,id=nvme1
+device=nvme,serial=nvme1,drive=nvme1,max_ioqpairs=2
+drive=file=nvme2.raw,if=none,format=raw,aio=io_uring,cache=none,id=nvme2
+device=nvme,serial=nvme2,drive=nvme2,logical_block_size=4096,physical_block_size=4096
+drive=driver=null-co,if=none,size=20G,read-zeroes=on,id=nvme3
+device=nvme,serial=nvme3,drive=nvme3,mdts=9,ioeventfd=on,logical_block_size=4096,physical_block_size=4096,min_io_size=4096,opt_io_size=4096,discard_granularity=4096
+drive=driver=null-aio,if=none,size=20G,read-zeroes=on,id=nvme4
+device=nvme,serial=nvme4,drive=nvme4,mdts=9,ioeventfd=on,logical_block_size=4096,physical_block_size=4096,min_io_size=4096,opt_io_size=4096,discard_granularity=4096
+device=nvme,id=nvme5,serial=nvme5
+drive=file=nvme5n1.qcow2,if=none,format=qcow2,id=nvme5n1
+device=nvme-ns,drive=nvme5n1,bus=nvme5,nsid=1,logical_block_size=4096,physical_block_size=4096,ms=8,pi=1
+object=memory-backend-file,id=nvme6-pmr,mem-path=nvme6-pmr.img,size=16M,share=on
+device=nvme,id=nvme6,serial=nvme6,cmb_size_mb=64,pmrdev=nvme6-pmr
+drive=file=nvme6n1.qcow2,if=none,format=qcow2,id=nvme6n1
+device=nvme-ns,drive=nvme6n1,bus=nvme6,nsid=1,logical_block_size=4096,physical_block_size=4096,atomic.nawun=31,atomic.nawupf=31
+# An nvme-subsys id must not name one of its properties, such as fdp:
+# QEMU 11.1 aborts on the duplicate property.
+device=nvme-subsys,id=subsys-fdp,nqn=fdp,fdp=on,fdp.nruh=8
+device=nvme,id=nvme7,serial=nvme7,subsys=subsys-fdp
+drive=file=nvme7n1.qcow2,if=none,format=qcow2,id=nvme7n1
+device=nvme-ns,drive=nvme7n1,bus=nvme7,nsid=1,fdp.ruhs=0-7
+device=nvme-subsys,id=subsys-mpath,nqn=mpath
+device=nvme,id=nvme8,serial=mpath,subsys=subsys-mpath
+device=nvme,id=nvme9,serial=mpath,subsys=subsys-mpath
+drive=file=mpathn1.qcow2,if=none,format=qcow2,id=mpathn1
+device=nvme-ns,drive=mpathn1,bus=nvme8,nsid=1
+
+[virtiofsd]
+shared-dir=/nix/store
+tag=store
+sandbox=namespace
+uid-map=:0:%U:1:
+gid-map=:0:%G:1:

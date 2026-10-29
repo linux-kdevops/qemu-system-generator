@@ -1,0 +1,43 @@
+#!/usr/bin/env bash
+# SPDX-License-Identifier: copyleft-next-0.3.1
+## Usage: steps/nvme/build [--base FILE]
+##
+## Build bootstrap-nvme's system closure in WORKTREES_DIR/nvme, linked as
+## result; write the drop-in that hands its init to the kernel; and lay
+## fresh, empty images for the NVMe namespaces that have a file in the
+## machine's state directory, ~/.local/state/qemu-system/bootstrap-nvme:
+##
+##   nix develop --ignore-env --keep-env-var HOME \
+##       --command steps/nvme/build
+set -o errexit -o nounset -o pipefail
+
+while [ $# -gt 0 ]; do
+	case $1 in
+	--base) base=$2 ;;
+	*) sed --quiet 's/^## \{0,1\}//p' "$0" >&2 && exit 2 ;;
+	esac
+	shift 2
+done
+# shellcheck source=/dev/null
+[ -z "${base-}" ] || . "$base"
+# shellcheck source=steps/base
+. "$(dirname "$0")/../base"
+units=$HOME/.config/qemu/systemd
+files=$(realpath "$(dirname "$0")/files")
+state=$HOME/.local/state/qemu-system/bootstrap-nvme
+
+set -o xtrace
+cd "$WORKTREES_DIR/nvme"
+nix build
+mkdir --parents "$units/bootstrap-nvme.qemu.d" "$state"
+closure=$(readlink result) envsubst "\$closure" \
+	<"$files/10-closure.conf" >"$units/bootstrap-nvme.qemu.d/10-closure.conf"
+cd "$state"
+rm --force -- nvme0.qcow2 nvme1.raw nvme2.raw nvme5n1.qcow2 nvme6n1.qcow2 nvme7n1.qcow2 \
+	mpathn1.qcow2
+for image in nvme1 nvme2; do
+	qemu-img create --format=raw "$image.raw" 1G
+done
+for image in nvme0 nvme5n1 nvme6n1 nvme7n1 mpathn1; do
+	qemu-img create --format=qcow2 "$image.qcow2" 1G
+done

@@ -1,0 +1,58 @@
+#!/usr/bin/env bash
+# SPDX-License-Identifier: copyleft-next-0.3.1
+## Usage: steps/nvme/check [--base FILE]
+##
+## Log in to the running bootstrap-nvme, list its NVMe subsystems, and
+## check in sysfs that its kernel sees each controller's namespace as
+## bootstrap-nvme.qemu configures it:
+##
+##   nix develop --ignore-env --keep-env-var HOME \
+##       --command steps/nvme/check
+set -o errexit -o nounset -o pipefail
+
+while [ $# -gt 0 ]; do
+	case $1 in
+	--base) base=$2 ;;
+	*) sed --quiet 's/^## \{0,1\}//p' "$0" >&2 && exit 2 ;;
+	esac
+	shift 2
+done
+# shellcheck source=/dev/null
+[ -z "${base-}" ] || . "$base"
+# shellcheck source=steps/base
+. "$(dirname "$0")/../base"
+guest=(ssh -F "$SSH_DIR/config" bootstrap-nvme)
+
+# Namespace 1 of the controller with serial $1, by udev's link: the
+# kernel numbers controllers in the order their probes finish.
+dev() {
+	echo "/dev/disk/by-id/nvme-QEMU_NVMe_Ctrl_$1_1"
+}
+ns() {
+	echo "/sys\$(udevadm info --query=path --name=$(dev "$1"))"
+}
+
+set -o xtrace
+"${guest[@]}" nvme list-subsys
+[ "$("${guest[@]}" cat "$(ns nvme0)/queue/logical_block_size")" = 4096 ]
+[ "$("${guest[@]}" cat "$(ns nvme0)/queue/max_hw_sectors_kb")" = 2048 ]
+[ "$("${guest[@]}" cat "$(ns nvme1)/queue/logical_block_size")" = 512 ]
+[ "$("${guest[@]}" ls "$(ns nvme1)/mq" | wc --lines)" = 2 ]
+[ "$("${guest[@]}" cat "$(ns nvme2)/queue/logical_block_size")" = 4096 ]
+for serial in nvme3 nvme4; do
+	[ "$("${guest[@]}" cat "$(ns $serial)/queue/logical_block_size")" = 4096 ]
+	[ "$("${guest[@]}" cat "$(ns $serial)/queue/max_hw_sectors_kb")" = 2048 ]
+	[ "$("${guest[@]}" cat "$(ns $serial)/size")" = $((20 << 30 >> 9)) ]
+	"${guest[@]}" cmp --bytes=1048576 "$(dev $serial)" /dev/zero
+done
+[ "$("${guest[@]}" cat "$(ns nvme5)/integrity/format")" = T10-DIF-TYPE1-CRC ]
+# nvme show-regs fails here with Invalid Command Opcode, so take the
+# sizes from the BARs: QEMU maps the CMB at BAR 2 and the PMR at BAR 4,
+# lines 3 and 5 of the PCI device's resource file.
+read -r start end _ < <("${guest[@]}" sed --quiet 3p "$(ns nvme6)/device/device/resource")
+[ $((end - start + 1)) = $((64 << 20)) ]
+read -r start end _ < <("${guest[@]}" sed --quiet 5p "$(ns nvme6)/device/device/resource")
+[ $((end - start + 1)) = $((16 << 20)) ]
+[ "$("${guest[@]}" cat "$(ns nvme6)/queue/atomic_write_unit_max_bytes")" = $((128 << 10)) ]
+[ "$("${guest[@]}" cat "$(ns nvme7)/queue/max_write_streams")" = 8 ]
+[ "$("${guest[@]}" ls "$(ns mpath)/multipath" | wc --lines)" = 2 ]

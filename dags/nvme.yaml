@@ -1,0 +1,55 @@
+# SPDX-License-Identifier: copyleft-next-0.3.1
+description: >-
+  Build a NixOS closure for bootstrap-nvme and boot it directly with the
+  host's Nix store over virtiofs and ten NVMe controllers: qcow2 with
+  4 KiB blocks and 2 MiB transfers, raw through Linux AIO with two I/O
+  queues, raw through io_uring, null-co and null-aio, protection
+  information, a CMB with a PMR and atomic writes, an FDP subsystem, and
+  two controllers sharing one namespace. Check that the guest's kernel
+  sees each as configured.
+working_dir: ..
+type: chain
+env:
+  - XDG_RUNTIME_DIR: ${XDG_RUNTIME_DIR}
+
+handler_on:
+  exit:
+    run: steps/machine/stop --name bootstrap-nvme
+
+steps:
+  - id: host_check
+    run: steps/host/check
+
+  - id: ssh_generate_key
+    run: steps/ssh/generate_key
+
+  - id: host_install
+    run: steps/host/install
+
+  - id: generator_install
+    run: steps/generator/install
+
+  - id: nvme_install
+    run: steps/nvme/install
+
+  - id: nvme_build
+    run: steps/nvme/build
+
+  - id: generator_run
+    run: steps/generator/run
+
+  - id: machine_start
+    run: steps/machine/start --name bootstrap-nvme
+
+  # The guest answers once its sshd runs; until then the step fails.
+  - id: machine_wait
+    run: steps/machine/wait --name bootstrap-nvme
+    retry_policy:
+      limit: 60
+      interval_sec: 5
+
+  - id: nvme_check
+    run: steps/nvme/check
+
+  - id: machine_remove
+    run: steps/machine/remove --name bootstrap-nvme

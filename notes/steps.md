@@ -20,9 +20,9 @@ waiting, no branching on an earlier step's result.
 
 A subsystem is a guide (`disk`, `uki`, `direct`, `knix`, `cloud`), a
 concern the guides share (`host`, `ssh`, `generator`, `machine`,
-`github`), or a DAG of CI's own (`nested`, `runner`). A step is named for
-its action in the imperative, `verb_object` in snake_case when it takes
-an object (`generate_key`).
+`github`), or a DAG of CI's own (`nested`, `nvme`, `runner`). A step is
+named for its action in the imperative, `verb_object` in snake_case when
+it takes an object (`generate_key`).
 
 A file a step writes lives as a file of its own in
 `steps/<subsystem>/files/`, so it can be read and checked without running
