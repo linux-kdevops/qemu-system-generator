@@ -6,8 +6,10 @@
 ## runner: the one-time setup the owner of any other host does by hand.
 ## It opens /dev/kvm and /dev/vhost-vsock to the runner user, lets
 ## virtiofsd's namespace sandbox map that user to root (Ubuntu's AppArmor
-## refuses unprivileged user namespaces by default), and starts a lingering
-## user manager. Append xdg_runtime_dir=<its runtime directory> to FILE.
+## refuses unprivileged user namespaces by default), installs
+## systemd-container, whose per-user machined the image lacks, and only
+## then starts a lingering user manager. Append
+## xdg_runtime_dir=<its runtime directory> to FILE.
 ## Never run it on a host of your own:
 ##
 ##   steps/github/prepare_runner --output "$GITHUB_OUTPUT"
@@ -37,6 +39,8 @@ sudo udevadm control --reload-rules
 sudo udevadm trigger --name-match=kvm --name-match=vhost-vsock
 ls --format=long /dev/kvm /dev/vhost-vsock
 sudo sysctl kernel.apparmor_restrict_unprivileged_userns=0
+sudo apt update
+sudo apt install --yes systemd-container
 sudo loginctl enable-linger "$USER"
 sudo systemctl start "user@$(id --user).service"
 echo "xdg_runtime_dir=/run/user/$(id --user)" >>"$output"
