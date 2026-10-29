@@ -1,0 +1,35 @@
+From d1dd61da55a7a712fca1de12abf2c85b923f50b6 Mon Sep 17 00:00:00 2001
+From: Daniel Gomez <da.gomez@kernel.org>
+Date: Thu, 29 Oct 2026 10:30:00 +0100
+Subject: [PATCH] Run host steps without a terminal
+
+A job on a self-hosted platform (-P label=-self-hosted) runs every step
+on a pseudo-terminal, while GitHub's runner gives a step no terminal:
+its stdin is empty and its output goes to the log. A step that asks
+when it finds a terminal therefore stops at the question under act and
+goes on under GitHub. Nix's multi-user installer is one: through
+cachix/install-nix-action it waits at "Would you like to see a more
+detailed list of what I will do?".
+
+Run the step with the stdin and output exec sets up before the terminal
+is allocated.
+---
+ pkg/container/host_environment.go | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/pkg/container/host_environment.go b/pkg/container/host_environment.go
+index 6640222..b8890e2 100644
+--- a/pkg/container/host_environment.go
++++ b/pkg/container/host_environment.go
+@@ -331,7 +331,7 @@ func (e *HostEnvironment) exec(ctx context.Context, command []string, cmdline st
+ 			tty.Close()
+ 		}
+ 	}()
+-	if true /* allocate Terminal */ {
++	if false /* allocate Terminal */ {
+ 		var err error
+ 		ppty, tty, err = setupPty(cmd, cmdline)
+ 		if err != nil {
+-- 
+2.53.0
+

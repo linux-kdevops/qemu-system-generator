@@ -49,6 +49,7 @@
         qemu-system-generator = pkgs.callPackage ./nix/package.nix { };
         default = qemu-system-generator;
         dagu = pkgs.callPackage ./nix/dagu.nix { };
+        act = pkgs.callPackage ./nix/act.nix { };
       });
 
       apps = forSystems docsSystems (

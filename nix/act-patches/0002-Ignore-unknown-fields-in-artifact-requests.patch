@@ -1,0 +1,33 @@
+From bd074351865b0eb92e79528d37016368b187c954 Mon Sep 17 00:00:00 2001
+From: Daniel Gomez <da.gomez@kernel.org>
+Date: Thu, 29 Oct 2026 11:00:00 +0100
+Subject: [PATCH 2/2] Ignore unknown fields in artifact requests
+
+actions/upload-artifact@v7 sends a mime_type field in its
+CreateArtifact request, which the v4 artifact server's messages do not
+have. protojson.Unmarshal refuses an unknown field, so every upload
+failed with "Error decode request body: proto: (line 1:99): unknown
+field \"mime_type\"" and the action gave up after five attempts.
+
+Decode with DiscardUnknown, as a server does that newer clients may
+talk to.
+---
+ pkg/artifacts/artifacts_v4.go | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/pkg/artifacts/artifacts_v4.go b/pkg/artifacts/artifacts_v4.go
+index ea0a832..d4b8b1b 100644
+--- a/pkg/artifacts/artifacts_v4.go
++++ b/pkg/artifacts/artifacts_v4.go
+@@ -286,7 +286,7 @@ func (r *artifactV4Routes) parseProtbufBody(ctx *ArtifactContext, req protorefle
+ 		ctx.Error(http.StatusInternalServerError, "Error decode request body")
+ 		return false
+ 	}
+-	err = protojson.Unmarshal(body, req)
++	err = protojson.UnmarshalOptions{DiscardUnknown: true}.Unmarshal(body, req)
+ 	if err != nil {
+ 		log.Errorf("Error decode request body: %v", err)
+ 		ctx.Error(http.StatusInternalServerError, "Error decode request body")
+-- 
+2.53.0
+

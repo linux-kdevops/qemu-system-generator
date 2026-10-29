@@ -1,0 +1,40 @@
+From ab4067baa7d60fc3d4d5d7923bbabb6010ce2537 Mon Sep 17 00:00:00 2001
+From: Daniel Gomez <da.gomez@kernel.org>
+Date: Thu, 29 Oct 2026 11:30:00 +0100
+Subject: [PATCH 3/3] Sign artifact URLs without base64 padding
+
+actions/upload-artifact@v7 uploads through the Azure Storage blob
+client, which sends the signed URL back without the = padding at the
+end of its sig value. Decoding the shorter value failed, so the
+signature never matched and every upload got "Error unauthorized".
+
+Write the signature without padding, and read it with or without.
+---
+ pkg/artifacts/artifacts_v4.go | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/pkg/artifacts/artifacts_v4.go b/pkg/artifacts/artifacts_v4.go
+index d4b8b1b..8af3e50 100644
+--- a/pkg/artifacts/artifacts_v4.go
++++ b/pkg/artifacts/artifacts_v4.go
+@@ -252,7 +252,7 @@ func (r artifactV4Routes) signedURLHost(req *http.Request) (string, bool) {
+ func (r artifactV4Routes) buildArtifactURL(host, endp, artifactName string, taskID int64) string {
+ 	expires := time.Now().Add(signedURLLifetime).Format("2006-01-02 15:04:05.999999999 -0700 MST")
+ 	uploadURL := "http://" + host + strings.TrimSuffix(r.prefix, "/") +
+-		"/" + endp + "?sig=" + base64.URLEncoding.EncodeToString(r.buildSignature(endp, expires, artifactName, taskID)) + "&expires=" + url.QueryEscape(expires) + "&artifactName=" + url.QueryEscape(artifactName) + "&taskID=" + fmt.Sprint(taskID)
++		"/" + endp + "?sig=" + base64.RawURLEncoding.EncodeToString(r.buildSignature(endp, expires, artifactName, taskID)) + "&expires=" + url.QueryEscape(expires) + "&artifactName=" + url.QueryEscape(artifactName) + "&taskID=" + fmt.Sprint(taskID)
+ 	return uploadURL
+ }
+ 
+@@ -261,7 +261,7 @@ func (r artifactV4Routes) verifySignature(ctx *ArtifactContext, endp string) (in
+ 	sig := ctx.Req.URL.Query().Get("sig")
+ 	expires := ctx.Req.URL.Query().Get("expires")
+ 	artifactName := ctx.Req.URL.Query().Get("artifactName")
+-	dsig, _ := base64.URLEncoding.DecodeString(sig)
++	dsig, _ := base64.RawURLEncoding.DecodeString(strings.TrimRight(sig, "="))
+ 	taskID, _ := strconv.ParseInt(rawTaskID, 10, 64)
+ 
+ 	expecedsig := r.buildSignature(endp, expires, artifactName, taskID)
+-- 
+2.53.0
+

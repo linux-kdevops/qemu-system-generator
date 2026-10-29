@@ -1,0 +1,34 @@
+From 86f9a713e9c87f7364688bbf0522a9e41e0610f7 Mon Sep 17 00:00:00 2001
+From: Daniel Gomez <da.gomez@kernel.org>
+Date: Thu, 29 Oct 2026 11:50:00 +0100
+Subject: [PATCH 4/4] Cap a matrix's parallel jobs at --concurrent-jobs
+
+--concurrent-jobs limits how many jobs run at once, but the jobs of one
+matrix run up to the strategy's max-parallel, 4 when unset, whatever
+it says. With --concurrent-jobs 1, a seven-entry matrix on a
+self-hosted platform still ran four jobs together in the one host, and
+their installers of the same tool collided.
+
+Run no more of a matrix's jobs at once than --concurrent-jobs, when
+it is given.
+---
+ pkg/runner/runner.go | 3 +++
+ 1 file changed, 3 insertions(+)
+
+diff --git a/pkg/runner/runner.go b/pkg/runner/runner.go
+index 51af4a6..b40d869 100644
+--- a/pkg/runner/runner.go
++++ b/pkg/runner/runner.go
+@@ -189,6 +189,9 @@ func (runner *runnerImpl) NewPlanExecutor(plan *model.Plan) common.Executor {
+ 				if len(matrixes) < maxParallel {
+ 					maxParallel = len(matrixes)
+ 				}
++				if c := runner.config.ConcurrentJobs; c >= 1 && c < maxParallel {
++					maxParallel = c
++				}
+ 
+ 				for i, matrix := range matrixes {
+ 					rc := runner.newRunContext(ctx, run, matrix)
+-- 
+2.53.0
+
