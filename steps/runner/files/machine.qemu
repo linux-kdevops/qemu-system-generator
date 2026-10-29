@@ -1,0 +1,14 @@
+# SPDX-License-Identifier: copyleft-next-0.3.1
+[QEMU]
+machine=q35
+accel=kvm
+cpu=host
+m=16G
+smp=4
+nographic=
+serial=mon:stdio
+drive=file=disk.qcow2,if=virtio,format=qcow2
+drive=file=seed.iso,if=virtio,format=raw,readonly=on
+netdev=user,id=net0
+device=virtio-net-pci-non-transitional,netdev=net0,romfile=
+device=vhost-vsock-pci-non-transitional,guest-cid=55

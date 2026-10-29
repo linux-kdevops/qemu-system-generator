@@ -18,10 +18,11 @@ that runs it by hand. It takes the happy path, with as few options as
 possible, and decides nothing a DAG can decide for it: no retry loop, no
 waiting, no branching on an earlier step's result.
 
-A subsystem is a guide (`disk`, `uki`, `direct`, `knix`, `cloud`) or a
+A subsystem is a guide (`disk`, `uki`, `direct`, `knix`, `cloud`), a
 concern the guides share (`host`, `ssh`, `generator`, `machine`,
-`github`). A step is named for its action in the imperative,
-`verb_object` in snake_case when it takes an object (`generate_key`).
+`github`), or a DAG of CI's own (`nested`, `runner`). A step is named for
+its action in the imperative, `verb_object` in snake_case when it takes
+an object (`generate_key`).
 
 A file a step writes lives as a file of its own in
 `steps/<subsystem>/files/`, so it can be read and checked without running
@@ -56,9 +57,10 @@ nix develop --ignore-env --keep-env-var HOME --keep-env-var XDG_RUNTIME_DIR
 ```
 
 No step or DAG calls `nix develop`, and none uses a tool that happens to
-be on the host's `PATH`. No step runs `sudo`, except
+be on the host's `PATH`. No step runs `sudo` on the host, except
 `steps/github/prepare_runner`, which does a GitHub runner's one-time root
-setup and refuses to run anywhere else.
+setup and refuses to run outside a GitHub Actions job, whether GitHub's
+or act's in the `runner` DAG's guest.
 
 ## DAGs
 
@@ -82,8 +84,9 @@ keeps two runs of one DAG apart.
 
 A workflow under `.github/workflows/` prepares the runner, then runs the
 `dagu start` and `dagu status` a person runs, and keeps Dagu's logs. Its
-matrix holds every DAG, and every push runs them all. Dagu is built by
-`nix/dagu.nix` until its patches land upstream.
+matrix holds every DAG but `runner`, which runs the workflow itself, and
+every push runs them all. Dagu is built by `nix/dagu.nix` until its
+patches land upstream.
 
 ## Runners
 

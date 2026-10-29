@@ -1,0 +1,29 @@
+#!/usr/bin/env bash
+# SPDX-License-Identifier: copyleft-next-0.3.1
+## Usage: steps/runner/install_act [--base FILE]
+##
+## Build the flake's act, patched and static (nix/act.nix), and install
+## it in the running bootstrap-runner's /usr/local/bin:
+##
+##   nix develop --ignore-env --keep-env-var HOME \
+##       --command steps/runner/install_act
+set -o errexit -o nounset -o pipefail
+
+while [ $# -gt 0 ]; do
+	case $1 in
+	--base) base=$2 ;;
+	*) sed --quiet 's/^## \{0,1\}//p' "$0" >&2 && exit 2 ;;
+	esac
+	shift 2
+done
+# shellcheck source=/dev/null
+[ -z "${base-}" ] || . "$base"
+# shellcheck source=steps/base
+. "$(dirname "$0")/../base"
+checkout=$(realpath "$(dirname "$0")/../..")
+guest=(ssh -F "$SSH_DIR/config" bootstrap-runner)
+
+set -o xtrace
+act=$(nix build --no-link --print-out-paths "$checkout#act")/bin/act
+"${guest[@]}" "cat >/usr/local/bin/act && chmod 755 /usr/local/bin/act" <"$act"
+"${guest[@]}" act --version

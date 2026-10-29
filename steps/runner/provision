@@ -1,0 +1,60 @@
+#!/usr/bin/env bash
+# SPDX-License-Identifier: copyleft-next-0.3.1
+## Usage: steps/runner/provision [--base FILE]
+##
+## Make the running bootstrap-runner's OS ubuntu-latest's: unpack the
+## runner-images release steps/runner/fetch downloaded where its Packer
+## template puts it, /imagegeneration, and run as root, in the
+## template's order and with its variables, the scripts that set up apt
+## and its packages, limits, sysctls and the environment, and the one
+## that installs Node.js, which act runs JavaScript actions with. The
+## template's other scripts install toolchains no step uses, among them
+## the PowerShell of its tests, so the hook that runs those tests does
+## nothing here. configure-environment.sh edits the Azure agent's
+## configuration, which the cloud image lacks, so an empty one stands
+## in. Restart the machine afterwards, as the template does:
+##
+##   nix develop --ignore-env --keep-env-var HOME \
+##       --command steps/runner/provision
+set -o errexit -o nounset -o pipefail
+
+while [ $# -gt 0 ]; do
+	case $1 in
+	--base) base=$2 ;;
+	*) sed --quiet 's/^## \{0,1\}//p' "$0" >&2 && exit 2 ;;
+	esac
+	shift 2
+done
+# shellcheck source=/dev/null
+[ -z "${base-}" ] || . "$base"
+# shellcheck source=steps/base
+. "$(dirname "$0")/../base"
+state=$HOME/.local/state/qemu-system/bootstrap-runner
+guest=(ssh -F "$SSH_DIR/config" bootstrap-runner)
+image=/imagegeneration
+script=(
+	env DEBIAN_FRONTEND=noninteractive IMAGE_OS=ubuntu26 IMAGE_VERSION=20261026.180
+	"HELPER_SCRIPTS=$image/helpers" "HELPER_SCRIPT_FOLDER=$image/helpers"
+	"INSTALLER_SCRIPT_FOLDER=$image/installers" "IMAGE_FOLDER=$image"
+	"IMAGEDATA_FILE=$image/imagedata.json"
+)
+
+set -o xtrace
+"${guest[@]}" rm --recursive --force /tmp/runner-images "$image"
+"${guest[@]}" mkdir --parents /tmp/runner-images "$image"
+"${guest[@]}" chmod 777 "$image"
+"${guest[@]}" tar --extract --gzip --directory=/tmp/runner-images \
+	--strip-components=3 --wildcards "'*/images/ubuntu/*'" <"$state/runner-images.tar.gz"
+"${guest[@]}" cp --recursive /tmp/runner-images/scripts/helpers "$image/helpers"
+"${guest[@]}" cp --recursive /tmp/runner-images/scripts/build "$image/installers"
+"${guest[@]}" cp --recursive /tmp/runner-images/assets/post-gen "$image/post-generation"
+"${guest[@]}" cp /tmp/runner-images/toolsets/toolset-2604.json "$image/installers/toolset.json"
+"${guest[@]}" chmod +x "$image/installers/*.sh" "$image/helpers/*.sh"
+"${guest[@]}" "printf '#!/bin/sh\n' >$image/helpers/invoke-tests.sh"
+"${guest[@]}" touch /etc/waagent.conf
+for name in configure-apt-mock install-ms-repos configure-apt-sources \
+	configure-apt configure-limits configure-image-data \
+	configure-environment install-apt-vital install-apt-common \
+	install-nodejs configure-dpkg cleanup configure-system; do
+	"${guest[@]}" "${script[@]}" "$image/installers/$name.sh"
+done

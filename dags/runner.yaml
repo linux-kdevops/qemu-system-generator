@@ -1,0 +1,74 @@
+# SPDX-License-Identifier: copyleft-next-0.3.1
+description: >-
+  Boot bootstrap-runner, an Ubuntu 26.04 guest sized as GitHub's
+  ubuntu-latest runner, with its runner user, and set its OS up with the
+  runner-images scripts that built ubuntu-latest. Then run this
+  checkout's .github/workflows/bootstrap.yaml in it with act, every job
+  in the guest itself and one after another, so that a job which would
+  fail on ubuntu-latest, say for a package the image lacks, fails here.
+working_dir: ..
+type: chain
+env:
+  - XDG_RUNTIME_DIR: ${XDG_RUNTIME_DIR}
+
+handler_on:
+  exit:
+    run: steps/machine/stop --name bootstrap-runner
+
+steps:
+  - id: host_check
+    run: steps/host/check
+
+  - id: ssh_generate_key
+    run: steps/ssh/generate_key
+
+  - id: host_install
+    run: steps/host/install
+
+  - id: generator_install
+    run: steps/generator/install
+
+  - id: runner_fetch
+    run: steps/runner/fetch
+
+  - id: runner_install
+    run: steps/runner/install
+
+  - id: runner_build
+    run: steps/runner/build
+
+  - id: generator_run
+    run: steps/generator/run
+
+  - id: machine_start
+    run: steps/machine/start --name bootstrap-runner
+
+  - id: machine_wait
+    run: steps/machine/wait --name bootstrap-runner
+    retry_policy:
+      limit: 120
+      interval_sec: 5
+
+  - id: runner_provision
+    run: steps/runner/provision
+
+  - id: machine_start_reboot
+    run: steps/machine/start --name bootstrap-runner
+
+  - id: machine_wait_reboot
+    run: steps/machine/wait --name bootstrap-runner
+    retry_policy:
+      limit: 60
+      interval_sec: 5
+
+  - id: runner_install_act
+    run: steps/runner/install_act
+
+  - id: runner_install_checkout
+    run: steps/runner/install_checkout
+
+  - id: runner_run
+    run: steps/runner/run
+
+  - id: machine_remove
+    run: steps/machine/remove --name bootstrap-runner

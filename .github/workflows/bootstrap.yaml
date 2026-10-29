@@ -1,8 +1,9 @@
 # SPDX-License-Identifier: copyleft-next-0.3.1
-# Every DAG under dags/ on a GitHub-hosted runner, one job each, through the
-# same dagu start a person runs. The runner is a throwaway VM, so
-# steps/github/prepare_runner does the one-time root setup there;
-# everything after it runs as the runner user.
+# Every DAG under dags/ but runner, which runs this workflow at home, on a
+# GitHub-hosted runner, one job each, through the same dagu start a person
+# runs. The runner is a throwaway VM, so steps/github/prepare_runner does
+# the one-time root setup there; everything after it runs as the runner
+# user.
 name: bootstrap
 
 on:

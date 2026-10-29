@@ -1,0 +1,35 @@
+#!/usr/bin/env bash
+# SPDX-License-Identifier: copyleft-next-0.3.1
+## Usage: steps/runner/install_checkout [--base FILE]
+##
+## Clone this checkout's HEAD into the running bootstrap-runner, as the
+## runner user, where actions/checkout puts it on GitHub's runners,
+## /home/runner/work/qemu-system-generator/qemu-system-generator, on
+## branch main as it checks out a push to main:
+##
+##   nix develop --ignore-env --keep-env-var HOME \
+##       --command steps/runner/install_checkout
+set -o errexit -o nounset -o pipefail
+
+while [ $# -gt 0 ]; do
+	case $1 in
+	--base) base=$2 ;;
+	*) sed --quiet 's/^## \{0,1\}//p' "$0" >&2 && exit 2 ;;
+	esac
+	shift 2
+done
+# shellcheck source=/dev/null
+[ -z "${base-}" ] || . "$base"
+# shellcheck source=steps/base
+. "$(dirname "$0")/../base"
+checkout=$(realpath "$(dirname "$0")/../..")
+work=/home/runner/work/qemu-system-generator/qemu-system-generator
+guest=(ssh -F "$SSH_DIR/config" bootstrap-runner)
+
+set -o xtrace
+git -C "$checkout" bundle create - HEAD |
+	"${guest[@]}" "cat >/tmp/checkout.bundle && chmod 644 /tmp/checkout.bundle"
+"${guest[@]}" rm --recursive --force "$work"
+"${guest[@]}" sudo --user=runner git clone --quiet /tmp/checkout.bundle "$work"
+"${guest[@]}" sudo --user=runner git -C "$work" switch --quiet --force-create main
+"${guest[@]}" rm /tmp/checkout.bundle

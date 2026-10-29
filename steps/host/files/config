@@ -27,6 +27,8 @@ Host cloud-ubuntu-peer
     HostName vsock/53
 Host bootstrap-nested
     HostName vsock/54
+Host bootstrap-runner
+    HostName vsock/55
 
 Host bootstrap-* cloud-*
     ProxyCommand $proxy %h %p
