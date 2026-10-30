@@ -14,18 +14,15 @@
       # The generator needs systemd, but the docs build anywhere Sphinx does,
       # so their apps also cover macOS.
       docsSystems = systems ++ [ "aarch64-darwin" ];
-      forSystems =
-        systems': f:
-        nixpkgs.lib.genAttrs systems' (
-          system:
-          f (
-            import nixpkgs {
-              inherit system;
-              config = { };
-              overlays = [ ];
-            }
-          )
-        );
+      pkgsFor = nixpkgs.lib.genAttrs docsSystems (
+        system:
+        import nixpkgs {
+          localSystem = system;
+          config = { };
+          overlays = [ self.overlays.default ];
+        }
+      );
+      forSystems = systems': f: nixpkgs.lib.genAttrs systems' (system: f pkgsFor.${system});
       forAllSystems = forSystems systems;
 
       # Sphinx and its extensions, kept to the major versions in
@@ -42,12 +39,12 @@
     in
     {
       overlays.default = final: prev: {
-        qemu-system-generator = final.callPackage ./nix/package.nix { };
+        qemu-system-generator = prev.callPackage ./nix/package.nix { };
       };
 
-      packages = forAllSystems (pkgs: rec {
-        qemu-system-generator = pkgs.callPackage ./nix/package.nix { };
-        default = qemu-system-generator;
+      packages = forAllSystems (pkgs: {
+        inherit (pkgs) qemu-system-generator;
+        default = pkgs.qemu-system-generator;
         dagu = pkgs.callPackage ./nix/dagu.nix { };
         act = pkgs.callPackage ./nix/act.nix { };
       });
