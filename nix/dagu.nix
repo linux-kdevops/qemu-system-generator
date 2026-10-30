@@ -3,6 +3,7 @@
 # Dagu from its main branch, with the fixes in nix/dagu-patches/ until
 # they land upstream.
 {
+  lib,
   buildGo127Module,
   fetchFromGitHub,
   fetchPnpmDeps,
@@ -45,7 +46,9 @@ let
       runHook postBuild
     '';
     installPhase = ''
+      runHook preInstall
       cp --recursive dist $out
+      runHook postInstall
     '';
   });
 in
@@ -68,9 +71,17 @@ buildGo127Module {
   preBuild = ''
     cp ${ui}/* internal/service/frontend/assets/
   '';
+  # Upstream's tests call /bin/bash and /bin/echo, absent from the build
+  # sandbox, and run steps with no PATH: some fail, and one repeats until
+  # its 10-minute timeout.
   doCheck = false;
   postInstall = ''
     mv $out/bin/cmd $out/bin/dagu
   '';
-  meta.mainProgram = "dagu";
+  meta = {
+    description = "Workflow engine that runs YAML-defined DAGs, with a web UI";
+    homepage = "https://github.com/dagucloud/dagu";
+    license = lib.licenses.gpl3Plus;
+    mainProgram = "dagu";
+  };
 }
