@@ -47,6 +47,9 @@ nodes and a device written as JSON. It ends on `QEMU`_'s
 Each NixOS guide ends with :doc:`a faster boot <fast>`, from the
 defaults to the fastest configuration it can reach, one change at a time.
 
+:doc:`packages` uses an overlay to change how `nixpkgs`_ builds a NixOS
+guest's packages and to add the ones it lacks.
+
 The file format is specified in
 :doc:`qemu-systemd.unit(5) </man/qemu-systemd.unit.5>` and the generator in
 :doc:`qemu-system-generator(8) </man/qemu-system-generator.8>`.
@@ -70,6 +73,7 @@ keep nothing there; the cloud guests keep their disks there.
    cloud
    home
    nixos
+   packages
    network
    fast
 
