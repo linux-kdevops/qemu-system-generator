@@ -394,7 +394,7 @@ machine its own hostname:
    :caption: ~/.config/qemu/systemd/bootstrap-knix-peer.qemu.d/10-closure.conf
 
    [QEMU]
-   initrd=/nix/store/...-initrd-linux-.../initrd
+   initrd=/nix/store/pbx7c8f26kng743zyrabx8p9qplpi6zj-initrd-linux-6.18.34/initrd
    append=root=tmpfs console=ttyS0 systemd.hostname=peer init=/nix/store/...-nixos-system-bootstrap-.../init
 
 :ref:`Regenerate <host-regenerate>`, :ref:`restart <host-start>`
@@ -465,7 +465,7 @@ same path:
    :caption: ~/.config/qemu/systemd/bootstrap-knix-peer.qemu.d/10-closure.conf
 
     [QEMU]
-   -initrd=/nix/store/...-initrd-linux-.../initrd
+   -initrd=/nix/store/pbx7c8f26kng743zyrabx8p9qplpi6zj-initrd-linux-6.18.34/initrd
    -append=root=tmpfs console=ttyS0 systemd.hostname=peer init=/nix/store/...-nixos-system-bootstrap-.../init
    +initrd=%h/bootstrap/knix/guest/result/initrd
    +append=root=tmpfs console=ttyS0 systemd.hostname=peer init=%h/bootstrap/knix/guest/result/init
