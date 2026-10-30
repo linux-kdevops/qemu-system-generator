@@ -90,6 +90,25 @@ html[data-theme="dark"] {
     --diff-del-wash: rgba(248, 81, 73, 0.2);
 }
 
+/* A wash runs to the end of the longest line, not of the visible width:
+   the pre grows to its longest line, and the block scrolls around it. The
+   copy button stays put because it is placed against the wrapper, which
+   does not scroll. */
+.highlight-diff {
+    position: relative;
+}
+
+.highlight-diff div.highlight {
+    position: static;
+    overflow-x: auto;
+}
+
+.highlight-diff div.highlight pre {
+    overflow: visible;
+    width: max-content;
+    min-width: 100%;
+}
+
 .highlight-diff .highlight .gi,
 .highlight-diff .highlight .gd {
     display: inline-block;
