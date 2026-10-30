@@ -1,0 +1,45 @@
+#!/usr/bin/env bash
+# SPDX-License-Identifier: copyleft-next-0.3.1
+## Usage: steps/packages/install [--base FILE]
+##
+## Write bootstrap-packages' files: in WORKTREES_DIR/packages, a NixOS
+## flake whose overlay changes fio and xfstests and adds damo, nfstest,
+## pynfs and xdrlib3, with the public key of SSH_KEY for root; and in
+## ~/.config/qemu/systemd, bootstrap-packages.qemu, which boots its
+## closure directly with the host's Nix store and the home over virtiofs,
+## and a drop-in whose init= follows the result link through the home,
+## so WORKTREES_DIR must lie in it:
+##
+##   nix develop --ignore-env --keep-env-var HOME \
+##       --command steps/packages/install
+set -o errexit -o nounset -o pipefail
+
+while [ $# -gt 0 ]; do
+	case $1 in
+	--base) base=$2 ;;
+	*) sed --quiet 's/^## \{0,1\}//p' "$0" >&2 && exit 2 ;;
+	esac
+	shift 2
+done
+# shellcheck source=/dev/null
+[ -z "${base-}" ] || . "$base"
+# shellcheck source=steps/base
+. "$(dirname "$0")/../base"
+units=$HOME/.config/qemu/systemd
+files=$(realpath "$(dirname "$0")/files")
+
+set -o xtrace
+mkdir --parents "$WORKTREES_DIR/packages" "$units"
+cd "$WORKTREES_DIR/packages"
+cp "$files/flake.nix" "$files/overlay.nix" "$files/virtiofs.nix" .
+rm --recursive --force -- pkgs python-packages
+cp --recursive "$files/pkgs" "$files/python-packages" .
+key=$(cat "$SSH_KEY.pub") envsubst "\$key" <"$files/configuration.nix" >configuration.nix
+HOME=$HOME envsubst "\$HOME" <"$files/home.nix" >home.nix
+WORKTREES_DIR=$WORKTREES_DIR envsubst "\$WORKTREES_DIR" \
+	<"$files/bootstrap-packages.qemu" >"$units/bootstrap-packages.qemu"
+rm --recursive --force -- "$units/bootstrap-packages.qemu.d"
+mkdir --parents "$units/bootstrap-packages.qemu.d"
+WORKTREES_DIR=$WORKTREES_DIR envsubst "\$WORKTREES_DIR" \
+	<"$files/bootstrap-packages.qemu.d/10-closure.conf" \
+	>"$units/bootstrap-packages.qemu.d/10-closure.conf"

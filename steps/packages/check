@@ -1,0 +1,42 @@
+#!/usr/bin/env bash
+# SPDX-License-Identifier: copyleft-next-0.3.1
+## Usage: steps/packages/check [--base FILE]
+##
+## Log in to the running bootstrap-packages and check each package the
+## overlay changes or adds: fio 3.43 with the write-zeroes patch, gnuplot
+## on its plotting scripts' PATH and fio-io-uring, writing a file through
+## io_uring; xfstests running that fio; damo; nfstest with its man pages;
+## and both pynfs test servers:
+##
+##   nix develop --ignore-env --keep-env-var HOME \
+##       --command steps/packages/check
+set -o errexit -o nounset -o pipefail
+
+while [ $# -gt 0 ]; do
+	case $1 in
+	--base) base=$2 ;;
+	*) sed --quiet 's/^## \{0,1\}//p' "$0" >&2 && exit 2 ;;
+	esac
+	shift 2
+done
+# shellcheck source=/dev/null
+[ -z "${base-}" ] || . "$base"
+# shellcheck source=steps/base
+. "$(dirname "$0")/../base"
+guest=(ssh -F "$SSH_DIR/config" bootstrap-packages)
+bin=/run/current-system/sw/bin
+
+set -o xtrace
+[ "$("${guest[@]}" fio --version)" = fio-3.43 ]
+"${guest[@]}" 'fio --cmdhelp=fallocate | grep write_zeroes'
+"${guest[@]}" grep --fixed-strings -- -gnuplot- "$bin/fio2gnuplot"
+"${guest[@]}" fio-io-uring -h
+"${guest[@]}" fio --name=check --ioengine=io_uring --rw=randwrite --size=4M \
+	--filename=/tmp/check.fio --output-format=terse
+fio=$("${guest[@]}" readlink --canonicalize "$bin/fio")
+"${guest[@]}" grep --fixed-strings "${fio%/bin/fio}" "$bin/xfstests-check"
+[ "$("${guest[@]}" damo version)" = 3.4.3 ]
+"${guest[@]}" nfstest_posix --version
+"${guest[@]}" man --where nfstest_posix
+"${guest[@]}" nfs4.0-testserver --help
+"${guest[@]}" nfs4.1-testserver --help
