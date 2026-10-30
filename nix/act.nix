@@ -12,7 +12,7 @@
   fetchFromGitHub,
 }:
 (act.override { buildGoModule = buildGo127Module; }).overrideAttrs (
-  finalAttrs: old: {
+  finalAttrs: previousAttrs: {
     version = "0.2.92";
     src = fetchFromGitHub {
       owner = "nektos";
@@ -26,13 +26,13 @@
       "-w"
       "-X main.version=${finalAttrs.version}"
     ];
-    patches = (old.patches or [ ]) ++ [
+    patches = (previousAttrs.patches or [ ]) ++ [
       ./act-patches/0001-Run-host-steps-without-a-terminal.patch
       ./act-patches/0002-Ignore-unknown-fields-in-artifact-requests.patch
       ./act-patches/0003-Sign-artifact-URLs-without-base64-padding.patch
       ./act-patches/0004-Cap-a-matrix-s-parallel-jobs-at-concurrent-jobs.patch
     ];
-    env = (old.env or { }) // {
+    env = (previousAttrs.env or { }) // {
       CGO_ENABLED = "0";
     };
   }

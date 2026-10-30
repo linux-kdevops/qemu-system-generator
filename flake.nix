@@ -175,9 +175,9 @@
         {
           inherit package;
 
-          clippy = package.overrideAttrs (old: {
-            pname = "${old.pname}-clippy";
-            nativeBuildInputs = old.nativeBuildInputs ++ [ pkgs.clippy ];
+          clippy = package.overrideAttrs (previousAttrs: {
+            pname = "${previousAttrs.pname}-clippy";
+            nativeBuildInputs = previousAttrs.nativeBuildInputs ++ [ pkgs.clippy ];
             buildPhase = "cargo clippy --all-targets -- --deny warnings";
             installPhase = "touch $out";
             doCheck = false;
