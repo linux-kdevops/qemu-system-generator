@@ -114,12 +114,7 @@
         }
       );
 
-      nixosModules.default =
-        { ... }:
-        {
-          imports = [ ./nix/module.nix ];
-          nixpkgs.overlays = [ self.overlays.default ];
-        };
+      nixosModules.default = ./nix/module.nix;
 
       devShells = forAllSystems (pkgs: {
         default =
@@ -258,6 +253,27 @@
             rustfmt --check --edition 2024 src/main.rs build.rs tests/*.rs
             touch $out
           '';
+
+          # The module must load where nixpkgs.nixosModules.readOnlyPkgs
+          # forbids it to add an overlay, so its package comes from a set
+          # without this flake's overlay.
+          module =
+            let
+              nixos = nixpkgs.lib.nixosSystem {
+                modules = [
+                  nixpkgs.nixosModules.readOnlyPkgs
+                  self.nixosModules.default
+                  {
+                    nixpkgs.pkgs = nixpkgs.legacyPackages.${pkgs.stdenv.hostPlatform.system};
+                    virtualisation.qemu-system-generator.enable = true;
+                  }
+                ];
+              };
+            in
+            pkgs.runCommand "${package.pname}-module" { } ''
+              test -x ${nixos.config.systemd.generators.qemu-system-system-generator}
+              touch $out
+            '';
 
           # The generated units must load in a service manager. The build
           # sandbox has no /run/systemd/, so the check runs as a user manager

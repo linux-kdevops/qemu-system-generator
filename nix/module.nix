@@ -13,7 +13,16 @@ in
   options.virtualisation.qemu-system-generator = {
     enable = lib.mkEnableOption "the systemd generator for .qemu files";
 
-    package = lib.mkPackageOption pkgs "qemu-system-generator" { };
+    package = lib.mkOption {
+      type = lib.types.package;
+      default = pkgs.qemu-system-generator or (pkgs.callPackage ./package.nix { });
+      defaultText = lib.literalMD ''
+        `pkgs.qemu-system-generator` if the package set has it, through this
+        flake's `overlays.default` for one; otherwise built from this
+        flake's `nix/package.nix`
+      '';
+      description = "The qemu-system-generator package to use.";
+    };
 
     units = lib.mkOption {
       type = lib.types.attrsOf (lib.types.either lib.types.lines lib.types.path);
