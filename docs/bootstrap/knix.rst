@@ -123,7 +123,9 @@ key from ``~/bootstrap/system/ssh/id_ed25519.pub`` into ``default.nix``:
    -  # users.users.root.openssh.authorizedKeys.keys = [ "ssh-ed25519 ..." ];
    -  # users.users.${config.knix.user.name}.openssh.authorizedKeys.keys = [ "ssh-ed25519 ..." ];
    +  users.users.root.openssh.authorizedKeys.keys = [ "ssh-ed25519 AAAA... bootstrap" ]; # from ~/bootstrap/system/ssh/id_ed25519.pub
-   +  users.users.${config.knix.user.name}.openssh.authorizedKeys.keys = [ "ssh-ed25519 AAAA... bootstrap" ]; # from ~/bootstrap/system/ssh/id_ed25519.pub
+   +  users.users.${config.knix.user.name}.openssh.authorizedKeys.keys = [
+   +    "ssh-ed25519 AAAA... bootstrap"
+   +  ]; # from ~/bootstrap/system/ssh/id_ed25519.pub
 
 .. code-block:: console
    :class: cmd-host
@@ -644,7 +646,10 @@ tells it this is not one (:cmd:`kernel-command-line(7)`).
 
       networking.hostName = "bootstrap";
    +  services.openssh.hostKeys = [
-   +    { type = "ed25519"; path = "/etc/ssh/ssh_host_ed25519_key"; }
+   +    {
+   +      type = "ed25519";
+   +      path = "/etc/ssh/ssh_host_ed25519_key";
+   +    }
    +  ];
    +  security.pam.services.sshd.startSession = lib.mkForce false;
    +  console.enable = false;

@@ -1,12 +1,20 @@
 # SPDX-License-Identifier: copyleft-next-0.3.1
-{ lib, modulesPath, pkgs, ... }:
+{
+  lib,
+  modulesPath,
+  pkgs,
+  ...
+}:
 {
   imports = [ (modulesPath + "/profiles/qemu-guest.nix") ];
 
   networking.hostName = "bootstrap-nvme";
   services.openssh.enable = true;
   services.openssh.hostKeys = [
-    { type = "ed25519"; path = "/etc/ssh/ssh_host_ed25519_key"; }
+    {
+      type = "ed25519";
+      path = "/etc/ssh/ssh_host_ed25519_key";
+    }
   ];
   security.pam.services.sshd.startSession = lib.mkForce false;
   users.users.root.openssh.authorizedKeys.keys = [ "$key" ];

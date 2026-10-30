@@ -80,7 +80,12 @@ the closure through it. Put its path in place of ``/home/user``
      mask = {
        device = "none";
        fsType = "tmpfs";
-       options = [ "ro" "nosuid" "nodev" "mode=0555" ];
+       options = [
+         "ro"
+         "nosuid"
+         "nodev"
+         "mode=0555"
+       ];
      };
    in
    {
@@ -111,7 +116,9 @@ Replace the template's ``default.nix`` and paste in the public key from
      networking.hostName = "bootstrap";
 
      users.users.root.openssh.authorizedKeys.keys = [ "ssh-ed25519 AAAA... bootstrap" ];
-     users.users.${config.knix.user.name}.openssh.authorizedKeys.keys = [ "ssh-ed25519 AAAA... bootstrap" ];
+     users.users.${config.knix.user.name}.openssh.authorizedKeys.keys = [
+       "ssh-ed25519 AAAA... bootstrap"
+     ];
    }
 
 Build the closure; ``result`` links to it, and its ``initrd`` and

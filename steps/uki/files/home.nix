@@ -5,7 +5,12 @@ let
   mask = {
     device = "none";
     fsType = "tmpfs";
-    options = [ "ro" "nosuid" "nodev" "mode=0555" ];
+    options = [
+      "ro"
+      "nosuid"
+      "nodev"
+      "mode=0555"
+    ];
   };
 in
 {
