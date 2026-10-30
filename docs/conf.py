@@ -317,11 +317,43 @@ class _GitDiffLexer(DiffLexer):
     }
 
 
+# A code block with :name: and :linenos: wraps each line in a span with an
+# id, "<name>-<n>", which Pygments' linespans writes; ":line:`<name>:<n>`"
+# links "line <n>" to it, and ":line:`title <name>:<n>`" links the title.
+# A captioned block carries its name on the wrapper around it.
+def _line_anchors(app, doctree):
+    for node in doctree.findall(nodes.literal_block):
+        if not node.get("linenos"):
+            continue
+        holder = node.parent if isinstance(node.parent, nodes.container) else node
+        if not holder.get("names"):
+            continue
+        args = node.setdefault("highlight_args", {})
+        args["linespans"] = nodes.make_id(holder["names"][0])
+        args["anchorlinenos"] = True
+
+
+def _line_role(name, rawtext, text, lineno, inliner, options=None, content=None):
+    title, target = _title_target(text)
+    block, _, n = target.rpartition(":")
+    if not block or not n.isdigit():
+        msg = inliner.reporter.error(
+            f"line: {text!r} is not <block>:<line>", line=lineno
+        )
+        return [nodes.inline(rawtext, text)], [msg]
+    if title == target:
+        title = f"line {n}"
+    ref = nodes.reference(rawtext, title, refuri=f"#{nodes.make_id(block)}-{n}")
+    return [ref], []
+
+
 def setup(app):
     app.add_config_value("cmd_links", {}, "env")
     app.add_role("cmd", _cmd_role)
     app.add_role("key", _key_role)
+    app.add_role("line", _line_role)
     app.add_lexer("diff", _GitDiffLexer)
+    app.connect("doctree-read", _line_anchors)
     for name in _LINKS:
         app.add_role(name, _link_role)
     app.connect("builder-inited", _render_man_pages)

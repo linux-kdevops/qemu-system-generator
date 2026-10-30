@@ -148,10 +148,13 @@ The guest installs a package by listing it in
 fio's function takes ``withGnuplot ? false``; set to true, it puts
 `gnuplot`_ on the ``PATH`` of fio's Python plotting scripts, such as
 ``fio2gnuplot``. ``override`` calls the function again with the
-arguments you give it (`overriding`_ in the nixpkgs manual):
+arguments you give it (:line:`overlay-option:2`; `overriding`_ in the
+nixpkgs manual):
 
 .. code-block:: nix
    :caption: ~/bootstrap/direct/overlay.nix
+   :name: overlay-option
+   :linenos:
 
    final: prev: {
      fio = prev.fio.override { withGnuplot = true; };
@@ -178,11 +181,14 @@ engines, but ``make install`` does not install it. ``overrideAttrs``
 changes the attributes the function passes to ``mkDerivation``. Passed a
 function, ``overrideAttrs`` calls it with the recipe's own attributes
 (``previousAttrs`` by convention), so the overlay can add to
-``postInstall`` rather than replace it. ``or ""`` keeps the override
-working if a later nixpkgs drops fio's ``postInstall``:
+``postInstall`` rather than replace it (:line:`overlay-install:3`).
+``or ""`` keeps the override working if a later nixpkgs drops fio's
+``postInstall``:
 
 .. code-block:: nix
    :caption: ~/bootstrap/direct/overlay.nix
+   :name: overlay-install
+   :linenos:
 
    final: prev: {
      fio = (prev.fio.override { withGnuplot = true; }).overrideAttrs (previousAttrs: {
@@ -212,14 +218,17 @@ hash in the store or the binary cache and builds 3.42's source under the
 new name, and nixpkgs warns that the version was overridden without
 ``src``.
 
-The function form with two arguments, ``finalAttrs: previousAttrs:``,
-also gives the attributes as they end up after every override, so the
-new ``src`` takes its tag from the version as the recipe's does. The new
-hash is not known yet: leave it empty, the fake hash method of the
-nixpkgs manual (`Updating source hashes`_):
+The function form with two arguments, ``finalAttrs: previousAttrs:``
+(:line:`overlay-release:3`), also gives the attributes as they end up
+after every override, so the new ``src`` takes its tag from the version
+as the recipe's does (:line:`overlay-release:8`). The new hash is not
+known yet: leave it empty (:line:`overlay-release:9`), the fake hash
+method of the nixpkgs manual (`Updating source hashes`_):
 
 .. code-block:: nix
    :caption: ~/bootstrap/direct/overlay.nix
+   :name: overlay-release
+   :linenos:
 
    final: prev: {
      fio = (prev.fio.override { withGnuplot = true; }).overrideAttrs (
@@ -481,6 +490,8 @@ directory, ``pkgs/by-name/da/damo``; leave that level out here, or
 
 .. code-block:: nix
    :caption: ~/bootstrap/direct/pkgs/damo/package.nix
+   :name: damo-package
+   :linenos:
 
    {
      lib,
@@ -522,10 +533,11 @@ directory, ``pkgs/by-name/da/damo``; leave that level out here, or
      };
    })
 
-With ``pyproject = true``, ``buildPythonApplication`` (`Python`_ in the
-nixpkgs manual) builds a `wheel`_ with the packages in ``build-system``,
-and ``pythonImportsCheck`` fails the build if the module does not
-import.
+With ``pyproject = true`` (:line:`damo-package:10`),
+``buildPythonApplication`` (`Python`_ in the nixpkgs manual) builds a
+`wheel`_ with the packages in ``build-system`` (:line:`damo-package:28`),
+and ``pythonImportsCheck`` (:line:`damo-package:30`) fails the build if
+the module does not import.
 
 ``lib.packagesFromDirectoryRecursive`` calls ``callPackage`` on each
 ``package.nix`` under a directory and names the package after its
@@ -569,12 +581,15 @@ Add ``damo`` to ``packages``, and build it:
 ===========
 
 nfstest ships as a release tarball. Its tests mount NFS and capture
-packets, so ``makeWrapperArgs`` puts ``mount.nfs`` and ``tcpdump`` on the
-``PATH`` of each installed script, without making them Python
-dependencies. Create ``~/bootstrap/direct/pkgs/nfstest/package.nix``:
+packets, so ``makeWrapperArgs`` (:line:`nfstest-package:33`) puts
+``mount.nfs`` and ``tcpdump`` on the ``PATH`` of each installed script,
+without making them Python dependencies. Create
+``~/bootstrap/direct/pkgs/nfstest/package.nix``:
 
 .. code-block:: nix
    :caption: ~/bootstrap/direct/pkgs/nfstest/package.nix
+   :name: nfstest-package
+   :linenos:
 
    {
      lib,
@@ -641,6 +656,8 @@ directory's package; it would make a ``default.nix`` the package
 
 .. code-block:: nix
    :caption: ~/bootstrap/direct/python-packages/xdrlib3/package.nix
+   :name: xdrlib3-package
+   :linenos:
 
    {
      lib,
@@ -671,8 +688,8 @@ directory's package; it would make a ``default.nix`` the package
    })
 
 Each Python package set has its own ``callPackage``, which takes
-arguments such as ``buildPythonPackage`` from that set. Only
-``python-final`` has it:
+arguments such as ``buildPythonPackage`` (:line:`xdrlib3-package:3`)
+from that set. Only ``python-final`` has it:
 
 .. code-block:: diff
    :caption: ~/bootstrap/direct/overlay.nix
@@ -697,13 +714,17 @@ arguments such as ``buildPythonPackage`` from that set. Only
     // prev.lib.packagesFromDirectoryRecursive {
       inherit (prev) callPackage;
 
-Each test server runs under a Python with the modules it imports,
-without setuptools and ply, which only build pynfs. The source is the
-0.5 tag of the repository the `pynfs`_ wiki links. Create
+Each test server runs under a Python with the modules it imports
+(:line:`pynfs-package:10`), without setuptools and ply, which only build
+pynfs (:line:`pynfs-package:15`). The source is the 0.5 tag
+(:line:`pynfs-package:29`) of the repository the `pynfs`_ wiki links.
+Create
 ``~/bootstrap/direct/pkgs/pynfs/package.nix``:
 
 .. code-block:: nix
    :caption: ~/bootstrap/direct/pkgs/pynfs/package.nix
+   :name: pynfs-package
+   :linenos:
 
    {
      lib,
@@ -785,6 +806,8 @@ The files as they end up:
 
 .. code-block:: nix
    :caption: ~/bootstrap/direct/flake.nix
+   :name: flake-final
+   :linenos:
 
    {
      inputs = {
@@ -823,6 +846,8 @@ The files as they end up:
 
 .. code-block:: nix
    :caption: ~/bootstrap/direct/overlay.nix
+   :name: overlay-final
+   :linenos:
 
    inputs: final: prev:
    {

@@ -125,6 +125,19 @@ html .highlight-diff div.highlight .gd {
     background: var(--diff-del-wash);
 }
 
+/* A numbered block's line numbers link to their own lines (docs/conf.py);
+   they read as numbers, and the line a link points at is marked from its
+   number to the block's edge. */
+.highlight a:has(> .linenos) {
+    color: inherit;
+    text-decoration: none;
+}
+
+.highlight span[id]:target {
+    display: block;
+    background: var(--pst-color-target);
+}
+
 /* Man pages rendered by mandoc (docs/conf.py). The page title already names
    the page, so drop mandoc's header and footer lines, and indent what scdoc
    writes as an indented block: an option's description, a file's purpose. */
