@@ -39,6 +39,9 @@ the option:
 .. code-block:: diff
    :caption: configuration.nix
 
+   --- a/configuration.nix
+   +++ b/configuration.nix
+   @@ -1,7 +1,8 @@
    -{ modulesPath, ... }:
    +{ modulesPath, pkgs, ... }:
     {
@@ -46,6 +49,8 @@ the option:
 
    +  boot.kernelPackages = pkgs.linuxPackages_latest;
       networking.hostName = "bootstrap";
+      services.openssh.enable = true;
+      users.users.root.openssh.authorizedKeys.keys = [ "ssh-ed25519 AAAA... bootstrap" ]; # from ~/bootstrap/system/ssh/id_ed25519.pub
 
 .. _NixOS: https://nixos.org/manual/nixos/stable/
 .. _knix: https://github.com/linux-kdevops/knix

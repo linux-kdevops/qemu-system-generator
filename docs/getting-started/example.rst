@@ -64,8 +64,17 @@ at knix upstream:
 .. code-block:: diff
    :caption: ~/bootstrap/knix/guest/flake.nix
 
+   --- a/bootstrap/knix/guest/flake.nix
+   +++ b/bootstrap/knix/guest/flake.nix
+   @@ -17,7 +17,7 @@
+        # revision via a subtree or vendored copy and should not
+        # track upstream HEAD. For upstream, use:
+        #   knix.url = "github:linux-kdevops/knix";
    -    knix.url = "path:/path/to/knix";
    +    knix.url = "github:linux-kdevops/knix";
+        nixpkgs.follows = "knix/nixpkgs";
+
+        # Local source checkouts (uncomment to use). Multi-attribute
 
 Share your home and mount it in the initrd, so that ``init=`` can reach
 the closure through it. Put its path in place of ``/home/user``

@@ -96,6 +96,9 @@ build that fio without the rest of the system:
 .. code-block:: diff
    :caption: ~/bootstrap/direct/flake.nix
 
+   --- a/bootstrap/direct/flake.nix
+   +++ b/bootstrap/direct/flake.nix
+   @@ -4,13 +4,19 @@
       outputs =
         { self, nixpkgs }:
         {
@@ -115,6 +118,7 @@ build that fio without the rest of the system:
    +        inherit (self.nixosConfigurations.bootstrap.pkgs) fio;
    +      };
         };
+    }
 
 The guest installs a package by listing it in
 `environment.systemPackages`_. Take ``pkgs`` among the arguments of
@@ -123,6 +127,9 @@ The guest installs a package by listing it in
 .. code-block:: diff
    :caption: ~/bootstrap/direct/configuration.nix
 
+   --- a/bootstrap/direct/configuration.nix
+   +++ b/bootstrap/direct/configuration.nix
+   @@ -1,7 +1,8 @@
    -{ modulesPath, ... }:
    +{ modulesPath, pkgs, ... }:
     {
@@ -130,6 +137,8 @@ The guest installs a package by listing it in
 
    +  environment.systemPackages = [ pkgs.fio ];
       networking.hostName = "bootstrap";
+      services.openssh.enable = true;
+      users.users.root.openssh.authorizedKeys.keys = [ "ssh-ed25519 AAAA... bootstrap" ]; # from ~/bootstrap/system/ssh/id_ed25519.pub
 
 .. _packages-override:
 
@@ -262,10 +271,16 @@ Drop the patch:
 .. code-block:: diff
    :caption: ~/bootstrap/direct/overlay.nix
 
-             hash = "sha256-5/3Q4ObLIxL2EukxGzujrN6n7kagjI8WYZYDkmYH4cE=";
-           };
-   +       patches = [ ];
-           postInstall = (previousAttrs.postInstall or "") + ''
+   --- a/bootstrap/direct/overlay.nix
+   +++ b/bootstrap/direct/overlay.nix
+   @@ -8,6 +8,7 @@ final: prev: {
+            tag = "fio-${finalAttrs.version}";
+            hash = "sha256-5/3Q4ObLIxL2EukxGzujrN6n7kagjI8WYZYDkmYH4cE=";
+          };
+   +      patches = [ ];
+          postInstall = (previousAttrs.postInstall or "") + ''
+            install --mode=755 t/io_uring $out/bin/fio-io-uring
+          '';
 
 .. code-block:: console
    :class: cmd-host
@@ -292,14 +307,23 @@ same fake hash method:
 .. code-block:: diff
    :caption: ~/bootstrap/direct/overlay.nix
 
-   -       patches = [ ];
-   +       patches = [
-   +         (prev.fetchpatch2 {
-   +           name = "fio-add-falloc-write-zeroes.patch";
-   +           url = "https://github.com/axboe/fio/commit/6a73355e3a6d29747dce80bdf488a46b5adff85d.patch?full_index=1";
-   +           hash = "sha256-NrHuBku5hv2w3cmoa8xCq6+UxzHWukMNOmmh1f0nUxA=";
-   +         })
-   +       ];
+   --- a/bootstrap/direct/overlay.nix
+   +++ b/bootstrap/direct/overlay.nix
+   @@ -8,7 +8,13 @@ final: prev: {
+            tag = "fio-${finalAttrs.version}";
+            hash = "sha256-5/3Q4ObLIxL2EukxGzujrN6n7kagjI8WYZYDkmYH4cE=";
+          };
+   -      patches = [ ];
+   +      patches = [
+   +        (prev.fetchpatch2 {
+   +          name = "fio-add-falloc-write-zeroes.patch";
+   +          url = "https://github.com/axboe/fio/commit/6a73355e3a6d29747dce80bdf488a46b5adff85d.patch?full_index=1";
+   +          hash = "sha256-NrHuBku5hv2w3cmoa8xCq6+UxzHWukMNOmmh1f0nUxA=";
+   +        })
+   +      ];
+          postInstall = (previousAttrs.postInstall or "") + ''
+            install --mode=755 t/io_uring $out/bin/fio-io-uring
+          '';
 
 .. code-block:: console
    :class: cmd-host
@@ -339,6 +363,9 @@ inputs to the overlay:
 .. code-block:: diff
    :caption: ~/bootstrap/direct/flake.nix
 
+   --- a/bootstrap/direct/flake.nix
+   +++ b/bootstrap/direct/flake.nix
+   @@ -1,10 +1,16 @@
     {
    -  inputs.nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
    +  inputs = {
@@ -356,6 +383,9 @@ inputs to the overlay:
    -      overlays.default = import ./overlay.nix;
    +      overlays.default = import ./overlay.nix inputs;
 
+          nixosConfigurations.bootstrap = nixpkgs.lib.nixosSystem {
+            modules = [
+
 ``overlay.nix`` now takes the inputs first and returns the overlay. The
 version takes nixpkgs' form for a commit (`Versioning`_), ``0-unstable-``
 and the date of the input's last commit, with ``0`` because the overlay
@@ -365,10 +395,17 @@ cannot tell which release a moving branch follows. The fix for glibc
 .. code-block:: diff
    :caption: ~/bootstrap/direct/overlay.nix
 
+   --- a/bootstrap/direct/overlay.nix
+   +++ b/bootstrap/direct/overlay.nix
+   @@ -1,4 +1,4 @@
    -final: prev: {
    +inputs: final: prev: {
       fio = (prev.fio.override { withGnuplot = true; }).overrideAttrs (
-   ...
+        finalAttrs: previousAttrs: {
+          version = "3.43";
+   @@ -20,4 +20,14 @@ final: prev: {
+          '';
+        }
       );
    +
    +  xfstests = prev.xfstests.overrideAttrs {
@@ -467,13 +504,23 @@ import.
 ``lib.packagesFromDirectoryRecursive`` calls ``callPackage`` on each
 ``package.nix`` under a directory and names the package after its
 directory (`packagesFromDirectoryRecursive`_). Add the packages it
-returns to the overlay's set:
+returns to the overlay's set; nixfmt then puts the set's opening brace on
+a line of its own:
 
 .. code-block:: diff
    :caption: ~/bootstrap/direct/overlay.nix
 
-      xfstests = prev.xfstests.overrideAttrs {
-   ...
+   --- a/bootstrap/direct/overlay.nix
+   +++ b/bootstrap/direct/overlay.nix
+   @@ -1,4 +1,5 @@
+   -inputs: final: prev: {
+   +inputs: final: prev:
+   +{
+      fio = (prev.fio.override { withGnuplot = true; }).overrideAttrs (
+        finalAttrs: previousAttrs: {
+          version = "3.43";
+   @@ -31,3 +32,7 @@ inputs: final: prev: {
+        patches = [ ];
       };
     }
    +// prev.lib.packagesFromDirectoryRecursive {
@@ -600,8 +647,11 @@ arguments such as ``buildPythonPackage`` from that set. Only
 .. code-block:: diff
    :caption: ~/bootstrap/direct/overlay.nix
 
-      xfstests = prev.xfstests.overrideAttrs {
-   ...
+   --- a/bootstrap/direct/overlay.nix
+   +++ b/bootstrap/direct/overlay.nix
+   @@ -31,6 +31,16 @@ inputs: final: prev:
+        src = inputs.xfstests;
+        patches = [ ];
       };
    +
    +  pythonPackagesExtensions = prev.pythonPackagesExtensions ++ [
@@ -614,6 +664,8 @@ arguments such as ``buildPythonPackage`` from that set. Only
    +    )
    +  ];
     }
+    // prev.lib.packagesFromDirectoryRecursive {
+      inherit (prev) callPackage;
 
 Each test server runs under a Python with the modules it imports,
 without setuptools and ply, which only build pynfs. The source is the
@@ -796,6 +848,12 @@ Install the five packages in the guest:
 .. code-block:: diff
    :caption: ~/bootstrap/direct/configuration.nix
 
+   --- a/bootstrap/direct/configuration.nix
+   +++ b/bootstrap/direct/configuration.nix
+   @@ -2,7 +2,13 @@
+    {
+      imports = [ (modulesPath + "/profiles/qemu-guest.nix") ];
+
    -  environment.systemPackages = [ pkgs.fio ];
    +  environment.systemPackages = [
    +    pkgs.damo
@@ -804,6 +862,9 @@ Install the five packages in the guest:
    +    pkgs.pynfs
    +    pkgs.xfstests
    +  ];
+      networking.hostName = "bootstrap";
+      services.openssh.enable = true;
+      users.users.root.openssh.authorizedKeys.keys = [ "ssh-ed25519 AAAA... bootstrap" ]; # from ~/bootstrap/system/ssh/id_ed25519.pub
 
 :cmd:`nix flake check` evaluates every package in ``packages``, the
 system among them, so an override that fails to evaluate fails here,

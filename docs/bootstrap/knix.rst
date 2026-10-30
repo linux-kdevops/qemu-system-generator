@@ -100,8 +100,17 @@ knix upstream:
 .. code-block:: diff
    :caption: ~/bootstrap/knix/guest/flake.nix
 
+   --- a/bootstrap/knix/guest/flake.nix
+   +++ b/bootstrap/knix/guest/flake.nix
+   @@ -17,7 +17,7 @@
+        # revision via a subtree or vendored copy and should not
+        # track upstream HEAD. For upstream, use:
+        #   knix.url = "github:linux-kdevops/knix";
    -    knix.url = "path:/path/to/knix";
    +    knix.url = "github:linux-kdevops/knix";
+        nixpkgs.follows = "knix/nixpkgs";
+
+        # Local source checkouts (uncomment to use). Multi-attribute
 
 Save :ref:`home.nix <home-guest>` as ``~/bootstrap/knix/guest/home.nix``,
 with your home in place of ``/home/user``, to share your home as
@@ -111,6 +120,11 @@ key from ``~/bootstrap/system/ssh/id_ed25519.pub`` into ``default.nix``:
 .. code-block:: diff
    :caption: ~/bootstrap/knix/guest/default.nix
 
+   --- a/bootstrap/knix/guest/default.nix
+   +++ b/bootstrap/knix/guest/default.nix
+   @@ -25,9 +25,10 @@
+        #   knix.nixosModules.profiles.build-tools
+        #   knix.nixosModules.testSuites.fstests
         #   knix.nixosModules.testSuites.blktests
    +    ./home.nix
       ];
@@ -118,7 +132,11 @@ key from ``~/bootstrap/system/ssh/id_ed25519.pub`` into ``default.nix``:
    -  networking.hostName = "vm";
    +  networking.hostName = "bootstrap";
 
-   ...
+      # Build a package from a local source checkout. The matching
+      # fio-src input must be declared in flake.nix.
+   @@ -36,6 +37,8 @@
+      # ];
+
       # SSH keys for the root and unprivileged accounts.
    -  # users.users.root.openssh.authorizedKeys.keys = [ "ssh-ed25519 ..." ];
    -  # users.users.${config.knix.user.name}.openssh.authorizedKeys.keys = [ "ssh-ed25519 ..." ];
@@ -126,6 +144,7 @@ key from ``~/bootstrap/system/ssh/id_ed25519.pub`` into ``default.nix``:
    +  users.users.${config.knix.user.name}.openssh.authorizedKeys.keys = [
    +    "ssh-ed25519 AAAA... bootstrap"
    +  ]; # from ~/bootstrap/system/ssh/id_ed25519.pub
+    }
 
 .. code-block:: console
    :class: cmd-host
@@ -271,9 +290,14 @@ the first word of :cmd:`ExecStart=`:
 .. code-block:: diff
    :caption: ~/.config/qemu/systemd/bootstrap-knix.qemu
 
+   --- a/.config/qemu/systemd/bootstrap-knix.qemu
+   +++ b/.config/qemu/systemd/bootstrap-knix.qemu
+   @@ -1,4 +1,5 @@
     [VM]
    +QEMUBinary=%h/bootstrap/knix/qemu/destdir/bin/qemu-system-x86_64
     SSHPrivateKey=%h/bootstrap/system/ssh/id_ed25519
+
+    [QEMU]
 
 :ref:`Regenerate <host-regenerate>` and :ref:`restart <host-start>`, then
 check which binary runs:
@@ -300,6 +324,11 @@ addresses (:doc:`network`):
 .. code-block:: diff
    :caption: ~/bootstrap/knix/guest/default.nix
 
+   --- a/bootstrap/knix/guest/default.nix
+   +++ b/bootstrap/knix/guest/default.nix
+   @@ -29,6 +29,16 @@
+      ];
+
       networking.hostName = "bootstrap";
    +  systemd.network.networks = {
    +    "10-lan-bootstrap" = {
@@ -311,6 +340,9 @@ addresses (:doc:`network`):
    +      address = [ "10.0.100.50/24" ];
    +    };
    +  };
+
+      # Build a package from a local source checkout. The matching
+      # fio-src input must be declared in flake.nix.
 
 The two ``10-`` networks come before knix's ``80-ethernet``, which asks
 for every other card's address over DHCP. Rebuild, and put the new
@@ -328,11 +360,17 @@ Give ``bootstrap-knix`` its card:
 .. code-block:: diff
    :caption: ~/.config/qemu/systemd/bootstrap-knix.qemu
 
+   --- a/.config/qemu/systemd/bootstrap-knix.qemu
+   +++ b/.config/qemu/systemd/bootstrap-knix.qemu
+   @@ -14,6 +14,8 @@ serial=mon:stdio
+    kernel=%h/bootstrap/knix/linux/build/arch/x86/boot/bzImage
     netdev=user,id=net0,hostfwd=tcp:127.0.0.1:10049-:22
     device=virtio-net-pci-non-transitional,netdev=net0,romfile=
    +netdev=dgram,id=lan,remote.type=inet,remote.host=239.255.0.1,remote.port=5557,local.type=inet,local.host=127.0.0.1,local.port=0
    +device=virtio-net-pci-non-transitional,netdev=lan,mac=52:54:00:00:00:49,romfile=
     device=vhost-vsock-pci-non-transitional,guest-cid=49
+
+    [virtiofsd]
 
 ``bootstrap-knix-peer`` needs the three shares the closure mounts, a
 context id of its own and no forwarded port, since ``bootstrap-knix`` holds
@@ -423,7 +461,7 @@ other:
 4. The closure through links
 ============================
 
-Every closure rebuild so far meant two new paths in each drop-in. QEMU
+Every closure rebuild so far meant new paths in each drop-in. QEMU
 reads ``initrd=`` on the host, so it can name the closure's ``initrd``
 link, ``result/initrd``. The initrd resolves ``init=`` inside the
 guest's root and follows symbolic links on the way
@@ -434,11 +472,16 @@ guest's root and follows symbolic links on the way
 .. code-block:: diff
    :caption: ~/bootstrap/knix/guest/home.nix
 
+   --- a/bootstrap/knix/guest/home.nix
+   +++ b/bootstrap/knix/guest/home.nix
+   @@ -16,6 +16,7 @@ in
       fileSystems.${home} = {
         device = "home";
         fsType = "virtiofs";
    +    neededForBoot = true;
       };
+      fileSystems."${home}/.config/systemd" = mask;
+      fileSystems."${home}/.local/share/systemd" = mask;
 
 Rebuild the closure:
 
@@ -455,8 +498,11 @@ same path:
 .. code-block:: diff
    :caption: ~/.config/qemu/systemd/bootstrap-knix.qemu.d/10-closure.conf
 
+   --- a/.config/qemu/systemd/bootstrap-knix.qemu.d/10-closure.conf
+   +++ b/.config/qemu/systemd/bootstrap-knix.qemu.d/10-closure.conf
+   @@ -1,3 +1,3 @@
     [QEMU]
-   -initrd=/nix/store/...-initrd-linux-.../initrd
+   -initrd=/nix/store/pbx7c8f26kng743zyrabx8p9qplpi6zj-initrd-linux-6.18.34/initrd
    -append=root=tmpfs console=ttyS0 init=/nix/store/...-nixos-system-bootstrap-.../init
    +initrd=%h/bootstrap/knix/guest/result/initrd
    +append=root=tmpfs console=ttyS0 init=%h/bootstrap/knix/guest/result/init
@@ -464,6 +510,9 @@ same path:
 .. code-block:: diff
    :caption: ~/.config/qemu/systemd/bootstrap-knix-peer.qemu.d/10-closure.conf
 
+   --- a/.config/qemu/systemd/bootstrap-knix-peer.qemu.d/10-closure.conf
+   +++ b/.config/qemu/systemd/bootstrap-knix-peer.qemu.d/10-closure.conf
+   @@ -1,3 +1,3 @@
     [QEMU]
    -initrd=/nix/store/pbx7c8f26kng743zyrabx8p9qplpi6zj-initrd-linux-6.18.34/initrd
    -append=root=tmpfs console=ttyS0 systemd.hostname=peer init=/nix/store/...-nixos-system-bootstrap-.../init
@@ -579,6 +628,9 @@ The console
 .. code-block:: diff
    :caption: ~/.config/qemu/systemd/bootstrap-knix.qemu.d/10-closure.conf
 
+   --- a/.config/qemu/systemd/bootstrap-knix.qemu.d/10-closure.conf
+   +++ b/.config/qemu/systemd/bootstrap-knix.qemu.d/10-closure.conf
+   @@ -1,3 +1,3 @@
     [QEMU]
     initrd=%h/bootstrap/knix/guest/result/initrd
    -append=root=tmpfs console=ttyS0 init=%h/bootstrap/knix/guest/result/init
@@ -595,11 +647,16 @@ The store
 .. code-block:: diff
    :caption: ~/.config/qemu/systemd/bootstrap-knix.qemu
 
+   --- a/.config/qemu/systemd/bootstrap-knix.qemu
+   +++ b/.config/qemu/systemd/bootstrap-knix.qemu
+   @@ -21,6 +21,7 @@ device=vhost-vsock-pci-non-transitional,guest-cid=49
     [virtiofsd]
     shared-dir=/nix/store
     tag=store
    +cache=always
     sandbox=namespace
+    uid-map=:0:%U:1:
+    gid-map=:0:%G:1:
 
 5.0 seconds.
 
@@ -612,9 +669,16 @@ QEMU ships `qboot`_, "a simple x86 firmware that can boot Linux" from
 .. code-block:: diff
    :caption: ~/.config/qemu/systemd/bootstrap-knix.qemu
 
+   --- a/.config/qemu/systemd/bootstrap-knix.qemu
+   +++ b/.config/qemu/systemd/bootstrap-knix.qemu
+   @@ -5,6 +5,7 @@ SSHPrivateKey=%h/bootstrap/system/ssh/id_ed25519
+    [QEMU]
     machine=q35
     nodefaults=
    +bios=qboot.rom
+    accel=kvm
+    cpu=host
+    m=2G
 
 4.7 seconds; the time before the kernel starts falls from 0.24 to 0.15
 seconds.
@@ -628,6 +692,9 @@ This kernel has virtiofs built in, so the limit can go
 .. code-block:: diff
    :caption: ~/.config/qemu/systemd/bootstrap-knix.qemu.d/10-closure.conf
 
+   --- a/.config/qemu/systemd/bootstrap-knix.qemu.d/10-closure.conf
+   +++ b/.config/qemu/systemd/bootstrap-knix.qemu.d/10-closure.conf
+   @@ -1,3 +1,3 @@
     [QEMU]
     initrd=%h/bootstrap/knix/guest/result/initrd
    -append=root=tmpfs console=ttyS0 systemd.tty.term.console=vt220 systemd.tty.rows.console=24 systemd.tty.columns.console=80 init=%h/bootstrap/knix/guest/result/init
@@ -647,7 +714,12 @@ tells it this is not one (:cmd:`kernel-command-line(7)`).
 .. code-block:: diff
    :caption: ~/bootstrap/knix/guest/default.nix
 
-      networking.hostName = "bootstrap";
+   --- a/bootstrap/knix/guest/default.nix
+   +++ b/bootstrap/knix/guest/default.nix
+   @@ -39,6 +39,18 @@
+          address = [ "10.0.100.50/24" ];
+        };
+      };
    +  services.openssh.hostKeys = [
    +    {
    +      type = "ed25519";
@@ -661,6 +733,9 @@ tells it this is not one (:cmd:`kernel-command-line(7)`).
    +    "systemd-update-done.service"
    +  ];
 
+      # Build a package from a local source checkout. The matching
+      # fio-src input must be declared in flake.nix.
+
 .. code-block:: console
    :class: cmd-host
 
@@ -672,6 +747,9 @@ Add the option to the drop-in:
 .. code-block:: diff
    :caption: ~/.config/qemu/systemd/bootstrap-knix.qemu.d/10-closure.conf
 
+   --- a/.config/qemu/systemd/bootstrap-knix.qemu.d/10-closure.conf
+   +++ b/.config/qemu/systemd/bootstrap-knix.qemu.d/10-closure.conf
+   @@ -1,3 +1,3 @@
     [QEMU]
     initrd=%h/bootstrap/knix/guest/result/initrd
    -append=root=tmpfs console=ttyS0 systemd.tty.term.console=vt220 systemd.tty.rows.console=24 systemd.tty.columns.console=80 SYSTEMD_DEFAULT_MOUNT_RATE_LIMIT_BURST=1000 init=%h/bootstrap/knix/guest/result/init
@@ -687,6 +765,9 @@ Quiet
 .. code-block:: diff
    :caption: ~/.config/qemu/systemd/bootstrap-knix.qemu.d/10-closure.conf
 
+   --- a/.config/qemu/systemd/bootstrap-knix.qemu.d/10-closure.conf
+   +++ b/.config/qemu/systemd/bootstrap-knix.qemu.d/10-closure.conf
+   @@ -1,3 +1,3 @@
     [QEMU]
     initrd=%h/bootstrap/knix/guest/result/initrd
    -append=root=tmpfs console=ttyS0 systemd.tty.term.console=vt220 systemd.tty.rows.console=24 systemd.tty.columns.console=80 SYSTEMD_DEFAULT_MOUNT_RATE_LIMIT_BURST=1000 systemd.condition_first_boot=false init=%h/bootstrap/knix/guest/result/init
@@ -758,6 +839,9 @@ closure's path:
 .. code-block:: diff
    :caption: ~/.config/qemu/systemd/bootstrap-knix.qemu.d/10-closure.conf
 
+   --- a/.config/qemu/systemd/bootstrap-knix.qemu.d/10-closure.conf
+   +++ b/.config/qemu/systemd/bootstrap-knix.qemu.d/10-closure.conf
+   @@ -1,3 +1,3 @@
     [QEMU]
    -initrd=%h/bootstrap/knix/guest/result/initrd
    -append=root=tmpfs console=ttyS0 systemd.tty.term.console=vt220 systemd.tty.rows.console=24 systemd.tty.columns.console=80 SYSTEMD_DEFAULT_MOUNT_RATE_LIMIT_BURST=1000 systemd.condition_first_boot=false quiet init=%h/bootstrap/knix/guest/result/init
@@ -778,8 +862,17 @@ parallel start:
 .. code-block:: diff
    :caption: ~/.config/qemu/systemd/bootstrap-knix.qemu
 
+   --- a/.config/qemu/systemd/bootstrap-knix.qemu
+   +++ b/.config/qemu/systemd/bootstrap-knix.qemu
+   @@ -9,7 +9,7 @@ bios=qboot.rom
+    accel=kvm
+    cpu=host
+    m=2G
    -smp=2
    +smp=4
+    nographic=
+    serial=mon:stdio
+    kernel=%h/bootstrap/knix/linux/build/arch/x86/boot/bzImage
 
 1.5 seconds again, a little less: the middle of ten boots is 1.49. That
 is a fifth of where this section started. Eight vCPUs gain nothing more,

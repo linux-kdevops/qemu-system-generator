@@ -168,6 +168,10 @@ Add both, with your own path in ``init=``:
 .. code-block:: diff
    :caption: ~/.config/qemu/systemd/bootstrap-direct.qemu
 
+   --- a/.config/qemu/systemd/bootstrap-direct.qemu
+   +++ b/.config/qemu/systemd/bootstrap-direct.qemu
+   @@ -9,4 +9,11 @@ nographic=
+    serial=mon:stdio
     kernel=%h/bootstrap/direct/result/kernel
     initrd=%h/bootstrap/direct/result/initrd
    -append=console=ttyS0
@@ -234,9 +238,17 @@ Forward a local port to the guest's SSH over QEMU's `user-mode network`_:
 .. code-block:: diff
    :caption: ~/.config/qemu/systemd/bootstrap-direct.qemu
 
+   --- a/.config/qemu/systemd/bootstrap-direct.qemu
+   +++ b/.config/qemu/systemd/bootstrap-direct.qemu
+   @@ -10,6 +10,8 @@ serial=mon:stdio
+    kernel=%h/bootstrap/direct/result/kernel
+    initrd=%h/bootstrap/direct/result/initrd
     append=console=ttyS0 init=/nix/store/i7s2903dhm9g5z73vkcbpggmv1iqnvwy-nixos-system-bootstrap-26.11.20261020.02c087f/init
    +netdev=user,id=net0,hostfwd=tcp:127.0.0.1:10047-:22
    +device=virtio-net-pci-non-transitional,netdev=net0,romfile=
+
+    [virtiofsd]
+    shared-dir=/nix/store
 
 ``romfile=`` with no value leaves out the card's iPXE boot ROM, which
 the firmware would otherwise load.
@@ -261,9 +273,16 @@ A `vsock`_ device gives the guest a context id:
 .. code-block:: diff
    :caption: ~/.config/qemu/systemd/bootstrap-direct.qemu
 
+   --- a/.config/qemu/systemd/bootstrap-direct.qemu
+   +++ b/.config/qemu/systemd/bootstrap-direct.qemu
+   @@ -12,6 +12,7 @@ initrd=%h/bootstrap/direct/result/initrd
+    append=console=ttyS0 init=/nix/store/i7s2903dhm9g5z73vkcbpggmv1iqnvwy-nixos-system-bootstrap-26.11.20261020.02c087f/init
     netdev=user,id=net0,hostfwd=tcp:127.0.0.1:10047-:22
     device=virtio-net-pci-non-transitional,netdev=net0,romfile=
    +device=vhost-vsock-pci-non-transitional,guest-cid=47
+
+    [virtiofsd]
+    shared-dir=/nix/store
 
 The machine registers with :cmd:`machined <systemd-machined>`
 (:ref:`host-machined`), which records the id:
@@ -296,6 +315,9 @@ over SSH first (:ref:`SSH poweroff <host-poweroff>`):
 .. code-block:: diff
    :caption: ~/.config/qemu/systemd/bootstrap-direct.qemu
 
+   --- a/.config/qemu/systemd/bootstrap-direct.qemu
+   +++ b/.config/qemu/systemd/bootstrap-direct.qemu
+   @@ -1,3 +1,6 @@
    +[VM]
    +SSHPrivateKey=%h/bootstrap/system/ssh/id_ed25519
    +
@@ -325,6 +347,12 @@ the machine's runtime directory. ``%i`` is the machine name:
 .. code-block:: diff
    :caption: ~/.config/qemu/systemd/bootstrap-direct.qemu
 
+   --- a/.config/qemu/systemd/bootstrap-direct.qemu
+   +++ b/.config/qemu/systemd/bootstrap-direct.qemu
+   @@ -12,10 +12,13 @@ nographic=
+    serial=mon:stdio
+    kernel=%h/bootstrap/direct/result/kernel
+    initrd=%h/bootstrap/direct/result/initrd
    -append=console=ttyS0 init=/nix/store/i7s2903dhm9g5z73vkcbpggmv1iqnvwy-nixos-system-bootstrap-26.11.20261020.02c087f/init
    +append=console=ttyS0 console=hvc0 init=/nix/store/i7s2903dhm9g5z73vkcbpggmv1iqnvwy-nixos-system-bootstrap-26.11.20261020.02c087f/init
     netdev=user,id=net0,hostfwd=tcp:127.0.0.1:10047-:22
@@ -333,6 +361,9 @@ the machine's runtime directory. ``%i`` is the machine name:
    +device=virtio-serial-pci-non-transitional
    +chardev=socket,id=console0,path=%t/qemu-system/%i/console.sock,server=on,wait=off
    +device=virtconsole,chardev=console0
+
+    [virtiofsd]
+    shared-dir=/nix/store
 
 :ref:`Regenerate <host-regenerate>`, :ref:`start <host-start>`, and
 attach with :cmd:`socat`:
@@ -366,10 +397,16 @@ drop-in: the files in ``bootstrap-direct.qemu.d/`` are appended to
 .. code-block:: diff
    :caption: ~/.config/qemu/systemd/bootstrap-direct.qemu
 
+   --- a/.config/qemu/systemd/bootstrap-direct.qemu
+   +++ b/.config/qemu/systemd/bootstrap-direct.qemu
+   @@ -12,7 +12,6 @@ nographic=
+    serial=mon:stdio
+    kernel=%h/bootstrap/direct/result/kernel
     initrd=%h/bootstrap/direct/result/initrd
    -append=console=ttyS0 console=hvc0 init=/nix/store/i7s2903dhm9g5z73vkcbpggmv1iqnvwy-nixos-system-bootstrap-26.11.20261020.02c087f/init
     netdev=user,id=net0,hostfwd=tcp:127.0.0.1:10047-:22
     device=virtio-net-pci-non-transitional,netdev=net0,romfile=
+    device=vhost-vsock-pci-non-transitional,guest-cid=47
 
 .. code-block:: console
    :class: cmd-host
@@ -413,6 +450,11 @@ the way a hand-written unit does:
 .. code-block:: diff
    :caption: ~/.config/qemu/systemd/bootstrap-direct.qemu
 
+   --- a/.config/qemu/systemd/bootstrap-direct.qemu
+   +++ b/.config/qemu/systemd/bootstrap-direct.qemu
+   @@ -25,3 +25,13 @@ tag=store
+    sandbox=namespace
+    uid-map=:0:%U:1:
     gid-map=:0:%G:1:
    +
    +[Unit]
@@ -449,6 +491,10 @@ Share your home as :doc:`home` describes. Add its section to the file:
 .. code-block:: diff
    :caption: ~/.config/qemu/systemd/bootstrap-direct.qemu
 
+   --- a/.config/qemu/systemd/bootstrap-direct.qemu
+   +++ b/.config/qemu/systemd/bootstrap-direct.qemu
+   @@ -26,5 +26,12 @@ sandbox=namespace
+    uid-map=:0:%U:1:
     gid-map=:0:%G:1:
 
    +[virtiofsd]
@@ -459,6 +505,7 @@ Share your home as :doc:`home` describes. Add its section to the file:
    +gid-map=:0:%G:1:
    +
     [Unit]
+    Description=NixOS Bootstrap Guest
 
 Save :ref:`home.nix <home-guest>` as ``~/bootstrap/direct/home.nix``, with
 your home in place of ``/home/user``, and add it to the guest:
@@ -466,11 +513,16 @@ your home in place of ``/home/user``, and add it to the guest:
 .. code-block:: diff
    :caption: ~/bootstrap/direct/flake.nix
 
+   --- a/bootstrap/direct/flake.nix
+   +++ b/bootstrap/direct/flake.nix
+   @@ -8,6 +8,7 @@
             modules = [
               ./configuration.nix
               ./virtiofs.nix
    +          ./home.nix
             ];
+          };
+          packages.x86_64-linux.default = self.nixosConfigurations.bootstrap.config.system.build.toplevel;
 
 Rebuild and put the path ``readlink result`` prints, followed by
 ``/init``, in the drop-in's ``init=``. Then
@@ -504,11 +556,16 @@ the ``result`` link in your home, once the initrd mounts the home:
 .. code-block:: diff
    :caption: ~/bootstrap/direct/home.nix
 
+   --- a/bootstrap/direct/home.nix
+   +++ b/bootstrap/direct/home.nix
+   @@ -16,6 +16,7 @@ in
       fileSystems.${home} = {
         device = "home";
         fsType = "virtiofs";
    +    neededForBoot = true;
       };
+      fileSystems."${home}/.config/systemd" = mask;
+      fileSystems."${home}/.local/share/systemd" = mask;
 
 Rebuild, and point ``init=`` at the link, the last path a rebuild
 changes. ``%h`` is your home on the host, and the guest mounts it at the
@@ -517,6 +574,9 @@ same path:
 .. code-block:: diff
    :caption: ~/.config/qemu/systemd/bootstrap-direct.qemu.d/10-closure.conf
 
+   --- a/.config/qemu/systemd/bootstrap-direct.qemu.d/10-closure.conf
+   +++ b/.config/qemu/systemd/bootstrap-direct.qemu.d/10-closure.conf
+   @@ -1,2 +1,2 @@
     [QEMU]
    -append=console=ttyS0 console=hvc0 init=/nix/store/...-nixos-system-bootstrap-.../init
    +append=console=ttyS0 console=hvc0 init=%h/bootstrap/direct/result/init
@@ -538,6 +598,11 @@ addresses (:doc:`network`):
 .. code-block:: diff
    :caption: ~/bootstrap/direct/configuration.nix
 
+   --- a/bootstrap/direct/configuration.nix
+   +++ b/bootstrap/direct/configuration.nix
+   @@ -3,6 +3,17 @@
+      imports = [ (modulesPath + "/profiles/qemu-guest.nix") ];
+
       networking.hostName = "bootstrap";
    +  networking.useNetworkd = true;
    +  systemd.network.networks = {
@@ -551,6 +616,8 @@ addresses (:doc:`network`):
    +    };
    +  };
       services.openssh.enable = true;
+      users.users.root.openssh.authorizedKeys.keys = [ "ssh-ed25519 AAAA... bootstrap" ]; # from ~/bootstrap/system/ssh/id_ed25519.pub
+      users.users.root.initialHashedPassword = "";
 
 With ``networking.useNetworkd``, NixOS asks for the user-mode card's
 address over DHCP through systemd-networkd too, from its
@@ -568,11 +635,17 @@ Give ``bootstrap-direct`` its card:
 .. code-block:: diff
    :caption: ~/.config/qemu/systemd/bootstrap-direct.qemu
 
+   --- a/.config/qemu/systemd/bootstrap-direct.qemu
+   +++ b/.config/qemu/systemd/bootstrap-direct.qemu
+   @@ -14,6 +14,8 @@ kernel=%h/bootstrap/direct/result/kernel
+    initrd=%h/bootstrap/direct/result/initrd
     netdev=user,id=net0,hostfwd=tcp:127.0.0.1:10047-:22
     device=virtio-net-pci-non-transitional,netdev=net0,romfile=
    +netdev=dgram,id=lan,remote.type=inet,remote.host=239.255.0.1,remote.port=5556,local.type=inet,local.host=127.0.0.1,local.port=0
    +device=virtio-net-pci-non-transitional,netdev=lan,mac=52:54:00:00:00:47,romfile=
     device=vhost-vsock-pci-non-transitional,guest-cid=47
+    device=virtio-serial-pci-non-transitional
+    chardev=socket,id=console0,path=%t/qemu-system/%i/console.sock,server=on,wait=off
 
 ``bootstrap-direct-peer`` needs the store and the home, which the closure
 mounts, a context id of its own and no forwarded port, since
@@ -669,6 +742,9 @@ Add them to the drop-in:
 .. code-block:: diff
    :caption: ~/.config/qemu/systemd/bootstrap-direct.qemu.d/10-closure.conf
 
+   --- a/.config/qemu/systemd/bootstrap-direct.qemu.d/10-closure.conf
+   +++ b/.config/qemu/systemd/bootstrap-direct.qemu.d/10-closure.conf
+   @@ -1,2 +1,2 @@
     [QEMU]
    -append=console=ttyS0 console=hvc0 init=%h/bootstrap/direct/result/init
    +append=console=ttyS0 console=hvc0 systemd.tty.term.console=vt220 systemd.tty.rows.console=24 systemd.tty.columns.console=80 init=%h/bootstrap/direct/result/init
@@ -684,11 +760,16 @@ The store
 .. code-block:: diff
    :caption: ~/.config/qemu/systemd/bootstrap-direct.qemu
 
+   --- a/.config/qemu/systemd/bootstrap-direct.qemu
+   +++ b/.config/qemu/systemd/bootstrap-direct.qemu
+   @@ -24,6 +24,7 @@ device=virtconsole,chardev=console0
     [virtiofsd]
     shared-dir=/nix/store
     tag=store
    +cache=always
     sandbox=namespace
+    uid-map=:0:%U:1:
+    gid-map=:0:%G:1:
 
 5.7 seconds.
 
@@ -700,9 +781,17 @@ The closure
 .. code-block:: diff
    :caption: ~/bootstrap/direct/configuration.nix
 
+   --- a/bootstrap/direct/configuration.nix
+   +++ b/bootstrap/direct/configuration.nix
+   @@ -1,4 +1,4 @@
    -{ modulesPath, ... }:
    +{ lib, modulesPath, ... }:
-   ...
+    {
+      imports = [ (modulesPath + "/profiles/qemu-guest.nix") ];
+
+   @@ -15,5 +15,17 @@
+        };
+      };
       services.openssh.enable = true;
    +  services.openssh.hostKeys = [
    +    {
@@ -716,6 +805,8 @@ The closure
    +    "systemd-journal-catalog-update.service"
    +    "systemd-update-done.service"
    +  ];
+      users.users.root.openssh.authorizedKeys.keys = [ "ssh-ed25519 AAAA... bootstrap" ]; # from ~/bootstrap/system/ssh/id_ed25519.pub
+      users.users.root.initialHashedPassword = "";
 
 Rebuild and :ref:`restart <host-start>`:
 
@@ -735,8 +826,17 @@ systemd starts what it can in parallel:
 .. code-block:: diff
    :caption: ~/.config/qemu/systemd/bootstrap-direct.qemu
 
+   --- a/.config/qemu/systemd/bootstrap-direct.qemu
+   +++ b/.config/qemu/systemd/bootstrap-direct.qemu
+   @@ -7,7 +7,7 @@ nodefaults=
+    accel=kvm
+    cpu=host
+    m=2G
    -smp=2
    +smp=4
+    nographic=
+    serial=mon:stdio
+    kernel=%h/bootstrap/direct/result/kernel
 
 4.9 seconds, no faster than two processors on this guest.
 
@@ -748,6 +848,9 @@ Quiet
 .. code-block:: diff
    :caption: ~/.config/qemu/systemd/bootstrap-direct.qemu.d/10-closure.conf
 
+   --- a/.config/qemu/systemd/bootstrap-direct.qemu.d/10-closure.conf
+   +++ b/.config/qemu/systemd/bootstrap-direct.qemu.d/10-closure.conf
+   @@ -1,2 +1,2 @@
     [QEMU]
    -append=console=ttyS0 console=hvc0 systemd.tty.term.console=vt220 systemd.tty.rows.console=24 systemd.tty.columns.console=80 init=%h/bootstrap/direct/result/init
    +append=console=ttyS0 console=hvc0 systemd.tty.term.console=vt220 systemd.tty.rows.console=24 systemd.tty.columns.console=80 quiet init=%h/bootstrap/direct/result/init
@@ -816,9 +919,17 @@ JSON:
 .. code-block:: diff
    :caption: ~/.config/qemu/systemd/bootstrap-direct-peer.qemu
 
+   --- a/.config/qemu/systemd/bootstrap-direct-peer.qemu
+   +++ b/.config/qemu/systemd/bootstrap-direct-peer.qemu
+   @@ -16,7 +16,7 @@ netdev=user,id=net0
+    device=virtio-net-pci-non-transitional,netdev=net0,romfile=
+    netdev=dgram,id=lan,remote.type=inet,remote.host=239.255.0.1,remote.port=5556,local.type=inet,local.host=127.0.0.1,local.port=0
     device=virtio-net-pci-non-transitional,netdev=lan,mac=52:54:00:00:00:48,romfile=
    -device=vhost-vsock-pci-non-transitional,guest-cid=48
    +device={"driver": "vhost-vsock-pci-non-transitional", "guest-cid": 48}
+
+    [virtiofsd]
+    shared-dir=/nix/store
 
 Regenerate, restart, and ask machined:
 
@@ -887,13 +998,18 @@ Under `KVM`_, microvm leaves the RTC out unless ``rtc=on`` asks for it
 .. code-block:: diff
    :caption: ~/.config/qemu/systemd/bootstrap-direct.qemu
 
+   --- a/.config/qemu/systemd/bootstrap-direct.qemu
+   +++ b/.config/qemu/systemd/bootstrap-direct.qemu
+   @@ -2,7 +2,7 @@
+    SSHPrivateKey=%h/bootstrap/system/ssh/id_ed25519
+
+    [QEMU]
    -machine=q35
    +machine=microvm,rtc=on
     nodefaults=
     accel=kvm
     cpu=host
-    m=2G
-    smp=4
+   @@ -11,12 +11,13 @@ smp=4
     nographic=
     serial=mon:stdio
     kernel=%h/bootstrap/direct/result/kernel
@@ -910,6 +1026,8 @@ Under `KVM`_, microvm leaves the RTC out unless ``rtc=on`` asks for it
    +device=virtio-net-device,netdev=lan,mac=52:54:00:00:00:47
    +device=vhost-vsock-device,guest-cid=47
    +device=virtio-serial-device
+    chardev=socket,id=console0,path=%t/qemu-system/%i/console.sock,server=on,wait=off
+    device=virtconsole,chardev=console0
 
 The generator follows the machine type for the virtiofs devices it adds:
 
@@ -927,6 +1045,9 @@ listener by itself, so ask for one on the kernel command line with
 .. code-block:: diff
    :caption: ~/.config/qemu/systemd/bootstrap-direct.qemu.d/10-closure.conf
 
+   --- a/.config/qemu/systemd/bootstrap-direct.qemu.d/10-closure.conf
+   +++ b/.config/qemu/systemd/bootstrap-direct.qemu.d/10-closure.conf
+   @@ -1,2 +1,2 @@
     [QEMU]
    -append=console=ttyS0 console=hvc0 systemd.tty.term.console=vt220 systemd.tty.rows.console=24 systemd.tty.columns.console=80 quiet init=%h/bootstrap/direct/result/init
    +append=console=ttyS0 console=hvc0 systemd.ssh_listen=vsock::22 systemd.tty.term.console=vt220 systemd.tty.rows.console=24 systemd.tty.columns.console=80 quiet init=%h/bootstrap/direct/result/init

@@ -195,6 +195,10 @@ Share the host's store under the tag ``store``:
 .. code-block:: diff
    :caption: ~/.config/qemu/systemd/bootstrap-uki.qemu
 
+   --- a/.config/qemu/systemd/bootstrap-uki.qemu
+   +++ b/.config/qemu/systemd/bootstrap-uki.qemu
+   @@ -16,3 +16,10 @@ tag=esp
+    sandbox=namespace
     uid-map=:0:%U:1:
     gid-map=:0:%G:1:
    +
@@ -239,10 +243,18 @@ and add the `vsock`_ device with the context id :ref:`host-ssh` names:
 .. code-block:: diff
    :caption: ~/.config/qemu/systemd/bootstrap-uki.qemu
 
+   --- a/.config/qemu/systemd/bootstrap-uki.qemu
+   +++ b/.config/qemu/systemd/bootstrap-uki.qemu
+   @@ -9,6 +9,9 @@ nographic=
+    serial=mon:stdio
+    drive=if=pflash,format=raw,readonly=on,file=%h/bootstrap/uki/ovmf-fd/FV/OVMF_CODE.fd
     drive=if=pflash,format=raw,snapshot=on,file=%h/bootstrap/uki/ovmf-fd/FV/OVMF_VARS.fd
    +netdev=user,id=net0,hostfwd=tcp:127.0.0.1:10046-:22
    +device=virtio-net-pci-non-transitional,netdev=net0,romfile=
    +device=vhost-vsock-pci-non-transitional,guest-cid=46
+
+    [virtiofsd]
+    shared-dir=%h/bootstrap/uki/result/
 
 ``romfile=`` with no value leaves out the card's iPXE boot ROM, which
 the firmware would otherwise load.
@@ -285,8 +297,9 @@ section:
 .. code-block:: diff
    :caption: ~/.config/qemu/systemd/bootstrap-uki.qemu
 
-    shared-dir=/nix/store
-    tag=store
+   --- a/.config/qemu/systemd/bootstrap-uki.qemu
+   +++ b/.config/qemu/systemd/bootstrap-uki.qemu
+   @@ -26,3 +26,10 @@ tag=store
     sandbox=namespace
     uid-map=:0:%U:1:
     gid-map=:0:%G:1:
@@ -304,11 +317,16 @@ your home in place of ``/home/user``, and add it to the guest:
 .. code-block:: diff
    :caption: ~/bootstrap/uki/flake.nix
 
+   --- a/bootstrap/uki/flake.nix
+   +++ b/bootstrap/uki/flake.nix
+   @@ -12,6 +12,7 @@
             modules = [
               ./configuration.nix
               ./uki.nix
    +          ./home.nix
             ];
+          };
+          packages.${system} = {
 
 Rebuild, :ref:`regenerate <host-regenerate>` and
 :ref:`restart <host-start>`. Root's home is now yours, with the two
@@ -350,6 +368,9 @@ The UKI carries its command line, so the settings go in ``uki.nix``:
 .. code-block:: diff
    :caption: ~/bootstrap/uki/uki.nix
 
+   --- a/bootstrap/uki/uki.nix
+   +++ b/bootstrap/uki/uki.nix
+   @@ -1,5 +1,10 @@
     {
    -  boot.kernelParams = [ "console=ttyS0" ];
    +  boot.kernelParams = [
@@ -358,6 +379,9 @@ The UKI carries its command line, so the settings go in ``uki.nix``:
    +    "systemd.tty.rows.console=24"
    +    "systemd.tty.columns.console=80"
    +  ];
+      boot.loader.grub.enable = false;
+      fileSystems."/" = {
+        device = "none";
 
 Rebuild after each change to ``uki.nix`` or ``configuration.nix``; the
 share serves the new UKI at the next start:
@@ -378,11 +402,16 @@ The store
 .. code-block:: diff
    :caption: ~/.config/qemu/systemd/bootstrap-uki.qemu
 
+   --- a/.config/qemu/systemd/bootstrap-uki.qemu
+   +++ b/.config/qemu/systemd/bootstrap-uki.qemu
+   @@ -23,6 +23,7 @@ gid-map=:0:%G:1:
     [virtiofsd]
     shared-dir=/nix/store
     tag=store
    +cache=always
     sandbox=namespace
+    uid-map=:0:%U:1:
+    gid-map=:0:%G:1:
 
 5.9 seconds.
 
@@ -394,9 +423,15 @@ The closure
 .. code-block:: diff
    :caption: ~/bootstrap/uki/configuration.nix
 
+   --- a/bootstrap/uki/configuration.nix
+   +++ b/bootstrap/uki/configuration.nix
+   @@ -1,8 +1,20 @@
    -{ modulesPath, ... }:
    +{ lib, modulesPath, ... }:
-   ...
+    {
+      imports = [ (modulesPath + "/profiles/qemu-guest.nix") ];
+
+      networking.hostName = "bootstrap";
       services.openssh.enable = true;
    +  services.openssh.hostKeys = [
    +    {
@@ -410,6 +445,8 @@ The closure
    +    "systemd-journal-catalog-update.service"
    +    "systemd-update-done.service"
    +  ];
+      users.users.root.openssh.authorizedKeys.keys = [ "ssh-ed25519 AAAA... bootstrap" ]; # from ~/bootstrap/system/ssh/id_ed25519.pub
+      users.users.root.initialHashedPassword = "";
 
 .. code-block:: console
    :class: cmd-host
@@ -426,8 +463,17 @@ systemd starts what it can in parallel:
 .. code-block:: diff
    :caption: ~/.config/qemu/systemd/bootstrap-uki.qemu
 
+   --- a/.config/qemu/systemd/bootstrap-uki.qemu
+   +++ b/.config/qemu/systemd/bootstrap-uki.qemu
+   @@ -4,7 +4,7 @@ nodefaults=
+    accel=kvm
+    cpu=host
+    m=2G
    -smp=2
    +smp=4
+    nographic=
+    serial=mon:stdio
+    drive=if=pflash,format=raw,readonly=on,file=%h/bootstrap/uki/ovmf-fd/FV/OVMF_CODE.fd
 
 5.4 seconds.
 
@@ -439,9 +485,16 @@ Quiet
 .. code-block:: diff
    :caption: ~/bootstrap/uki/uki.nix
 
+   --- a/bootstrap/uki/uki.nix
+   +++ b/bootstrap/uki/uki.nix
+   @@ -4,6 +4,7 @@
+        "systemd.tty.term.console=vt220"
+        "systemd.tty.rows.console=24"
         "systemd.tty.columns.console=80"
    +    "quiet"
       ];
+      boot.loader.grub.enable = false;
+      fileSystems."/" = {
 
 .. code-block:: console
    :class: cmd-host

@@ -819,6 +819,9 @@ Share your home as :doc:`home` describes. Add its section to the drop-in:
 .. code-block:: diff
    :caption: ~/.config/qemu/systemd/cloud-.qemu.d/10-cloud.conf
 
+   --- a/.config/qemu/systemd/cloud-.qemu.d/10-cloud.conf
+   +++ b/.config/qemu/systemd/cloud-.qemu.d/10-cloud.conf
+   @@ -12,3 +12,10 @@ serial=mon:stdio
     drive=file=seed.iso,if=virtio,format=raw,readonly=on
     netdev=user,id=net0
     device=virtio-net-pci-non-transitional,netdev=net0,romfile=
@@ -836,6 +839,10 @@ in place of ``/home/user``:
 .. code-block:: diff
    :caption: ~/bootstrap/cloud/user-data
 
+   --- a/bootstrap/cloud/user-data
+   +++ b/bootstrap/cloud/user-data
+   @@ -2,3 +2,17 @@
+    disable_root: false
     ssh_authorized_keys:
       - ssh-ed25519 AAAA... bootstrap # from ~/bootstrap/system/ssh/id_ed25519.pub
    +write_files:

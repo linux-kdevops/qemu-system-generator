@@ -146,6 +146,10 @@ Give the machine the disk. ``%h`` is your home directory (`specifiers`_):
 .. code-block:: diff
    :caption: ~/.config/qemu/systemd/bootstrap-disk.qemu
 
+   --- a/.config/qemu/systemd/bootstrap-disk.qemu
+   +++ b/.config/qemu/systemd/bootstrap-disk.qemu
+   @@ -7,3 +7,4 @@ m=2G
+    smp=2
     nographic=
     serial=mon:stdio
    +drive=file=%h/bootstrap/disk/result/bootstrap.qcow2,if=virtio,format=qcow2,snapshot=on
@@ -205,6 +209,11 @@ writes, so it takes ``snapshot=on`` too:
 .. code-block:: diff
    :caption: ~/.config/qemu/systemd/bootstrap-disk.qemu
 
+   --- a/.config/qemu/systemd/bootstrap-disk.qemu
+   +++ b/.config/qemu/systemd/bootstrap-disk.qemu
+   @@ -7,4 +7,6 @@ m=2G
+    smp=2
+    nographic=
     serial=mon:stdio
    -drive=file=%h/bootstrap/disk/result/bootstrap.qcow2,if=virtio,format=qcow2,snapshot=on
    +drive=if=pflash,format=raw,readonly=on,file=%h/bootstrap/disk/ovmf-fd/FV/OVMF_CODE.fd
@@ -248,6 +257,11 @@ and add the `vsock`_ device with the context id :ref:`host-ssh` names:
 .. code-block:: diff
    :caption: ~/.config/qemu/systemd/bootstrap-disk.qemu
 
+   --- a/.config/qemu/systemd/bootstrap-disk.qemu
+   +++ b/.config/qemu/systemd/bootstrap-disk.qemu
+   @@ -10,3 +10,6 @@ serial=mon:stdio
+    drive=if=pflash,format=raw,readonly=on,file=%h/bootstrap/disk/ovmf-fd/FV/OVMF_CODE.fd
+    drive=if=pflash,format=raw,snapshot=on,file=%h/bootstrap/disk/ovmf-fd/FV/OVMF_VARS.fd
     drive=file=%h/bootstrap/disk/efi/bootstrap.qcow2,if=virtio,format=qcow2,snapshot=on
    +netdev=user,id=net0,hostfwd=tcp:127.0.0.1:10042-:22
    +device=virtio-net-pci-non-transitional,netdev=net0,romfile=
@@ -295,6 +309,9 @@ Share your home as :doc:`home` describes. Add its section to the file:
 .. code-block:: diff
    :caption: ~/.config/qemu/systemd/bootstrap-disk.qemu
 
+   --- a/.config/qemu/systemd/bootstrap-disk.qemu
+   +++ b/.config/qemu/systemd/bootstrap-disk.qemu
+   @@ -13,3 +13,10 @@ drive=file=%h/bootstrap/disk/efi/bootstrap.qcow2,if=virtio,format=qcow2,snapshot
     netdev=user,id=net0,hostfwd=tcp:127.0.0.1:10042-:22
     device=virtio-net-pci-non-transitional,netdev=net0,romfile=
     device=vhost-vsock-pci-non-transitional,guest-cid=42
@@ -312,11 +329,16 @@ your home in place of ``/home/user``, and add it to the guest:
 .. code-block:: diff
    :caption: ~/bootstrap/disk/flake.nix
 
+   --- a/bootstrap/disk/flake.nix
+   +++ b/bootstrap/disk/flake.nix
+   @@ -12,6 +12,7 @@
             modules = [
               ./configuration.nix
               ./disk.nix
    +          ./home.nix
             ];
+          };
+          packages.${system} = {
 
 The mount is part of the image, so build a new one, then
 :ref:`regenerate <host-regenerate>` and :ref:`restart <host-start>`.
@@ -356,9 +378,15 @@ default in NixOS, before it boots the default entry. Boot it at once:
 .. code-block:: diff
    :caption: ~/bootstrap/disk/disk.nix
 
+   --- a/bootstrap/disk/disk.nix
+   +++ b/bootstrap/disk/disk.nix
+   @@ -1,5 +1,6 @@
     {
       boot.kernelParams = [ "console=ttyS0" ];
    +  boot.loader.timeout = 0;
+      image.modules.qemu.image.baseName = "bootstrap";
+      image.modules.qemu-efi.image.baseName = "bootstrap";
+    }
 
 A change to ``disk.nix`` or ``configuration.nix`` is a change to the
 image, so rebuild it after each one, which takes about a minute:
@@ -379,6 +407,9 @@ The console
 .. code-block:: diff
    :caption: ~/bootstrap/disk/disk.nix
 
+   --- a/bootstrap/disk/disk.nix
+   +++ b/bootstrap/disk/disk.nix
+   @@ -1,5 +1,10 @@
     {
    -  boot.kernelParams = [ "console=ttyS0" ];
    +  boot.kernelParams = [
@@ -387,6 +418,9 @@ The console
    +    "systemd.tty.rows.console=24"
    +    "systemd.tty.columns.console=80"
    +  ];
+      boot.loader.timeout = 0;
+      image.modules.qemu.image.baseName = "bootstrap";
+      image.modules.qemu-efi.image.baseName = "bootstrap";
 
 .. code-block:: console
    :class: cmd-host
@@ -403,9 +437,15 @@ The closure
 .. code-block:: diff
    :caption: ~/bootstrap/disk/configuration.nix
 
+   --- a/bootstrap/disk/configuration.nix
+   +++ b/bootstrap/disk/configuration.nix
+   @@ -1,8 +1,20 @@
    -{ modulesPath, ... }:
    +{ lib, modulesPath, ... }:
-   ...
+    {
+      imports = [ (modulesPath + "/profiles/qemu-guest.nix") ];
+
+      networking.hostName = "bootstrap";
       services.openssh.enable = true;
    +  services.openssh.hostKeys = [
    +    {
@@ -419,6 +459,8 @@ The closure
    +    "systemd-journal-catalog-update.service"
    +    "systemd-update-done.service"
    +  ];
+      users.users.root.openssh.authorizedKeys.keys = [ "ssh-ed25519 AAAA... bootstrap" ]; # from ~/bootstrap/system/ssh/id_ed25519.pub
+      users.users.root.initialHashedPassword = "";
 
 .. code-block:: console
    :class: cmd-host
@@ -435,8 +477,17 @@ systemd starts what it can in parallel:
 .. code-block:: diff
    :caption: ~/.config/qemu/systemd/bootstrap-disk.qemu
 
+   --- a/.config/qemu/systemd/bootstrap-disk.qemu
+   +++ b/.config/qemu/systemd/bootstrap-disk.qemu
+   @@ -4,7 +4,7 @@ nodefaults=
+    accel=kvm
+    cpu=host
+    m=2G
    -smp=2
    +smp=4
+    nographic=
+    serial=mon:stdio
+    drive=if=pflash,format=raw,readonly=on,file=%h/bootstrap/disk/ovmf-fd/FV/OVMF_CODE.fd
 
 4.6 seconds; this guest gains little from it.
 
@@ -448,9 +499,16 @@ Quiet
 .. code-block:: diff
    :caption: ~/bootstrap/disk/disk.nix
 
+   --- a/bootstrap/disk/disk.nix
+   +++ b/bootstrap/disk/disk.nix
+   @@ -4,6 +4,7 @@
+        "systemd.tty.term.console=vt220"
+        "systemd.tty.rows.console=24"
         "systemd.tty.columns.console=80"
    +    "quiet"
       ];
+      boot.loader.timeout = 0;
+      image.modules.qemu.image.baseName = "bootstrap";
 
 .. code-block:: console
    :class: cmd-host
