@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: copyleft-next-0.3.1
-{ lib, knix, ... }:
+{ lib, ... }:
 {
   imports = [ ./home.nix ];
 
