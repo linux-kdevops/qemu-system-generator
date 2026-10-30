@@ -18,7 +18,7 @@
       pkgs = knix.inputs.nixpkgs.legacyPackages.x86_64-linux;
       src = pkgs.fetchurl {
         url = "https://cdn.kernel.org/pub/linux/kernel/v7.x/linux-7.3.tar.xz";
-        sha256 = "0ls902gz6h1ydcnwx2zzdcglg52f14hmaxk2ncg341hfy4j3qdl7";
+        hash = "sha256-hzY8JPEOBjIes2J2VSEJTpRHH2v/i84taz5A858ASVM=";
       };
       version = "7.3";
     in
