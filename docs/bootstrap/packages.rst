@@ -211,12 +211,12 @@ function, ``overrideAttrs`` calls it with the recipe's own attributes
 3. A newer release
 ==================
 
-nixpkgs has fio 3.42, and fio 3.43 is out. A release is a new ``version``
-and a new ``src``. The recipe derives its tag from the version, but a
-new ``version`` alone keeps 3.42's hash. Nix finds a source with that
-hash in the store or the binary cache and builds 3.42's source under the
-new name, and nixpkgs warns that the version was overridden without
-``src``.
+nixpkgs has `fio 3.42`_, and `fio 3.43`_ is out. A release is a new
+``version`` and a new ``src``. The recipe derives its tag from the
+version, but a new ``version`` alone keeps 3.42's hash. Nix finds a
+source with that hash in the store or the binary cache and builds 3.42's
+source under the new name, and nixpkgs warns that the version was
+overridden without ``src``.
 
 The function form with two arguments, ``finalAttrs: previousAttrs:``
 (:line:`overlay-release:3`), also gives the attributes as they end up
@@ -580,7 +580,7 @@ Add ``damo`` to ``packages``, and build it:
 7. Two more
 ===========
 
-nfstest ships as a release tarball. Its tests mount NFS and capture
+nfstest ships as a `release tarball`_. Its tests mount NFS and capture
 packets, so ``makeWrapperArgs`` (:line:`nfstest-package:33`) puts
 ``mount.nfs`` and ``tcpdump`` on the ``PATH`` of each installed script,
 without making them Python dependencies. Create
@@ -716,7 +716,7 @@ from that set. Only ``python-final`` has it:
 
 Each test server runs under a Python with the modules it imports
 (:line:`pynfs-package:10`), without setuptools and ply, which only build
-pynfs (:line:`pynfs-package:15`). The source is the 0.5 tag
+pynfs (:line:`pynfs-package:15`). The source is the `0.5 tag`_
 (:line:`pynfs-package:29`) of the repository the `pynfs`_ wiki links.
 Create
 ``~/bootstrap/direct/pkgs/pynfs/package.nix``:
@@ -978,6 +978,10 @@ override adds, delete the override.
 .. _damo: https://github.com/damonitor/damo
 .. _nfstest: https://www.linux-nfs.org/~mora/nfstest/
 .. _pynfs: https://wiki.linux-nfs.org/wiki/index.php/Pynfs
+.. _fio 3.42: https://github.com/axboe/fio/releases/tag/fio-3.42
+.. _fio 3.43: https://github.com/axboe/fio/releases/tag/fio-3.43
+.. _release tarball: https://www.linux-nfs.org/~mora/nfstest/releases/
+.. _0.5 tag: https://github.com/linux-nfs/pynfs/releases/tag/pynfs-0.5
 .. _DAMON: https://docs.kernel.org/admin-guide/mm/damon/index.html
 .. _glibc: https://www.gnu.org/software/libc/
 .. _wheel: https://packaging.python.org/en/latest/specifications/binary-distribution-format/
