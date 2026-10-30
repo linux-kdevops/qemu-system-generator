@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: copyleft-next-0.3.1
 #
-# Dagu from its main branch, with the fixes kdevops-ng-minimal-dagu carries
-# until they land upstream; nix/dagu-patches/ is its copy of them.
+# Dagu from its main branch, with the fixes in nix/dagu-patches/ until
+# they land upstream.
 {
   buildGo127Module,
   fetchFromGitHub,
@@ -52,9 +52,8 @@ in
 buildGo127Module {
   pname = "dagu";
   inherit version src;
-  # Branch dagomez/integration-fixes, the commits that change the binary:
-  # step redirects to a terminal, and dagu start showing the running step
-  # and its output.
+  # The fixes that change the binary: step redirects to a terminal, and
+  # dagu start showing the running step and its output.
   patches = [
     ./dagu-patches/0001-Skip-fsync-for-a-step-redirect-that-is-not-a-regular.patch
     ./dagu-patches/0002-Write-a-step-redirect-through-when-it-is-not-a-regul.patch
