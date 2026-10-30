@@ -294,8 +294,10 @@ Drop the patch:
 4. A patch
 ==========
 
-fio's master holds commits 3.43 lacks, such as 6a73355e3a6d ("fio: add
-FALLOC_FL_WRITE_ZEROES support to falloc"). nixpkgs fetches a published
+fio's master holds commits 3.43 lacks, such as
+:gh:`6a73355e3a6d <axboe/fio/commit/6a73355e3a6d29747dce80bdf488a46b5adff85d>`,
+which adds ``fallocate=write_zeroes`` for Linux 6.17's
+``FALLOC_FL_WRITE_ZEROES``. nixpkgs fetches a published
 patch with ``fetchpatch2``, and keeps a patch as a file when it cannot
 be fetched, may vanish from its URL, or fixes a problem only nixpkgs has
 (`Patches`_ in nixpkgs' guide to contributing packages).
@@ -410,8 +412,8 @@ inputs to the overlay:
 ``overlay.nix`` now takes the inputs first and returns the overlay. The
 version takes nixpkgs' form for a commit (`Versioning`_), ``0-unstable-``
 and the date of the input's last commit, with ``0`` because the overlay
-cannot tell which release a moving branch follows. The fix for glibc
-2.44 that nixpkgs carries is in ``for-next`` already:
+cannot tell which release a moving branch follows. The fix for
+`glibc`_ 2.44 that nixpkgs carries is in ``for-next`` already:
 
 .. code-block:: diff
    :caption: ~/bootstrap/direct/overlay.nix
@@ -518,7 +520,7 @@ directory named after it, as nixpkgs lays out ``pkgs/by-name``
    })
 
 With ``pyproject = true``, ``buildPythonApplication`` (`Python`_ in the
-nixpkgs manual) builds a wheel with the packages in ``build-system``,
+nixpkgs manual) builds a `wheel`_ with the packages in ``build-system``,
 and ``pythonImportsCheck`` fails the build if the module does not
 import.
 
@@ -945,6 +947,8 @@ override adds, delete the override.
 .. _nfstest: https://www.linux-nfs.org/~mora/nfstest/
 .. _pynfs: https://wiki.linux-nfs.org/wiki/index.php/Pynfs
 .. _DAMON: https://docs.kernel.org/admin-guide/mm/damon/index.html
+.. _glibc: https://www.gnu.org/software/libc/
+.. _wheel: https://packaging.python.org/en/latest/specifications/binary-distribution-format/
 .. _gnuplot: http://www.gnuplot.info
 .. _callPackage: https://nix.dev/tutorials/callpackage
 .. _Overlays: https://nixos.org/manual/nixpkgs/unstable/#chap-overlays
