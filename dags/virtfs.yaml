@@ -1,0 +1,54 @@
+# SPDX-License-Identifier: copyleft-next-0.3.1
+description: >-
+  Build a NixOS closure for bootstrap-virtfs and boot it directly with no
+  virtiofsd: the Nix store comes over 9p, and so do six shares, one per
+  security model (none, mapped-xattr with fmode and dmode, mapped-file),
+  one read-only, one with writeout=immediate and one written as a
+  virtfs= line, mounted with different msize and cache options. Check
+  each share from the guest and on the host.
+working_dir: ..
+type: chain
+env:
+  - XDG_RUNTIME_DIR: ${XDG_RUNTIME_DIR}
+
+handler_on:
+  exit:
+    run: steps/machine/stop --name bootstrap-virtfs
+
+steps:
+  - id: host_check
+    run: steps/host/check
+
+  - id: ssh_generate_key
+    run: steps/ssh/generate_key
+
+  - id: host_install
+    run: steps/host/install
+
+  - id: generator_install
+    run: steps/generator/install
+
+  - id: virtfs_install
+    run: steps/virtfs/install
+
+  - id: virtfs_build
+    run: steps/virtfs/build
+
+  - id: generator_run
+    run: steps/generator/run
+
+  - id: machine_start
+    run: steps/machine/start --name bootstrap-virtfs
+
+  # The guest answers once its sshd runs; until then the step fails.
+  - id: machine_wait
+    run: steps/machine/wait --name bootstrap-virtfs
+    retry_policy:
+      limit: 60
+      interval_sec: 5
+
+  - id: virtfs_check
+    run: steps/virtfs/check
+
+  - id: machine_remove
+    run: steps/machine/remove --name bootstrap-virtfs

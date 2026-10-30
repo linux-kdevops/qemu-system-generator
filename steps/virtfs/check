@@ -1,0 +1,62 @@
+#!/usr/bin/env bash
+# SPDX-License-Identifier: copyleft-next-0.3.1
+## Usage: steps/virtfs/check [--base FILE]
+##
+## Check that bootstrap-virtfs's unit runs no virtiofsd and has no
+## memory backend of the generator's; log in, list its 9p mounts, and
+## test each share from the guest and in WORKTREES_DIR/virtfs/shares
+## against bootstrap-virtfs.qemu and the guest's mount options:
+##
+##   nix develop --ignore-env --keep-env-var HOME \
+##       --keep-env-var XDG_RUNTIME_DIR \
+##       --command steps/virtfs/check
+set -o errexit -o nounset -o pipefail
+
+while [ $# -gt 0 ]; do
+	case $1 in
+	--base) base=$2 ;;
+	*) sed --quiet 's/^## \{0,1\}//p' "$0" >&2 && exit 2 ;;
+	esac
+	shift 2
+done
+# shellcheck source=/dev/null
+[ -z "${base-}" ] || . "$base"
+# shellcheck source=steps/base
+. "$(dirname "$0")/../base"
+guest=(ssh -F "$SSH_DIR/config" bootstrap-virtfs)
+shares=$WORKTREES_DIR/virtfs/shares
+
+set -o xtrace
+[ "$(systemctl --user cat qemu-system@bootstrap-virtfs.service | grep --count -e virtiofsd -e systemd-mem)" = 0 ]
+"${guest[@]}" findmnt --types 9p
+"${guest[@]}" findmnt --noheadings --output=OPTIONS /mnt/none | grep --quiet ,msize=262144,
+"${guest[@]}" findmnt --noheadings --output=OPTIONS /mnt/writeout | grep --quiet ,cache=0x5,
+"${guest[@]}" findmnt --noheadings --output=OPTIONS /mnt/shorthand | grep --quiet ,cache=0xf,
+
+# security_model=none: QEMU ignores only the chown at file creation,
+# though -fsdev's documentation says it ignores any; a chown from the
+# guest fails with EPERM.
+"${guest[@]}" 'echo none >/mnt/none/f'
+[ "$("${guest[@]}" stat --format=%u /mnt/none/f)" = "$(id --user)" ]
+[ "$(stat --format=%u "$shares/none/f")" = "$(id --user)" ]
+"${guest[@]}" 'chown 1234 /mnt/none/f 2>&1 | grep --quiet "Operation not permitted"'
+
+# mapped-xattr: 600 and 700 are bootstrap-virtfs.qemu's fmode and dmode.
+"${guest[@]}" 'echo xattr >/mnt/xattr/f && chown 1234 /mnt/xattr/f && chmod 0644 /mnt/xattr/f && mkdir --parents /mnt/xattr/d'
+[ "$("${guest[@]}" stat --format=%u:%a /mnt/xattr/f)" = 1234:644 ]
+[ "$(stat --format=%u:%a "$shares/xattr/f")" = "$(id --user):600" ]
+[ "$(stat --format=%a "$shares/xattr/d")" = 700 ]
+[ "$(python3 -c 'import os, sys; print(int.from_bytes(os.getxattr(sys.argv[1], "user.virtfs.uid"), "little"))' "$shares/xattr/f")" = 1234 ]
+
+"${guest[@]}" 'echo file >/mnt/file/f && chown 1234 /mnt/file/f'
+[ "$("${guest[@]}" stat --format=%u /mnt/file/f)" = 1234 ]
+grep --line-regexp virtfs.uid=1234 "$shares/file/.virtfs_metadata/f"
+
+[ "$("${guest[@]}" cat /mnt/ro/from-host)" = from-host ]
+"${guest[@]}" 'touch /mnt/ro/f 2>&1 | grep --quiet "Read-only file system"'
+[ ! -e "$shares/ro/f" ]
+
+# cache=mmap and cache=loose write back: sync before reading on the host.
+"${guest[@]}" 'echo writeout >/mnt/writeout/f && echo shorthand >/mnt/shorthand/f && sync'
+[ "$(cat "$shares/writeout/f")" = writeout ]
+[ "$(cat "$shares/shorthand/f")" = shorthand ]

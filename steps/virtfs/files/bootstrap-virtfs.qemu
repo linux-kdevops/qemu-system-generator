@@ -1,0 +1,26 @@
+# SPDX-License-Identifier: copyleft-next-0.3.1
+[QEMU]
+machine=q35
+nodefaults=
+accel=kvm
+cpu=host
+m=2G
+smp=2
+nographic=
+serial=mon:stdio
+kernel=$WORKTREES_DIR/virtfs/result/kernel
+initrd=$WORKTREES_DIR/virtfs/result/initrd
+device=vhost-vsock-pci-non-transitional,guest-cid=57
+fsdev=local,id=fs-store,path=/nix/store,security_model=none,readonly=on,multidevs=remap
+device=virtio-9p-pci-non-transitional,fsdev=fs-store,mount_tag=store
+fsdev=local,id=fs-none,path=$WORKTREES_DIR/virtfs/shares/none,security_model=none
+device=virtio-9p-pci-non-transitional,fsdev=fs-none,mount_tag=none
+fsdev=local,id=fs-xattr,path=$WORKTREES_DIR/virtfs/shares/xattr,security_model=mapped-xattr,fmode=0600,dmode=0700
+device=virtio-9p-pci-non-transitional,fsdev=fs-xattr,mount_tag=xattr
+fsdev=local,id=fs-file,path=$WORKTREES_DIR/virtfs/shares/file,security_model=mapped-file
+device=virtio-9p-pci-non-transitional,fsdev=fs-file,mount_tag=file
+fsdev=local,id=fs-ro,path=$WORKTREES_DIR/virtfs/shares/ro,security_model=none,readonly=on
+device=virtio-9p-pci-non-transitional,fsdev=fs-ro,mount_tag=ro
+fsdev=local,id=fs-writeout,path=$WORKTREES_DIR/virtfs/shares/writeout,security_model=none,writeout=immediate
+device=virtio-9p-pci-non-transitional,fsdev=fs-writeout,mount_tag=writeout
+virtfs=local,path=$WORKTREES_DIR/virtfs/shares/shorthand,mount_tag=shorthand,security_model=none

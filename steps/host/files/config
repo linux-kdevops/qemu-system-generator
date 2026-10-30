@@ -31,6 +31,8 @@ Host bootstrap-runner
     HostName vsock/55
 Host bootstrap-nvme
     HostName vsock/56
+Host bootstrap-virtfs
+    HostName vsock/57
 
 Host bootstrap-* cloud-*
     ProxyCommand $proxy %h %p
