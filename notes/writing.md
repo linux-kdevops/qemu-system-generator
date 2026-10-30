@@ -105,6 +105,11 @@ and not only the formatting, and write for every reader, including one
 who arrives from a search with no context. The man pages are the
 specification; `README.md` points at them rather than repeating them.
 
+A guide's diff blocks are hunks from the commits of
+[qemu-system-generator-bootstrap](https://github.com/linux-kdevops/qemu-system-generator-bootstrap),
+one branch per guide: change a step there, paste what its `guides hunk`
+prints, and run its `guides check` against this tree.
+
 ## The gate
 
 `scripts/check-prose.py` refuses the phrasing these maintainers almost
