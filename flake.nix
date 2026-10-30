@@ -170,7 +170,7 @@
         pkgs:
         let
           package = self.packages.${pkgs.stdenv.hostPlatform.system}.default;
-          src = package.src;
+          inherit (package) src;
         in
         {
           inherit package;

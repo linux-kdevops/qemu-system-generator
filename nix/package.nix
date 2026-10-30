@@ -17,7 +17,7 @@
   virtiofsdBinary ? "${virtiofsd}/bin/virtiofsd",
 }:
 
-rustPlatform.buildRustPackage (finalAttrs: {
+rustPlatform.buildRustPackage {
   pname = "qemu-system-generator";
   version = (lib.importTOML ../Cargo.toml).package.version;
 
@@ -87,4 +87,4 @@ rustPlatform.buildRustPackage (finalAttrs: {
     mainProgram = "qemu-system-generator";
     platforms = lib.platforms.linux;
   };
-})
+}
