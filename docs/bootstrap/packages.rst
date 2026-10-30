@@ -382,9 +382,9 @@ cannot tell which release a moving branch follows. The fix for glibc
    +  };
     }
 
-Add ``xfstests`` to ``packages`` and to ``environment.systemPackages``
-as fio is. xfstests' function takes ``fio`` from ``final``, so this
-xfstests runs the fio of the steps above:
+Add ``xfstests`` to ``packages`` as fio is. xfstests' function takes
+``fio`` from ``final``, so this xfstests runs the fio of the steps
+above:
 
 .. code-block:: console
    :class: cmd-host
@@ -481,8 +481,7 @@ returns to the overlay's set:
    +  directory = ./pkgs;
    +}
 
-Add ``damo`` to ``packages`` and to ``environment.systemPackages``, and
-build it:
+Add ``damo`` to ``packages``, and build it:
 
 .. code-block:: console
    :class: cmd-host
@@ -693,7 +692,7 @@ without setuptools and ply, which only build pynfs. The source is the
    })
 
 ``packagesFromDirectoryRecursive`` finds both packages. Add ``nfstest``
-and ``pynfs`` to ``packages`` and to ``environment.systemPackages``.
+and ``pynfs`` to ``packages``.
 
 .. _packages-guest:
 
@@ -791,6 +790,8 @@ The files as they end up:
      inherit (prev) callPackage;
      directory = ./pkgs;
    }
+
+Install the five packages in the guest:
 
 .. code-block:: diff
    :caption: ~/bootstrap/direct/configuration.nix
