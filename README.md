@@ -150,8 +150,9 @@ nix develop --ignore-env \
 
 `notes/steps.md` has the rules the steps follow.
 
-`nix flake check` also builds the documentation as Read the Docs does
-and holds the Markdown and reStructuredText prose to 80 columns.
+`nix flake check` also builds the documentation as Read the Docs does,
+holds the Markdown and reStructuredText prose to 80 columns, and runs
+nixfmt, statix and deadnix over the Nix files; `nix fmt` formats them.
 To render it, or to preview it while editing:
 
 ```shell

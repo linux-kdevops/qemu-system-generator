@@ -1,0 +1,4 @@
+# SPDX-License-Identifier: copyleft-next-0.3.1
+# The guests set fileSystems one mount at a time, as a generated
+# hardware-configuration.nix does; repeated_keys would fold them into one.
+disabled = ["repeated_keys"]

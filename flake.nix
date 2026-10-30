@@ -251,6 +251,37 @@
             touch $out
           '';
 
+          # statix reads statix.toml, and exits 0 when it cannot parse it,
+          # with the error on stderr only. deadnix leaves lambda arguments
+          # alone, so an overlay keeps the names final and prev, used or not.
+          nix-lint =
+            pkgs.runCommand "${package.pname}-nix-lint"
+              {
+                src = pkgs.lib.fileset.toSource {
+                  root = ./.;
+                  fileset = pkgs.lib.fileset.unions [
+                    (pkgs.lib.fileset.fileFilter (file: file.hasExt "nix") ./.)
+                    ./statix.toml
+                  ];
+                };
+                nativeBuildInputs = [
+                  pkgs.nixfmt
+                  pkgs.statix
+                  pkgs.deadnix
+                ];
+              }
+              ''
+                cd $src
+                nixfmt --check $(find . -name '*.nix')
+                statix check . 2>"$NIX_BUILD_TOP/statix.err"
+                if [ -s "$NIX_BUILD_TOP/statix.err" ]; then
+                  cat "$NIX_BUILD_TOP/statix.err" >&2
+                  exit 1
+                fi
+                deadnix --fail --no-lambda-arg .
+                touch $out
+              '';
+
           # The module must load where nixpkgs.nixosModules.readOnlyPkgs
           # forbids it to add an overlay, so its package comes from a set
           # without this flake's overlay.
@@ -298,6 +329,6 @@
         }
       );
 
-      formatter = forAllSystems (pkgs: pkgs.nixfmt);
+      formatter = forAllSystems (pkgs: pkgs.nixfmt-tree);
     };
 }
