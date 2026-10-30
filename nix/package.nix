@@ -83,6 +83,8 @@ rustPlatform.buildRustPackage {
       url = "https://spdx.org/licenses/copyleft-next-0.3.1.html";
       free = true;
       redistributable = true;
+      deprecated = false;
+      licenseType = "simple";
     };
     mainProgram = "qemu-system-generator";
     platforms = lib.platforms.linux;
