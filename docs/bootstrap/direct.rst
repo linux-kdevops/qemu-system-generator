@@ -510,8 +510,9 @@ the ``result`` link in your home, once the initrd mounts the home:
    +    neededForBoot = true;
       };
 
-Rebuild, and change the drop-in one last time. ``%h`` is your home on
-the host, and the guest mounts it at the same path:
+Rebuild, and point ``init=`` at the link, the last path a rebuild
+changes. ``%h`` is your home on the host, and the guest mounts it at the
+same path:
 
 .. code-block:: diff
    :caption: ~/.config/qemu/systemd/bootstrap-direct.qemu.d/10-closure.conf
@@ -521,8 +522,8 @@ the host, and the guest mounts it at the same path:
    +append=console=ttyS0 console=hvc0 init=%h/bootstrap/direct/result/init
 
 :ref:`Regenerate <host-regenerate>` and :ref:`restart <host-start>`.
-From here a change to the guest is a rebuild and a restart, and the
-drop-in stays as it is. The boot now depends on the home share: if it
+From here a change to the guest is a rebuild and a restart, and
+``init=`` stays as it is. The boot now depends on the home share: if it
 fails to mount, the guest stops in the initrd.
 
 .. _direct-peer:

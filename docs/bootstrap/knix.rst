@@ -448,8 +448,9 @@ Rebuild the closure:
    $ cd ~/bootstrap/knix/guest
    $ nix build .#toplevel
 
-Change each drop-in one last time. ``%h`` is your home on the host, and
-the guest mounts it at the same path:
+Point each drop-in at the links, so that a build changes no path in
+them. ``%h`` is your home on the host, and the guest mounts it at the
+same path:
 
 .. code-block:: diff
    :caption: ~/.config/qemu/systemd/bootstrap-knix.qemu.d/10-closure.conf
@@ -471,8 +472,10 @@ the guest mounts it at the same path:
 
 :ref:`Regenerate <host-regenerate>` and :ref:`restart <host-start>` both.
 From here a change to the guest is the build above and a restart,
-and the drop-ins stay as they are. The boot now depends on the home
-share: if it fails to mount, the guest stops in the initrd.
+and the paths in the drop-ins stay as they are until the BusyBox
+``init`` of :ref:`a faster boot <knix-fast>` replaces the initrd. The
+boot now depends on the home share: if it fails to mount, the guest
+stops in the initrd.
 
 .. _knix-fast:
 
