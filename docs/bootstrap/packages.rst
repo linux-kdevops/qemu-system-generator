@@ -474,7 +474,10 @@ leaves ``flake.lock`` as it is:
 damo, the user space tool for the kernel's `DAMON`_, is not in nixpkgs. A
 new package is a function like fio's, in a ``package.nix`` in a
 directory named after it, as nixpkgs lays out ``pkgs/by-name``
-(`by-name`_). Create ``~/bootstrap/direct/pkgs/damo/package.nix``:
+(`by-name`_). nixpkgs also puts the name's first two letters above that
+directory, ``pkgs/by-name/da/damo``; leave that level out here, or
+``packagesFromDirectoryRecursive``, below, makes the package
+``da.damo``. Create ``~/bootstrap/direct/pkgs/damo/package.nix``:
 
 .. code-block:: nix
    :caption: ~/bootstrap/direct/pkgs/damo/package.nix
@@ -629,7 +632,11 @@ dependencies. Create ``~/bootstrap/direct/pkgs/nfstest/package.nix``:
 Python 3.13 removed xdrlib, so pynfs needs the xdrlib3 fork, which
 nixpkgs lacks. A Python library belongs in the Python package sets, and
 ``pythonPackagesExtensions`` adds to every one of them
-(`Python extensions`_). Create
+(`Python extensions`_). nixpkgs keeps its own in
+``pkgs/development/python-modules/<name>/default.nix``. Here the file is
+``package.nix``, the name ``packagesFromDirectoryRecursive`` takes as a
+directory's package; it would make a ``default.nix`` the package
+``xdrlib3.default``. Create
 ``~/bootstrap/direct/python-packages/xdrlib3/package.nix``:
 
 .. code-block:: nix
