@@ -138,6 +138,12 @@ html .highlight-diff div.highlight .gd {
     background: var(--pst-color-target);
 }
 
+/* The cheatsheet's commands break anywhere, not only at spaces, so that
+   its four columns fit the page. */
+table.cheatsheet code {
+    overflow-wrap: anywhere;
+}
+
 /* Man pages rendered by mandoc (docs/conf.py). The page title already names
    the page, so drop mandoc's header and footer lines, and indent what scdoc
    writes as an indented block: an option's description, a file's purpose. */

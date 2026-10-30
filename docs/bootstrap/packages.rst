@@ -971,6 +971,9 @@ An override keeps what it names across updates: fio stays at 3.43 with
 its patch until you change the overlay. Once nixpkgs has what an
 override adds, delete the override.
 
+:doc:`cheatsheet` puts the package commands of Debian, Ubuntu and
+Fedora beside the Nix commands that do the same.
+
 .. _NixOS: https://nixos.org/manual/nixos/stable/
 .. _nixpkgs: https://github.com/NixOS/nixpkgs
 .. _fio: https://github.com/axboe/fio

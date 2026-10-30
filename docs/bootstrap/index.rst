@@ -48,7 +48,8 @@ Each NixOS guide ends with :doc:`a faster boot <fast>`, from the
 defaults to the fastest configuration it can reach, one change at a time.
 
 :doc:`packages` uses an overlay to change how `nixpkgs`_ builds a NixOS
-guest's packages and to add the ones it lacks.
+guest's packages and to add the ones it lacks, and :doc:`cheatsheet`
+puts the package commands of Debian, Ubuntu and Fedora beside Nix's.
 
 The file format is specified in
 :doc:`qemu-systemd.unit(5) </man/qemu-systemd.unit.5>` and the generator in
@@ -74,6 +75,7 @@ keep nothing there; the cloud guests keep their disks there.
    home
    nixos
    packages
+   cheatsheet
    network
    fast
 
