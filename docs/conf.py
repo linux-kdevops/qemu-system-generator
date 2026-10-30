@@ -5,6 +5,9 @@ import re
 import subprocess
 
 from docutils import nodes
+from pygments.lexer import bygroups
+from pygments.lexers.diff import DiffLexer
+from pygments.token import Generic, Whitespace
 from sphinx.util import logging
 
 logger = logging.getLogger(__name__)
@@ -300,10 +303,24 @@ def _render_man_pages(app):
             out.write(html)
 
 
+# The guides' diff blocks are git's output from the "--- a/<path>" line on.
+# Pygments' diff lexer reads that line as a deletion and "+++ b/<path>" as
+# an insertion, which custom.css paints red and green; read them as the
+# heading they are.
+class _GitDiffLexer(DiffLexer):
+    tokens = {
+        "root": [
+            (r"((?:---|\+\+\+) (?:[ab]/|/dev/null).*)(\n)", bygroups(Generic.Heading, Whitespace)),
+            *DiffLexer.tokens["root"],
+        ]
+    }
+
+
 def setup(app):
     app.add_config_value("cmd_links", {}, "env")
     app.add_role("cmd", _cmd_role)
     app.add_role("key", _key_role)
+    app.add_lexer("diff", _GitDiffLexer)
     for name in _LINKS:
         app.add_role(name, _link_role)
     app.connect("builder-inited", _render_man_pages)
