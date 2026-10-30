@@ -95,4 +95,17 @@ Steps and DAGs
       both machines share in a step of their own. Plan:
       ``notes/plans/knix-steps-per-machine.md``.
 
+   .. grid-item-card:: Cover more in CI
+
+      :bdg-primary:`planned`
+
+      Add DAGs for what ``qemu-systemd.unit(5)`` specifies and no DAG
+      reaches: the stop over SSH and its timeout, ``[Install]`` under the
+      user manager, VFIO behind a vIOMMU, and two machines ordered by
+      ``[Unit]`` lines. Then cover what kdevops' guests use and the DAGs
+      do not: NVMe behind PCIe root ports, large blocks, virtio-blk and
+      virtio-scsi, a bridge, CXL and a crashing guest. Until then, a
+      change that breaks one of these shows first on a user's machine.
+      Plan: ``notes/plans/ci-coverage.md``.
+
 .. _PCI Express guidelines: https://gitlab.com/qemu-project/qemu/-/blob/master/docs/pcie.txt
