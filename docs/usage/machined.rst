@@ -1,8 +1,8 @@
 .. SPDX-License-Identifier: copyleft-next-0.3.1
 
-=============================
-machined, machinectl, varlink
-=============================
+=================================
+machined, ``machinectl``, varlink
+=================================
 
 Since `systemd`_ 259, each user manager has its own
 :cmd:`systemd-machined`. Every machine the generator writes registers
@@ -19,8 +19,8 @@ know your machines.
 
 .. _machined-verbs:
 
-machinectl
-==========
+``machinectl``
+==============
 
 .. code-block:: console
    :class: cmd-host
@@ -76,16 +76,16 @@ also reach into containers only.
 
 .. _usage-ssh:
 
-ssh by machine name
-===================
+``ssh`` by machine name
+=======================
 
-:cmd:`systemd-ssh-proxy(1)` connects ssh to a host name of the form
+:cmd:`systemd-ssh-proxy(1)` connects ``ssh`` to a host name of the form
 ``machine/name``: it asks your user's machined for the machine's vsock
 context id, then the system's if yours does not know the name, and
 dials the guest's port 22 over vsock. systemd's ``ssh_config`` snippet,
 ``/etc/ssh/ssh_config.d/20-systemd-ssh-proxy.conf`` on most
 distributions, routes ``machine/*`` through it as root, so the key is
-all ssh still needs:
+all ``ssh`` still needs:
 
 .. code-block:: console
    :class: cmd-host
@@ -99,8 +99,8 @@ name each machine in ``~/bootstrap/system/ssh/config`` instead
 
 .. _usage-varlink:
 
-varlinkctl
-==========
+``varlinkctl``
+==============
 
 Your machined listens on ``io.systemd.Machine`` in
 ``$XDG_RUNTIME_DIR/systemd/machine``:
