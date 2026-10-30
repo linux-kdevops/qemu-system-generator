@@ -8,7 +8,8 @@ document.addEventListener("DOMContentLoaded", () => {
     for (const caption of document.querySelectorAll(".code-block-caption")) {
         const text = caption.querySelector(".caption-text");
         const path = text ? text.textContent.trim() : "";
-        if (!path.startsWith("~/") && !path.startsWith("/")) {
+        // A file name has a "/" or a "."; a label such as "guest" has neither.
+        if (!/[/.]/.test(path) || /\s/.test(path)) {
             continue;
         }
         const button = document.createElement("button");
