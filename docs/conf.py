@@ -156,6 +156,7 @@ cmd_links = {
     "virt-install": "https://github.com/virt-manager/virt-manager/blob/main/man/virt-install.rst",
     "make": "https://www.gnu.org/software/make/manual/make.html",
     "git add": "https://git-scm.com/docs/git-add",
+    "git diff": "https://git-scm.com/docs/git-diff",
     "git format-patch": "https://git-scm.com/docs/git-format-patch",
     "socat": "http://www.dest-unreach.org/socat/doc/socat.html",
     "jq": "https://jqlang.org/manual/",

@@ -345,9 +345,30 @@ named after its subject:
 
    patches = [ ./patches/fio/0001-your-change.patch ];
 
-``~/bootstrap/direct`` is not a Git repository. In one, a flake sees
-only the files Git tracks, so :cmd:`git add` a new file before the
-build.
+.. note::
+
+   ``~/bootstrap/direct`` is not a Git repository. If you keep it in one,
+   a flake there sees only the files Git tracks, so add the files once:
+
+   .. code-block:: console
+      :class: cmd-host
+
+      $ cd ~/bootstrap/direct
+      $ git init
+      $ echo result > .gitignore
+      $ git add --all
+      $ git commit --message="Start from the direct guide"
+
+   and :cmd:`git add` each new file before the build that needs it:
+
+   .. code-block:: console
+      :class: cmd-host
+
+      $ git add patches/fio/0001-your-change.patch
+
+   The diffs in these guides are what :cmd:`git diff` prints, so
+   ``git diff HEAD`` shows your changes since the last commit in the same
+   form.
 
 .. _packages-tree:
 
