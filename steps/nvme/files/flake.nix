@@ -6,7 +6,6 @@
     { self, nixpkgs }:
     {
       nixosConfigurations.bootstrap-nvme = nixpkgs.lib.nixosSystem {
-        system = "x86_64-linux";
         modules = [ ./configuration.nix ];
       };
       packages.x86_64-linux.default =

@@ -31,7 +31,6 @@ The guest is an ordinary NixOS configuration. Create
        in
        {
          nixosConfigurations.bootstrap = nixpkgs.lib.nixosSystem {
-           inherit system;
            modules = [
              ./configuration.nix
              ./disk.nix
@@ -40,7 +39,7 @@ The guest is an ordinary NixOS configuration. Create
          packages.${system} = {
            default = images.qemu;
            efi = images.qemu-efi;
-           ovmf = nixpkgs.legacyPackages.${system}.OVMF.fd;
+           ovmf = self.nixosConfigurations.bootstrap.pkgs.OVMF.fd;
          };
        };
    }
@@ -60,6 +59,7 @@ The guest is an ordinary NixOS configuration. Create
      users.users.root.openssh.authorizedKeys.keys = [ "ssh-ed25519 AAAA... bootstrap" ]; # from ~/bootstrap/system/ssh/id_ed25519.pub
      users.users.root.initialHashedPassword = "";
 
+     nixpkgs.hostPlatform = "x86_64-linux";
      system.stateVersion = "26.05";
    }
 

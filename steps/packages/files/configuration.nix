@@ -22,5 +22,6 @@
   security.pam.services.sshd.startSession = lib.mkForce false;
   users.users.root.openssh.authorizedKeys.keys = [ "$key" ];
 
+  nixpkgs.hostPlatform = "x86_64-linux";
   system.stateVersion = "26.05";
 }

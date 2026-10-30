@@ -20,7 +20,8 @@ which puts the virtio and `virtiofs`_ drivers in the `initrd`_. It names
 the machine ``bootstrap``, enables :cmd:`sshd <sshd(8)>`, and lets root in
 with the key from ``~/bootstrap/system/ssh/id_ed25519.pub``, pasted in
 where the guides show ``ssh-ed25519 AAAA... bootstrap``. The empty root
-password is for logging in on a console.
+password is for logging in on a console. ``nixpkgs.hostPlatform`` names
+the platform the guest runs on.
 
 .. _nixos-kernel:
 

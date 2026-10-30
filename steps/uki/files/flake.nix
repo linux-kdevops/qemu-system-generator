@@ -6,12 +6,10 @@
     { self, nixpkgs }:
     let
       system = "x86_64-linux";
-      pkgs = nixpkgs.legacyPackages.${system};
-      inherit (self.nixosConfigurations.bootstrap) config;
+      inherit (self.nixosConfigurations.bootstrap) config pkgs;
     in
     {
       nixosConfigurations.bootstrap = nixpkgs.lib.nixosSystem {
-        inherit system;
         modules = [
           ./configuration.nix
           ./home.nix

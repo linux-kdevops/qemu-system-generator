@@ -6,7 +6,6 @@
     { self, nixpkgs }:
     {
       nixosConfigurations.bootstrap-virtfs = nixpkgs.lib.nixosSystem {
-        system = "x86_64-linux";
         modules = [ ./configuration.nix ];
       };
       packages.x86_64-linux.default =

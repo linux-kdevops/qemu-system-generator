@@ -40,5 +40,6 @@ in
   fileSystems."/mnt/writeout" = share "writeout" [ "cache=mmap" ];
   fileSystems."/mnt/shorthand" = share "shorthand" [ "cache=loose" ];
 
+  nixpkgs.hostPlatform = "x86_64-linux";
   system.stateVersion = "26.05";
 }

@@ -10,7 +10,6 @@
     in
     {
       nixosConfigurations.bootstrap = nixpkgs.lib.nixosSystem {
-        inherit system;
         modules = [
           ./configuration.nix
           ./home.nix
@@ -18,7 +17,7 @@
       };
       packages.${system} = {
         efi = images.qemu-efi;
-        ovmf = nixpkgs.legacyPackages.${system}.OVMF.fd;
+        ovmf = self.nixosConfigurations.bootstrap.pkgs.OVMF.fd;
       };
     };
 }

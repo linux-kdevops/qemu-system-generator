@@ -27,7 +27,6 @@ The guest is an ordinary NixOS configuration. Create
        { self, nixpkgs }:
        {
          nixosConfigurations.bootstrap = nixpkgs.lib.nixosSystem {
-           system = "x86_64-linux";
            modules = [
              ./configuration.nix
              ./virtiofs.nix
@@ -52,6 +51,7 @@ The guest is an ordinary NixOS configuration. Create
      users.users.root.openssh.authorizedKeys.keys = [ "ssh-ed25519 AAAA... bootstrap" ]; # from ~/bootstrap/system/ssh/id_ed25519.pub
      users.users.root.initialHashedPassword = "";
 
+     nixpkgs.hostPlatform = "x86_64-linux";
      system.stateVersion = "26.05";
    }
 

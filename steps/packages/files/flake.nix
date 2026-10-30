@@ -14,7 +14,6 @@
       overlays.default = import ./overlay.nix inputs;
 
       nixosConfigurations.bootstrap = nixpkgs.lib.nixosSystem {
-        system = "x86_64-linux";
         modules = [
           ./configuration.nix
           ./virtiofs.nix
