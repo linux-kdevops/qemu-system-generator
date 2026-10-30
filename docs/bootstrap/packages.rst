@@ -828,6 +828,34 @@ Rebuild the system and :ref:`restart <host-start>` the machine:
    nfstest_posix 1.2
    Usage: testserver.py SERVER:/PATH [options] flags|testcodes
 
+.. _packages-update:
+
+9. Updates
+==========
+
+``flake.lock`` pins nixpkgs and xfstests to the commits the first build
+took. :cmd:`nix flake update` moves both to the head of their branches:
+
+.. code-block:: console
+   :class: cmd-host
+
+   $ nix flake update
+   warning: updating lock file "/home/user/bootstrap/direct/flake.lock":
+   • Updated input 'nixpkgs':
+       'github:NixOS/nixpkgs/e7439b6b14ad3cc35d05608ebca9bce01a25f5f8?narHash=sha256-H83yz/do%2BhjOO0uujHyH8RgtIQP2v7Mw%2BcLwcZK/xKc%3D' (2026-10-08)
+     → 'github:NixOS/nixpkgs/31ecbaca1bdefa45dffc409f0250bd8039ea0010?narHash=sha256-dhoW6VgFWlaodSY5jrBn%2BCF2FLmaUvDVgM7%2BC7T2%2BNM%3D' (2026-10-27)
+   $ nix build
+
+:cmd:`nix build` builds the new closure and points ``result`` at it. The
+machine's ``kernel=``, ``initrd=`` and ``init=`` all go through
+``result``, so a :ref:`restart <host-start>` boots the new closure. The
+packages the overlay changes, and the ones that take them, build on your
+machine again, since the binary cache holds only nixpkgs' own builds.
+
+An override keeps what it names across updates: fio stays at 3.43 with
+its patch until you change the overlay. Once nixpkgs has what an
+override adds, delete the override.
+
 .. _NixOS: https://nixos.org/manual/nixos/stable/
 .. _nixpkgs: https://github.com/NixOS/nixpkgs
 .. _fio: https://github.com/axboe/fio
