@@ -5,12 +5,12 @@
   outputs =
     { self, nixpkgs }:
     {
-      nixosConfigurations.$name = nixpkgs.lib.nixosSystem {
+      nixosConfigurations."$name" = nixpkgs.lib.nixosSystem {
         modules = [
           ./configuration.nix
           ./home.nix
         ];
       };
-      packages.x86_64-linux.default = self.nixosConfigurations.$name.config.system.build.toplevel;
+      packages.x86_64-linux.default = self.nixosConfigurations."$name".config.system.build.toplevel;
     };
 }
