@@ -29,7 +29,7 @@ files=$(realpath "$(dirname "$0")/files")
 set -o xtrace
 mkdir --parents "$WORKTREES_DIR/uki" "$units"
 cd "$WORKTREES_DIR/uki"
-cp "$files/flake.nix" flake.nix
+cp "$files/flake.nix" "$files/uki.nix" .
 key=$(cat "$SSH_KEY.pub") envsubst "\$key" <"$files/configuration.nix" >configuration.nix
 HOME=$HOME envsubst "\$HOME" <"$files/home.nix" >home.nix
 WORKTREES_DIR=$WORKTREES_DIR \

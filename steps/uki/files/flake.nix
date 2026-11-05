@@ -12,6 +12,7 @@
       nixosConfigurations.bootstrap = nixpkgs.lib.nixosSystem {
         modules = [
           ./configuration.nix
+          ./uki.nix
           ./home.nix
         ];
       };
