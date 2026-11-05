@@ -1,7 +1,15 @@
 # SPDX-License-Identifier: copyleft-next-0.3.1
-{ lib, ... }:
 {
-  imports = [ ./home.nix ];
+  config,
+  lib,
+  knix,
+  ...
+}:
+{
+  imports = [
+    knix.nixosModules.profiles.devel
+    ./home.nix
+  ];
 
   networking.hostName = "bootstrap";
   systemd.network.networks = {
@@ -21,5 +29,14 @@
     }
   ];
   security.pam.services.sshd.startSession = lib.mkForce false;
+  console.enable = false;
+  systemd.suppressedSystemUnits = [
+    "systemd-journal-catalog-update.service"
+    "systemd-update-done.service"
+  ];
+
   users.users.root.openssh.authorizedKeys.keys = [ "$key" ];
+  users.users.${config.knix.user.name}.openssh.authorizedKeys.keys = [
+    "$key"
+  ];
 }

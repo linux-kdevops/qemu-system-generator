@@ -3,7 +3,8 @@
 ## Usage: steps/knix/install [--base FILE]
 ##
 ## Write, in WORKTREES_DIR/knix, the knix flake of an imageless NixOS
-## guest with the public key of SSH_KEY for root, and the init of a
+## guest with the devel profile and the public key of SSH_KEY for root
+## and the knix user, and the init of a
 ## BusyBox initramfs that mounts the host's Nix store and starts that
 ## guest's closure; and bootstrap-knix.qemu and bootstrap-knix-peer.qemu in
 ## ~/.config/qemu/systemd, which power the machines down over SSH with
