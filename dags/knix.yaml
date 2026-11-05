@@ -1,9 +1,9 @@
 # SPDX-License-Identifier: copyleft-next-0.3.1
 description: >-
-  Build two kernels and QEMU from their release tarballs and a knix
+  Build a kernel and QEMU from their release tarballs and a knix
   imageless NixOS guest, boot bootstrap-knix through a BusyBox
-  initramfs and bootstrap-knix-peer through the guest's own initrd, log in, and have each machine
-  ping the other.
+  initramfs and bootstrap-knix-peer through the guest's own initrd, both
+  on that kernel, log in, and have each machine ping the other.
 working_dir: ..
 type: chain
 env:

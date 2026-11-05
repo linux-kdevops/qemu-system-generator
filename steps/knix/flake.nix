@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: copyleft-next-0.3.1
 #
-# The two kernels and QEMU the knix machines boot, built as derivations
+# The kernel and QEMU the knix machines boot, built as derivations
 # from the release tarballs, so equal inputs are built once, and the
 # static BusyBox of the fast machine's initramfs.
 {
@@ -25,17 +25,6 @@
     {
       packages.x86_64-linux = {
         busybox = pkgs.pkgsStatic.busybox;
-
-        kernel = knix.lib.buildKernel pkgs {
-          inherit src version;
-          configure = ''
-            make O=$B defconfig kvm_guest.config
-            scripts/config --file $B/.config \
-                --enable FUSE_FS --enable VIRTIO_FS \
-                --enable VSOCKETS --enable VIRTIO_VSOCKETS
-            make O=$B olddefconfig
-          '';
-        };
 
         fast-kernel = knix.lib.buildKernel pkgs {
           inherit src version;

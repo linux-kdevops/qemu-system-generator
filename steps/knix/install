@@ -6,7 +6,8 @@
 ## guest with the public key of SSH_KEY for root, and the init of a
 ## BusyBox initramfs that mounts the host's Nix store and starts that
 ## guest's closure; and bootstrap-knix.qemu and bootstrap-knix-peer.qemu in
-## ~/.config/qemu/systemd, which boot the kernels and QEMU that
+## ~/.config/qemu/systemd, which power the machines down over SSH with
+## SSH_KEY and boot the fast kernel and QEMU that
 ## steps/knix/build links into WORKTREES_DIR/knix/nix, with the store, the
 ## kernel's modules and the home over virtiofs and a LAN between
 ## them:
@@ -36,13 +37,9 @@ cp "$files/guest/flake.nix" "$knix/guest/flake.nix"
 key=$(cat "$SSH_KEY.pub") envsubst "\$key" <"$files/guest/default.nix" >"$knix/guest/default.nix"
 HOME=$HOME envsubst "\$HOME" <"$files/guest/home.nix" >"$knix/guest/home.nix"
 install --mode=0755 "$files/tiny/init" "$knix/tiny/init"
-# The fast kernel boots through qboot, the other through QEMU's default
-# firmware.
-for vm in bootstrap-knix:49:4:fast-kernel:qboot.rom bootstrap-knix-peer:50:2:kernel:; do
-	IFS=: read -r name cid cpus kernel bios <<<"$vm"
-	knix=$knix cid=$cid cpus=$cpus kernel=$kernel \
-		firmware=${bios:+bios=$bios} \
-		envsubst "\$knix \$cid \$cpus \$kernel \$firmware" \
-		<"$files/machine.qemu" >"$units/$name.qemu"
+for name in bootstrap-knix bootstrap-knix-peer; do
+	WORKTREES_DIR=$WORKTREES_DIR SSH_KEY=$SSH_KEY \
+		envsubst "\$WORKTREES_DIR \$SSH_KEY" \
+		<"$files/$name.qemu" >"$units/$name.qemu"
 	rm --recursive --force -- "$units/$name.qemu.d"
 done

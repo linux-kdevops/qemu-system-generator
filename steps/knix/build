@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: copyleft-next-0.3.1
 ## Usage: steps/knix/build [--base FILE]
 ##
-## Build, in WORKTREES_DIR/knix, both kernels, QEMU and BusyBox from
+## Build, in WORKTREES_DIR/knix, the fast kernel, QEMU and BusyBox from
 ## steps/knix/flake.nix, linked from nix/, the guest's closure and the
 ## BusyBox initramfs; then write the drop-ins that hand the closure to
 ## the two machines: bootstrap-knix through the initramfs,
@@ -33,7 +33,6 @@ set -o xtrace
 cd "$WORKTREES_DIR/knix"
 mkdir --parents nix tiny/bin "$units/bootstrap-knix.qemu.d" "$units/bootstrap-knix-peer.qemu.d"
 # A kernel's modules are an output of their own, linked as -modules.
-nix build "$flake#kernel^out,modules" --out-link nix/kernel
 nix build "$flake#fast-kernel^out,modules" --out-link nix/fast-kernel
 nix build "$flake#qemu" --out-link nix/qemu
 nix build "$flake#busybox" --out-link nix/busybox

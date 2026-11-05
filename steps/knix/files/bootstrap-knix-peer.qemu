@@ -1,23 +1,23 @@
 # SPDX-License-Identifier: copyleft-next-0.3.1
 [VM]
-QEMUBinary=$knix/nix/qemu/bin/qemu-system-x86_64
+QEMUBinary=$WORKTREES_DIR/knix/nix/qemu/bin/qemu-system-x86_64
+SSHPrivateKey=$SSH_KEY
 
 [QEMU]
 machine=q35
 nodefaults=
-$firmware
 accel=kvm
 cpu=host
 m=2G
-smp=$cpus
+smp=2
 nographic=
 serial=mon:stdio
-kernel=$knix/nix/$kernel/bzImage
+kernel=$WORKTREES_DIR/knix/nix/fast-kernel/bzImage
 netdev=user,id=net0
 device=virtio-net-pci-non-transitional,netdev=net0,romfile=
 netdev=dgram,id=lan,remote.type=inet,remote.host=239.255.0.1,remote.port=5557,local.type=inet,local.host=127.0.0.1,local.port=0
-device=virtio-net-pci-non-transitional,netdev=lan,mac=52:54:00:00:00:$cid,romfile=
-device=vhost-vsock-pci-non-transitional,guest-cid=$cid
+device=virtio-net-pci-non-transitional,netdev=lan,mac=52:54:00:00:00:50,romfile=
+device=vhost-vsock-pci-non-transitional,guest-cid=50
 
 [virtiofsd]
 shared-dir=/nix/store
@@ -27,7 +27,7 @@ uid-map=:0:%U:1:
 gid-map=:0:%G:1:
 
 [virtiofsd]
-shared-dir=$knix/nix/$kernel-modules/lib/modules
+shared-dir=$WORKTREES_DIR/knix/nix/fast-kernel-modules/lib/modules
 tag=modules
 sandbox=namespace
 uid-map=:0:%U:1:
