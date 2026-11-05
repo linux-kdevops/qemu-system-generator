@@ -35,7 +35,7 @@ cd "$WORKTREES_DIR/cloud"
 key=$(cat "$SSH_KEY.pub") HOME=$HOME envsubst "\$key \$HOME" <"$files/user-data" >user-data
 cid=$cid envsubst "\$cid" <"$files/lan.network" >"$name.network"
 rm --recursive --force -- "$units/$name.qemu.d"
-cp "$files/10-cloud.conf" "$units/cloud-.qemu.d/10-cloud.conf"
+SSH_KEY=$SSH_KEY envsubst "\$SSH_KEY" <"$files/10-cloud.conf" >"$units/cloud-.qemu.d/10-cloud.conf"
 image=$image cid=$cid envsubst "\$image \$cid" <"$files/machine.qemu" >"$units/$name.qemu"
 mkdir --parents "$units/$name.qemu.d"
 cid=$cid envsubst "\$cid" <"$files/20-lan.conf" >"$units/$name.qemu.d/20-lan.conf"
