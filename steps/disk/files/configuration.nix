@@ -12,11 +12,13 @@
     }
   ];
   security.pam.services.sshd.startSession = lib.mkForce false;
+  console.enable = false;
+  systemd.suppressedSystemUnits = [
+    "systemd-journal-catalog-update.service"
+    "systemd-update-done.service"
+  ];
   users.users.root.openssh.authorizedKeys.keys = [ "$key" ];
-
-  boot.kernelParams = [ "console=ttyS0" ];
-  boot.loader.timeout = 0;
-  image.modules.qemu-efi.image.baseName = "bootstrap";
+  users.users.root.initialHashedPassword = "";
 
   nixpkgs.hostPlatform = "x86_64-linux";
   system.stateVersion = "26.05";

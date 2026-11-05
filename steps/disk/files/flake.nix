@@ -12,10 +12,12 @@
       nixosConfigurations.bootstrap = nixpkgs.lib.nixosSystem {
         modules = [
           ./configuration.nix
+          ./disk.nix
           ./home.nix
         ];
       };
       packages.${system} = {
+        default = images.qemu;
         efi = images.qemu-efi;
         ovmf = self.nixosConfigurations.bootstrap.pkgs.OVMF.fd;
       };
