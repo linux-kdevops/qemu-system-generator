@@ -8,6 +8,7 @@
       nixosConfigurations."$name" = nixpkgs.lib.nixosSystem {
         modules = [
           ./configuration.nix
+          ./virtiofs.nix
           ./home.nix
         ];
       };

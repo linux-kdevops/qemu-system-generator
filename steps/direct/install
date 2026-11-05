@@ -6,7 +6,8 @@
 ## WORKTREES_DIR/direct/VM, a NixOS flake whose system closure, with the
 ## latest kernel, the public key of SSH_KEY for root and the machine's
 ## address on the LAN, the machine boots directly; and in
-## ~/.config/qemu/systemd, VM.qemu, which boots it with the host's Nix
+## ~/.config/qemu/systemd, VM.qemu, which powers it down over SSH with
+## SSH_KEY and boots it with the host's Nix
 ## store and the home over virtiofs and puts it on the LAN,
 ## bootstrap-direct on microvm and bootstrap-direct-peer on q35, and its
 ## drop-ins, whose init= follows the result link through the home, so
@@ -47,9 +48,10 @@ cd "$WORKTREES_DIR/direct/$name"
 name=$name envsubst "\$name" <"$files/flake.nix" >flake.nix
 name=$name cid=$cid key=$(cat "$SSH_KEY.pub") \
 	envsubst "\$name \$cid \$key" <"$files/configuration.nix" >configuration.nix
+cp "$files/virtiofs.nix" virtiofs.nix
 HOME=$HOME envsubst "\$HOME" <"$files/home.nix" >home.nix
-name=$name cid=$cid cpus=$cpus WORKTREES_DIR=$WORKTREES_DIR \
-	envsubst "\$name \$cid \$cpus \$WORKTREES_DIR" \
+name=$name cid=$cid cpus=$cpus WORKTREES_DIR=$WORKTREES_DIR SSH_KEY=$SSH_KEY \
+	envsubst "\$name \$cid \$cpus \$WORKTREES_DIR \$SSH_KEY" \
 	<"$files/$name.qemu" >"$units/$name.qemu"
 rm --recursive --force -- "${units:?}/${name:?}.qemu.d"
 mkdir --parents "$units/$name.qemu.d"

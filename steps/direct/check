@@ -3,7 +3,8 @@
 ## Usage: steps/direct/check [--base FILE]
 ##
 ## Log in to the running bootstrap-direct and bootstrap-direct-peer machines, print
-## bootstrap-direct's kernel, check that its root's home is the shared
+## bootstrap-direct's kernel over vsock and over its forwarded port, check
+## that its console socket exists, check that its root's home is the shared
 ## home with its systemd directories and ~/.ssh masked, leave a file in
 ## WORKTREES_DIR/direct, which must lie in the home, have each machine
 ## ping the other over their LAN, check that machined records each
@@ -13,7 +14,7 @@
 ## and no memory backend of the generator's:
 ##
 ##   nix develop --ignore-env --keep-env-var HOME \
-##       --command steps/direct/check
+##       --keep-env-var XDG_RUNTIME_DIR --command steps/direct/check
 set -o errexit -o nounset -o pipefail
 
 while [ $# -gt 0 ]; do
@@ -30,6 +31,9 @@ done
 
 set -o xtrace
 ssh -F "$SSH_DIR/config" bootstrap-direct uname --kernel-release
+ssh -i "$SSH_KEY" -o StrictHostKeyChecking=accept-new -o UserKnownHostsFile=/dev/null \
+	-p 10047 root@127.0.0.1 uname --kernel-release
+test -S "$XDG_RUNTIME_DIR/qemu-system/bootstrap-direct/console.sock"
 rm --force -- "$WORKTREES_DIR/direct/from-guest"
 ssh -F "$SSH_DIR/config" bootstrap-direct \
 	"pwd && findmnt --mountpoint ~/.config/systemd && findmnt --mountpoint ~/.local/share/systemd && findmnt --mountpoint ~/.ssh && touch $WORKTREES_DIR/direct/from-guest"
