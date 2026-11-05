@@ -36,7 +36,8 @@ rm --recursive --force -- pkgs python-packages
 cp --recursive "$files/pkgs" "$files/python-packages" .
 key=$(cat "$SSH_KEY.pub") envsubst "\$key" <"$files/configuration.nix" >configuration.nix
 HOME=$HOME envsubst "\$HOME" <"$files/home.nix" >home.nix
-WORKTREES_DIR=$WORKTREES_DIR envsubst "\$WORKTREES_DIR" \
+WORKTREES_DIR=$WORKTREES_DIR SSH_KEY=$SSH_KEY \
+	envsubst "\$WORKTREES_DIR \$SSH_KEY" \
 	<"$files/bootstrap-packages.qemu" >"$units/bootstrap-packages.qemu"
 rm --recursive --force -- "$units/bootstrap-packages.qemu.d"
 mkdir --parents "$units/bootstrap-packages.qemu.d"

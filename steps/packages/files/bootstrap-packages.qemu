@@ -1,4 +1,7 @@
 # SPDX-License-Identifier: copyleft-next-0.3.1
+[VM]
+SSHPrivateKey=$SSH_KEY
+
 [QEMU]
 machine=q35
 nodefaults=
@@ -10,9 +13,12 @@ nographic=
 serial=mon:stdio
 kernel=$WORKTREES_DIR/packages/result/kernel
 initrd=$WORKTREES_DIR/packages/result/initrd
-netdev=user,id=net0
+netdev=user,id=net0,hostfwd=tcp:127.0.0.1:10058-:22
 device=virtio-net-pci-non-transitional,netdev=net0,romfile=
 device=vhost-vsock-pci-non-transitional,guest-cid=58
+device=virtio-serial-pci-non-transitional
+chardev=socket,id=console0,path=%t/qemu-system/%i/console.sock,server=on,wait=off
+device=virtconsole,chardev=console0
 
 [virtiofsd]
 shared-dir=/nix/store
@@ -27,3 +33,13 @@ tag=home
 sandbox=namespace
 uid-map=:0:%U:1:
 gid-map=:0:%G:1:
+
+[Unit]
+Description=NixOS Bootstrap Guest
+
+[Service]
+MemoryMax=3G
+CPUWeight=50
+
+[Install]
+WantedBy=machines.target
