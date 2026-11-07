@@ -183,8 +183,6 @@
             doCheck = false;
           });
 
-          # The pages must build without a warning, as Read the Docs builds
-          # them (.readthedocs.yaml).
           docs =
             pkgs.runCommand "${package.pname}-docs"
               {
@@ -207,8 +205,6 @@
                 sphinx-build --fail-on-warning --builder html source/docs $out
               '';
 
-          # markdownlint-cli2 reads .markdownlint-cli2.jsonc and doc8 reads
-          # doc8.ini.
           markdown =
             pkgs.runCommand "${package.pname}-markdown"
               {
@@ -303,12 +299,9 @@
               touch $out
             '';
 
-          # The generated units must load in a service manager. The build
-          # sandbox has no /run/systemd/, so the check runs as a user manager
-          # rooted in a scratch runtime directory; the system manager's units
-          # differ only by one ordering line (tests/examples.rs). It has no
-          # man either, so the Documentation= references are checked by
-          # tests/verify on a host instead.
+          # The sandbox has no /run/systemd/, so this runs as a user manager;
+          # the system units differ by one ordering line (tests/examples.rs).
+          # It has no man either: tests/verify checks Documentation= on a host.
           verify =
             pkgs.runCommand "${package.pname}-verify"
               {

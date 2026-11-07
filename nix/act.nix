@@ -1,11 +1,7 @@
 # SPDX-License-Identifier: copyleft-next-0.3.1
-#
-# act for the runner DAG, which copies it into an Ubuntu guest: patched so
-# that a self-hosted job runs as on GitHub's runner, and built without cgo
-# so that the binary needs no library from the store. 0.2.92 copies an
-# action into a job twice, as its post step does, where nixpkgs' 0.2.89
-# fails on go-git's read-only pack files; its go.mod wants Go 1.26.10,
-# newer than nixpkgs' default Go.
+# The runner DAG copies act into an Ubuntu guest, so it is built without
+# cgo. nixpkgs' 0.2.89 fails on go-git's read-only pack files when a post
+# step copies an action into a job twice; 0.2.92's go.mod wants Go 1.26.10.
 {
   act,
   buildGo127Module,

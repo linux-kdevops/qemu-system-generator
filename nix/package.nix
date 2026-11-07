@@ -9,11 +9,9 @@
   socat,
   systemd,
   openssh,
-  # Directory holding the qemu-system-* binaries the generated units run
-  # when a file sets no QEMUBinary=.
+  # Used when a file sets no QEMUBinary=.
   qemuBinDir ? "${qemu}/bin",
-  # The virtiofsd binary the generated units run when a file sets no
-  # VirtiofsdBinary=.
+  # Used when a file sets no VirtiofsdBinary=.
   virtiofsdBinary ? "${virtiofsd}/bin/virtiofsd",
 }:
 
