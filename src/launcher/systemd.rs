@@ -74,7 +74,6 @@ pub struct Output {
 }
 
 impl Output {
-    /// Every path the output puts in the directory.
     pub fn paths(&self) -> impl Iterator<Item = &Path> {
         self.files
             .iter()
@@ -121,7 +120,6 @@ fn quote(word: &str) -> String {
     quoted
 }
 
-/// A group of words of a command line, each quoted for `ExecStart=`.
 fn words<S: AsRef<str>>(group: &[S]) -> String {
     group
         .iter()

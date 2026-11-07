@@ -130,7 +130,6 @@ fn parse_args(args: impl IntoIterator<Item = OsString>) -> Result<Command, Usage
 
 #[derive(Debug)]
 enum GenerateError {
-    /// A file could not be read or written.
     Io {
         path: PathBuf,
         source: io::Error,

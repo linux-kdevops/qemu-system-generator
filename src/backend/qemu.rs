@@ -19,7 +19,6 @@ use crate::unitfile::{Entry, Section, UnitFile};
 const SECTION: &str = "QEMU";
 const VM_SECTION: &str = "VM";
 const VIRTIOFSD_SECTION: &str = "virtiofsd";
-/// The sections the backend reads.
 pub const SECTIONS: [&str; 3] = [VM_SECTION, SECTION, VIRTIOFSD_SECTION];
 
 const QEMU_BINARY_KEY: &str = "QEMUBinary";
@@ -73,7 +72,6 @@ const VFIO_DRIVERS: [&str; 7] = [
     "vfio-calxeda-xgmac",
 ];
 
-/// Virtqueue size of the generated vhost-user-fs device.
 const VHOST_USER_FS_QUEUE_SIZE: u32 = 1024;
 
 /// Ids of the objects the generator adds start with `systemd-`, which
@@ -177,7 +175,6 @@ fn implied<'a>(value: &'a str, key: &str) -> Option<&'a str> {
     }
 }
 
-/// What the decoder reads from a `-device` value.
 struct Device<'a> {
     driver: String,
     guest_cid: Option<&'a str>,

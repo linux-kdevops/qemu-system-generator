@@ -68,8 +68,6 @@ impl<'a> Scanner<'a> {
         }
     }
 
-    /// Comma-separated items between `open` and `close`, each read by
-    /// `item`.
     fn items(
         &mut self,
         open: char,
