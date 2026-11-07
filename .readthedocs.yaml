@@ -1,6 +1,4 @@
 # SPDX-License-Identifier: copyleft-next-0.3.1
-# Read the Docs build configuration.
-# https://docs.readthedocs.io/en/stable/config-file/v2.html
 version: 2
 
 build:

@@ -2,8 +2,7 @@
 
 /* Origin accent for docs code blocks: green marks guest content (a command run
    on the VM as root, or output that comes from the VM), blue marks host content
-   (a command run on the operator machine). The colour is the primary cue; the
-   :caption: on the first block of each kind names it. */
+   (a command run on the operator machine). */
 
 :root {
     --cb-guest: #4caf50;

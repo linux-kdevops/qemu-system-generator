@@ -1,5 +1,4 @@
 # SPDX-License-Identifier: copyleft-next-0.3.1
-# Configuration file for the Sphinx documentation builder.
 import os
 import re
 import subprocess
@@ -78,9 +77,7 @@ html_context = {
 # Monospaced external links. ":cmd:`name`" renders ``name`` (a literal, so it
 # reads as a command) hyperlinked to its manual or source, and ":cmd:`title
 # <name>`" renders ``title`` linked as ``name``, so ``KillMode=mixed`` links
-# to ``KillMode=``. The table is the one source for every command, tool,
-# manual page, systemd unit and directive URL the docs cite, so a name is
-# linked the same way everywhere and updated in one place.
+# to ``KillMode=``.
 _SYSTEMD = "https://www.freedesktop.org/software/systemd/man/latest"
 _MAN1 = "https://man7.org/linux/man-pages/man1"
 _NIX = "https://nix.dev/manual/nix/latest/command-ref/new-cli"
