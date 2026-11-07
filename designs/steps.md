@@ -10,12 +10,14 @@ has the terms.
 
 ## 1. Who owns what
 
-- Nix owns every tool, pinned, and the builds a run repeats. A DAG builds
-  the kernel and QEMU a guide builds as derivations (`steps/knix/flake.nix`
-  through knix's `lib.buildKernel` and `lib.buildQemu`), so equal inputs
-  build once and a later run reuses the store path; the guide keeps
-  teaching `make` in a `nix develop` shell, which registers nothing it
-  builds. The two then match in function, not in paths.
+- Nix owns every tool and every download, pinned with its hash (a
+  machine's image, as `steps/cloud/files/images.nix`), and the builds a
+  run repeats. A DAG builds the kernel and QEMU a guide builds as
+  derivations (`steps/knix/flake.nix` through knix's `lib.buildKernel`
+  and `lib.buildQemu`), so equal inputs build once and a later run reuses
+  the store path; the guide keeps teaching `make` in a `nix develop`
+  shell, which registers nothing it builds, and `curl`, which downloads
+  the newest image. The two then match in function, not in paths.
 - systemd owns whatever runs for a while: the machines, the generator's
   units, and waiting on a unit.
 - Dagu owns control flow: order, retries (`retry_policy`), what runs as a
@@ -196,18 +198,14 @@ and a line here.
   `steps/direct/install` loop over the parts of one object: the device
   nodes of the host, the disks of one machine, the drop-ins of one
   machine.
+- `steps/runner/fetch` fetches both inputs of the one runner machine,
+  its image and the runner-images release, as two `nix build`s.
+- The Debian 14 and Ubuntu 26.10 images are pinned to dated daily
+  builds, since neither release has another. When a pinned daily is
+  gone from its mirror, the fetch fails, and its URL and hash move to a
+  newer daily.
 
-## 5. Not yet conforming
-
-Known departures, each waiting on its own change:
-
-- `steps/cloud/fetch`, `steps/nested/fetch` and `steps/runner/fetch`
-  download images with `curl` while the step runs, where Nix would pin
-  them as fixed-output derivations (S4, S10).
-- `steps/runner/provision` runs a list of the runner image's installers in
-  one loop (S2).
-
-## 6. How a change is made
+## 5. How a change is made
 
 1. Ask the owner before a change to what a person sees, a fallback or an
    exception in section 4.
@@ -215,7 +213,7 @@ Known departures, each waiting on its own change:
    replaces `~/bootstrap/<guide>` and the machines' `.qemu` files. Put its
    time and result in the commit body.
 
-## 7. Review checklist
+## 6. Review checklist
 
 For each changed step:
 

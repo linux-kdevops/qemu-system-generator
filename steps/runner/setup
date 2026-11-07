@@ -1,0 +1,34 @@
+#!/usr/bin/env bash
+# SPDX-License-Identifier: copyleft-next-0.3.1
+## Usage: steps/runner/setup --name SCRIPT [--base FILE]
+##
+## Set up the running bootstrap-runner with one script of the
+## runner-images release steps/runner/provision unpacked, run as root,
+## /imagegeneration/installers/SCRIPT.sh, with the variables its Packer
+## template sets:
+##
+##   nix develop --ignore-env --keep-env-var HOME \
+##       --command steps/runner/setup --name configure-apt
+set -o errexit -o nounset -o pipefail
+
+while [ $# -gt 0 ]; do
+	case $1 in
+	--name | --base) declare "${1#--}=$2" ;;
+	*) sed --quiet 's/^## \{0,1\}//p' "$0" >&2 && exit 2 ;;
+	esac
+	shift 2
+done
+: "${name:?}"
+# shellcheck source=/dev/null
+[ -z "${base-}" ] || . "$base"
+# shellcheck source=steps/base
+. "$(dirname "$0")/../base"
+image=/imagegeneration
+
+set -o xtrace
+ssh -F "$SSH_DIR/config" bootstrap-runner \
+	env DEBIAN_FRONTEND=noninteractive IMAGE_OS=ubuntu26 IMAGE_VERSION=20261026.180 \
+	"HELPER_SCRIPTS=$image/helpers" "HELPER_SCRIPT_FOLDER=$image/helpers" \
+	"INSTALLER_SCRIPT_FOLDER=$image/installers" "IMAGE_FOLDER=$image" \
+	"IMAGEDATA_FILE=$image/imagedata.json" \
+	"$image/installers/$name.sh"

@@ -52,6 +52,49 @@ steps:
   - id: runner_provision
     run: steps/runner/provision
 
+  # The Packer template's scripts, in its order, that set up apt and its
+  # packages, limits, sysctls and the environment, and Node.js, which act
+  # runs JavaScript actions with; its others install toolchains no step
+  # uses. The template restarts the machine after them.
+  - id: runner_setup_configure_apt_mock
+    run: steps/runner/setup --name configure-apt-mock
+
+  - id: runner_setup_install_ms_repos
+    run: steps/runner/setup --name install-ms-repos
+
+  - id: runner_setup_configure_apt_sources
+    run: steps/runner/setup --name configure-apt-sources
+
+  - id: runner_setup_configure_apt
+    run: steps/runner/setup --name configure-apt
+
+  - id: runner_setup_configure_limits
+    run: steps/runner/setup --name configure-limits
+
+  - id: runner_setup_configure_image_data
+    run: steps/runner/setup --name configure-image-data
+
+  - id: runner_setup_configure_environment
+    run: steps/runner/setup --name configure-environment
+
+  - id: runner_setup_install_apt_vital
+    run: steps/runner/setup --name install-apt-vital
+
+  - id: runner_setup_install_apt_common
+    run: steps/runner/setup --name install-apt-common
+
+  - id: runner_setup_install_nodejs
+    run: steps/runner/setup --name install-nodejs
+
+  - id: runner_setup_configure_dpkg
+    run: steps/runner/setup --name configure-dpkg
+
+  - id: runner_setup_cleanup
+    run: steps/runner/setup --name cleanup
+
+  - id: runner_setup_configure_system
+    run: steps/runner/setup --name configure-system
+
   - id: machine_start_reboot
     run: steps/machine/start --name bootstrap-runner
 
