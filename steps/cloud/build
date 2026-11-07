@@ -1,23 +1,24 @@
 #!/usr/bin/env bash
 # SPDX-License-Identifier: copyleft-next-0.3.1
-## Usage: steps/cloud/build --name VM --version VERSION [--base FILE]
+## Usage: steps/cloud/build --name VM [--base FILE]
 ##
-## Write the cloud-init seed of one machine of steps/cloud/catalog into its
-## state directory, from the files steps/cloud/install wrote in
+## Write into the state directory of one machine of steps/cloud/catalog a
+## fresh disk over the image steps/cloud/fetch linked there, and the
+## cloud-init seed, from the files steps/cloud/install wrote in
 ## WORKTREES_DIR/cloud:
 ##
 ##   nix develop --ignore-env --keep-env-var HOME \
-##       --command steps/cloud/build --name cloud-debian --version 14
+##       --command steps/cloud/build --name cloud-debian
 set -o errexit -o nounset -o pipefail
 
 while [ $# -gt 0 ]; do
 	case $1 in
-	--name | --version | --base) declare "${1#--}=$2" ;;
+	--name | --base) declare "${1#--}=$2" ;;
 	*) sed --quiet 's/^## \{0,1\}//p' "$0" >&2 && exit 2 ;;
 	esac
 	shift 2
 done
-: "${name:?} ${version:?}"
+: "${name:?}"
 # shellcheck source=/dev/null
 [ -z "${base-}" ] || . "$base"
 # shellcheck source=steps/base
@@ -28,6 +29,9 @@ state=$HOME/.local/state/qemu-system/$name
 files=$(realpath "$(dirname "$0")/files")
 
 set -o xtrace
+rm --force -- "$state/disk.qcow2"
+qemu-img create --format=qcow2 --backing="$(readlink "$state/image")" \
+	--backing-format=qcow2 "$state/disk.qcow2"
 cd "$WORKTREES_DIR/cloud"
 instance=$name host=$name envsubst "\$instance \$host" <"$files/meta-data" >"$name.meta-data"
 cloud-localds --network-config="$name.network" \

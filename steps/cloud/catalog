@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: copyleft-next-0.3.1
 # shellcheck shell=bash
-# The step that reads this file sets name and version and uses the rest.
+# The step that reads this file sets name and uses the rest.
 # shellcheck disable=SC2034,SC2154
 # The vsock context id also ends the LAN MAC and address.
 
@@ -18,26 +18,3 @@ cloud-ubuntu-peer) cid=53 ;;
 esac
 distro=${name#cloud-}
 distro=${distro%-peer}
-
-case $distro:$version in
-debian:14)
-	image_url=https://cloud.debian.org/images/cloud/forky/daily/latest/debian-14-genericcloud-amd64-daily.qcow2
-	sums_url=https://cloud.debian.org/images/cloud/forky/daily/latest/SHA512SUMS
-	sums=sha512sum
-	;;
-fedora:44)
-	image_url=https://download.fedoraproject.org/pub/fedora/linux/releases/44/Cloud/x86_64/images/Fedora-Cloud-Base-Generic-44-1.7.x86_64.qcow2
-	sums_url=https://download.fedoraproject.org/pub/fedora/linux/releases/44/Cloud/x86_64/images/Fedora-Cloud-44-1.7-x86_64-CHECKSUM
-	sums=sha256sum
-	;;
-ubuntu:26.10)
-	image_url=https://cloud-images.ubuntu.com/stonking/current/stonking-server-cloudimg-amd64.img
-	sums_url=https://cloud-images.ubuntu.com/stonking/current/SHA256SUMS
-	sums=sha256sum
-	;;
-*)
-	echo "steps/cloud/catalog: no release $distro $version" >&2
-	exit 2
-	;;
-esac
-image=${image_url##*/}

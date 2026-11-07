@@ -36,55 +36,55 @@ steps:
     run: steps/cloud/fetch --name cloud-debian --version 14
 
   - id: cloud_install_cloud_debian
-    run: steps/cloud/install --name cloud-debian --version 14
+    run: steps/cloud/install --name cloud-debian
 
   - id: cloud_build_cloud_debian
-    run: steps/cloud/build --name cloud-debian --version 14
+    run: steps/cloud/build --name cloud-debian
 
   - id: cloud_fetch_cloud_debian_peer
     run: steps/cloud/fetch --name cloud-debian-peer --version 14
 
   - id: cloud_install_cloud_debian_peer
-    run: steps/cloud/install --name cloud-debian-peer --version 14
+    run: steps/cloud/install --name cloud-debian-peer
 
   - id: cloud_build_cloud_debian_peer
-    run: steps/cloud/build --name cloud-debian-peer --version 14
+    run: steps/cloud/build --name cloud-debian-peer
 
   - id: cloud_fetch_cloud_fedora
     run: steps/cloud/fetch --name cloud-fedora --version 44
 
   - id: cloud_install_cloud_fedora
-    run: steps/cloud/install --name cloud-fedora --version 44
+    run: steps/cloud/install --name cloud-fedora
 
   - id: cloud_build_cloud_fedora
-    run: steps/cloud/build --name cloud-fedora --version 44
+    run: steps/cloud/build --name cloud-fedora
 
   - id: cloud_fetch_cloud_fedora_peer
     run: steps/cloud/fetch --name cloud-fedora-peer --version 44
 
   - id: cloud_install_cloud_fedora_peer
-    run: steps/cloud/install --name cloud-fedora-peer --version 44
+    run: steps/cloud/install --name cloud-fedora-peer
 
   - id: cloud_build_cloud_fedora_peer
-    run: steps/cloud/build --name cloud-fedora-peer --version 44
+    run: steps/cloud/build --name cloud-fedora-peer
 
   - id: cloud_fetch_cloud_ubuntu
     run: steps/cloud/fetch --name cloud-ubuntu --version 26.10
 
   - id: cloud_install_cloud_ubuntu
-    run: steps/cloud/install --name cloud-ubuntu --version 26.10
+    run: steps/cloud/install --name cloud-ubuntu
 
   - id: cloud_build_cloud_ubuntu
-    run: steps/cloud/build --name cloud-ubuntu --version 26.10
+    run: steps/cloud/build --name cloud-ubuntu
 
   - id: cloud_fetch_cloud_ubuntu_peer
     run: steps/cloud/fetch --name cloud-ubuntu-peer --version 26.10
 
   - id: cloud_install_cloud_ubuntu_peer
-    run: steps/cloud/install --name cloud-ubuntu-peer --version 26.10
+    run: steps/cloud/install --name cloud-ubuntu-peer
 
   - id: cloud_build_cloud_ubuntu_peer
-    run: steps/cloud/build --name cloud-ubuntu-peer --version 26.10
+    run: steps/cloud/build --name cloud-ubuntu-peer
 
   - id: generator_run
     run: steps/generator/run
