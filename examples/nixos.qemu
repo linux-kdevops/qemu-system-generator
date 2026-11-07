@@ -1,8 +1,7 @@
 # SPDX-License-Identifier: copyleft-next-0.3.1
 #
 # Imageless boot: a kernel and initrd from the host, the root file
-# system served over virtiofs, NVMe controllers with explicit
-# namespaces, a UUID that machined records with the registration.
+# system served over virtiofs.
 
 [Unit]
 Description=NixOS over virtiofs
@@ -55,8 +54,7 @@ translate-gid=map:0:1000:1
 xattr=
 no-announce-submounts=
 
-# The home, which the guest mounts at the same path as root's home. The
-# guest mounts an empty, read-only tmpfs over ~/.config/systemd and
+# The guest mounts an empty, read-only tmpfs over ~/.config/systemd and
 # ~/.local/share/systemd, or root's user manager starts the host's units.
 [virtiofsd]
 shared-dir=%h
@@ -68,7 +66,6 @@ xattr=
 no-announce-submounts=
 
 [Service]
-# Passed through verbatim. See: man systemd.exec, man systemd.resource-control.
 MemoryMax=6G
 CPUWeight=200
 

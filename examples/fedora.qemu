@@ -1,22 +1,15 @@
 # SPDX-License-Identifier: copyleft-next-0.3.1
 #
 # A cloud image booted from its own bootloader, provisioned by a
-# cloud-init seed ISO, reachable over SSH on a forwarded host port and
-# through machined over AF_VSOCK. Relative paths resolve in the state
-# directory: /var/lib/qemu-system/fedora under the system manager,
-# ~/.local/state/qemu-system/fedora under a user manager.
+# cloud-init seed ISO.
 
 [Unit]
 Description=Fedora Cloud Image
 
 [VM]
-# With a key, stopping the service asks the guest to power off over SSH
-# through the vsock device below, before the QMP power button.
 SSHPrivateKey=%h/.ssh/id_ed25519
 
 [QEMU]
-# Each key is a QEMU option without its dash; the value is passed
-# verbatim as the option's argument. See: man qemu-system.
 machine=q35
 nodefaults=
 accel=kvm
@@ -35,11 +28,8 @@ device=virtconsole,chardev=console0
 nographic=
 serial=mon:stdio
 
-# One virtiofsd per section; keys are virtiofsd options without their
-# dashes. tag= names the daemon's units and the guest mount tag.
-# See: /usr/libexec/virtiofsd --help. The guest mounts the home at the
-# same path and keeps root's home in /root, so no user manager there runs
-# the host's units.
+# The guest mounts the home at the same path and keeps root's home in
+# /root, so no user manager there runs the host's units.
 [virtiofsd]
 shared-dir=%h
 tag=home

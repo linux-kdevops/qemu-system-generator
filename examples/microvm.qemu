@@ -1,9 +1,7 @@
 # SPDX-License-Identifier: copyleft-next-0.3.1
 #
 # The microvm machine type carries virtio over MMIO, so devices take
-# their *-device names. The generated vhost-user-fs device follows the
-# machine type; the 9p share is two ordinary [QEMU] lines and needs no
-# daemon.
+# their *-device names.
 
 [Unit]
 Description=microvm Guest
