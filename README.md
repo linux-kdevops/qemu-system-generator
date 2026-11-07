@@ -19,6 +19,10 @@ program in [man/qemu-system-generator.8.scd](man/qemu-system-generator.8.scd);
 a [Sphinx] site for [Read the Docs].
 Nothing is released yet.
 
+qemu-system-generator is written with coding assistants; a person reviews
+and signs off every commit. `AGENTS.md` holds the rules for agents, and
+[docs/contributing](docs/contributing/index.rst) those for everyone.
+
 **License**: copyleft-next-0.3.1
 
 ## A file
