@@ -110,7 +110,7 @@ tests/                   expected generator output, verify script
 nix/                     package, NixOS module and Dagu
 steps/                   the commands the guides of docs/bootstrap/ teach
 dags/, config.yaml       the Dagu DAGs that wire the steps, and their config
-notes/                   rules for contributors, unpublished
+designs/                 the rules a change is reviewed against, and plans
 ```
 
 The suffix selects the backend and a section named after the backend's
@@ -148,7 +148,7 @@ nix develop --ignore-env \
     --command dagu --config config.yaml start disk
 ```
 
-`notes/steps.md` has the rules the steps follow.
+`designs/steps.md` has the rules the steps follow.
 
 `nix flake check` also builds the documentation as Read the Docs does,
 holds the Markdown and reStructuredText prose to 80 columns, and runs

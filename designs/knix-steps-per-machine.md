@@ -30,6 +30,6 @@ The split, as direct has it:
 - `dags/knix.yaml` runs the shared steps once, then install and build
   once per machine, in the order `dags/direct.yaml` uses.
 
-`notes/steps.md` holds the rules the new steps follow. The knix DAG
+`designs/steps.md` holds the rules the new steps follow. The knix DAG
 passing, and leaving no `.qemu` file or state directory behind, is the
 check.

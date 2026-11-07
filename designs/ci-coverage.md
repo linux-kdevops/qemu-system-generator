@@ -59,7 +59,7 @@ its `playbooks/roles/gen_nodes/templates/drives.j2`,
    `pcie-root-port`s on a `pxb-pcie` bus and check each controller's
    path in the guest's sysfs. A file may declare its own ports today;
    only the virtiofs devices the generator adds need
-   `notes/plans/pcie-root-ports.md`.
+   `designs/pcie-root-ports.md`.
 2. **Large blocks.** Add namespaces with 16 KiB and 64 KiB logical
    blocks to the `nvme` DAG, the sizes kdevops' largeio sweeps. The
    check shows whether the guest kernel takes blocks above its page

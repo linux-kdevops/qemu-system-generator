@@ -10,18 +10,17 @@ units that run them. The format is the deliverable; the man page in
 
 **License**: copyleft-next-0.3.1. SPDX header on every source file.
 
-## Notes
+## Read first
 
-`notes/` holds what contributors and agents read before working, and is
-not published. Read the first entry before writing any commit message,
-doc or comment.
+Read the first entry before writing any commit message, doc or comment.
+`designs/` holds the rules a change is reviewed against and the plans.
 
 - `docs/contributing/writing.rst`: how commit messages, docs and
   comments are written, the examples to read first, and what
   `scripts/check-prose.py` refuses; `docs/contributing/doc-guide.rst`
   and `docs/contributing/development.rst` have the page rules and the
   checks.
-- `notes/steps.md`: the rules for `steps/`, `dags/` and `.github/`.
+- `designs/steps.md`: the rules for `steps/`, `dags/` and `.github/`.
 
 ## Principles
 

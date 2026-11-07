@@ -6,7 +6,7 @@ Roadmap
 
 The intended work, grouped by theme and undated. Each card carries a
 status (:bdg-primary:`planned`, :bdg-warning:`research` or
-:bdg-info:`staging`), and the plan behind it lives under ``notes/plans/``
+:bdg-info:`staging`), and the plan behind it lives under ``designs/``
 in the source tree.
 
 Machines
@@ -25,7 +25,7 @@ Machines
       would declare a port per device, and the generator one per
       virtiofs share; which chassis numbers the generator may take is
       open. It costs no measurable boot time, and it is what hotplug over
-      the machine's QMP socket needs. Plan: ``notes/plans/pcie-root-ports.md``.
+      the machine's QMP socket needs. Plan: ``designs/pcie-root-ports.md``.
 
 Guides
 ======
@@ -43,7 +43,7 @@ Guides
       ``modules`` share. The derivation is cached and shareable; ``make``
       is incremental and keeps the tree a kernel developer works in. The
       result decides whether the guide teaches both. Plan:
-      ``notes/plans/kernel-as-derivation.md``.
+      ``designs/kernel-as-derivation.md``.
 
 Generator
 =========
@@ -61,7 +61,7 @@ Generator
       (:ref:`host-regenerate`). The generator, which reads every drop-in
       directory anyway, would write a drop-in for its own path unit with
       a ``PathChanged=`` per directory. Plan:
-      ``notes/plans/watch-drop-in-directories.md``.
+      ``designs/watch-drop-in-directories.md``.
 
 Upstream
 ========
@@ -78,7 +78,7 @@ Upstream
       top page of RAM: ``microvm_memory_init()`` reserves no room for
       them, where the PC machines reserve ``PC_FW_DATA``. The report is
       drafted; once filed, :ref:`direct-microvm` cites it beside its
-      workaround. Plan: ``notes/plans/qemu-microvm-initrd-acpi.md``.
+      workaround. Plan: ``designs/qemu-microvm-initrd-acpi.md``.
 
 Steps and DAGs
 ==============
@@ -93,7 +93,7 @@ Steps and DAGs
       Give ``steps/knix/install`` and ``steps/knix/build`` a ``--name``
       and write one machine each, as the direct steps do, with the builds
       both machines share in a step of their own. Plan:
-      ``notes/plans/knix-steps-per-machine.md``.
+      ``designs/knix-steps-per-machine.md``.
 
    .. grid-item-card:: Cover more in CI
 
@@ -106,6 +106,6 @@ Steps and DAGs
       do not: NVMe behind PCIe root ports, large blocks, virtio-blk and
       virtio-scsi, a bridge, CXL and a crashing guest. Until then, a
       change that breaks one of these shows first on a user's machine.
-      Plan: ``notes/plans/ci-coverage.md``.
+      Plan: ``designs/ci-coverage.md``.
 
 .. _PCI Express guidelines: https://gitlab.com/qemu-project/qemu/-/blob/master/docs/pcie.txt
