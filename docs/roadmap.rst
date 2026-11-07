@@ -86,15 +86,6 @@ Steps and DAGs
 .. grid:: 1 1 2 2
    :gutter: 3
 
-   .. grid-item-card:: knix steps per machine
-
-      :bdg-primary:`planned`
-
-      Give ``steps/knix/install`` and ``steps/knix/build`` a ``--name``
-      and write one machine each, as the direct steps do, with the builds
-      both machines share in a step of their own. Plan:
-      ``designs/knix-steps-per-machine.md``.
-
    .. grid-item-card:: Cover more in CI
 
       :bdg-primary:`planned`

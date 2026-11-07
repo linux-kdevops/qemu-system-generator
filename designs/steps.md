@@ -201,8 +201,6 @@ and a line here.
 
 Known departures, each waiting on its own change:
 
-- `steps/knix/install` writes both knix machines in one loop (S1, S2);
-  `designs/knix-steps-per-machine.md` splits it.
 - `steps/cloud/fetch`, `steps/nested/fetch` and `steps/runner/fetch`
   download images with `curl` while the step runs, where Nix would pin
   them as fixed-output derivations (S4, S10).

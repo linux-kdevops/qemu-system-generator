@@ -1,46 +1,46 @@
 #!/usr/bin/env bash
 # SPDX-License-Identifier: copyleft-next-0.3.1
-## Usage: steps/knix/install [--base FILE]
+## Usage: steps/knix/install --name VM [--base FILE]
 ##
-## Write, in WORKTREES_DIR/knix, the knix flake of an imageless NixOS
-## guest with the devel profile and the public key of SSH_KEY for root
-## and the knix user, and the init of a
-## BusyBox initramfs that mounts the host's Nix store and starts that
-## guest's closure; and bootstrap-knix.qemu and bootstrap-knix-peer.qemu in
-## ~/.config/qemu/systemd, which power the machines down over SSH with
-## SSH_KEY and boot the fast kernel and QEMU that
-## steps/knix/build links into WORKTREES_DIR/knix/nix, with the store, the
-## kernel's modules and the home over virtiofs and a LAN between
-## them:
+## Write one knix machine, bootstrap-knix or bootstrap-knix-peer, in
+## ~/.config/qemu/systemd: VM.qemu, which powers it down over SSH with
+## SSH_KEY and boots the fast kernel and QEMU that steps/knix/build links
+## into WORKTREES_DIR/knix/nix, with the store, the kernel's modules and
+## the home over virtiofs and a LAN between the two machines; and its
+## drop-in, which hands it the guest's closure, bootstrap-knix through
+## the BusyBox initramfs and bootstrap-knix-peer through result/initrd
+## and result/init, the second of which it follows through the home, so
+## WORKTREES_DIR must lie in it:
 ##
 ##   nix develop --ignore-env --keep-env-var HOME \
-##       --command steps/knix/install
+##       --command steps/knix/install --name bootstrap-knix
 set -o errexit -o nounset -o pipefail
 
 while [ $# -gt 0 ]; do
 	case $1 in
-	--base) base=$2 ;;
+	--name | --base) declare "${1#--}=$2" ;;
 	*) sed --quiet 's/^## \{0,1\}//p' "$0" >&2 && exit 2 ;;
 	esac
 	shift 2
 done
+: "${name:?}"
 # shellcheck source=/dev/null
 [ -z "${base-}" ] || . "$base"
 # shellcheck source=steps/base
 . "$(dirname "$0")/../base"
 units=$HOME/.config/qemu/systemd
-knix=$WORKTREES_DIR/knix
 files=$(realpath "$(dirname "$0")/files")
+if ! [ -e "$files/$name.qemu" ]; then
+	echo "steps/knix/install: no machine $name" >&2
+	exit 2
+fi
 
 set -o xtrace
-mkdir --parents "$knix/guest" "$knix/tiny" "$units"
-cp "$files/guest/flake.nix" "$knix/guest/flake.nix"
-key=$(cat "$SSH_KEY.pub") envsubst "\$key" <"$files/guest/default.nix" >"$knix/guest/default.nix"
-HOME=$HOME envsubst "\$HOME" <"$files/guest/home.nix" >"$knix/guest/home.nix"
-install --mode=0755 "$files/tiny/init" "$knix/tiny/init"
-for name in bootstrap-knix bootstrap-knix-peer; do
-	WORKTREES_DIR=$WORKTREES_DIR SSH_KEY=$SSH_KEY \
-		envsubst "\$WORKTREES_DIR \$SSH_KEY" \
-		<"$files/$name.qemu" >"$units/$name.qemu"
-	rm --recursive --force -- "$units/$name.qemu.d"
-done
+rm --recursive --force -- "${units:?}/${name:?}.qemu.d"
+mkdir --parents "$units/$name.qemu.d"
+WORKTREES_DIR=$WORKTREES_DIR SSH_KEY=$SSH_KEY \
+	envsubst "\$WORKTREES_DIR \$SSH_KEY" \
+	<"$files/$name.qemu" >"$units/$name.qemu"
+WORKTREES_DIR=$WORKTREES_DIR closure=$(readlink "$WORKTREES_DIR/knix/guest/result") \
+	envsubst "\$WORKTREES_DIR \$closure" \
+	<"$files/$name.qemu.d/10-closure.conf" >"$units/$name.qemu.d/10-closure.conf"

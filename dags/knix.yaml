@@ -32,11 +32,17 @@ steps:
   - id: generator_install
     run: steps/generator/install
 
-  - id: knix_install
-    run: steps/knix/install
+  - id: knix_install_guest
+    run: steps/knix/install_guest
 
   - id: knix_build
     run: steps/knix/build
+
+  - id: knix_install_bootstrap_knix
+    run: steps/knix/install --name bootstrap-knix
+
+  - id: knix_install_bootstrap_knix_peer
+    run: steps/knix/install --name bootstrap-knix-peer
 
   - id: generator_run
     run: steps/generator/run

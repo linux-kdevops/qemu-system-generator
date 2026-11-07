@@ -1,0 +1,34 @@
+#!/usr/bin/env bash
+# SPDX-License-Identifier: copyleft-next-0.3.1
+## Usage: steps/knix/install_guest [--base FILE]
+##
+## Write, in WORKTREES_DIR/knix, the knix flake of an imageless NixOS
+## guest with the devel profile and the public key of SSH_KEY for root
+## and the knix user, which both knix machines boot, and the init of a
+## BusyBox initramfs that mounts the host's Nix store and starts that
+## guest's closure:
+##
+##   nix develop --ignore-env --keep-env-var HOME \
+##       --command steps/knix/install_guest
+set -o errexit -o nounset -o pipefail
+
+while [ $# -gt 0 ]; do
+	case $1 in
+	--base) base=$2 ;;
+	*) sed --quiet 's/^## \{0,1\}//p' "$0" >&2 && exit 2 ;;
+	esac
+	shift 2
+done
+# shellcheck source=/dev/null
+[ -z "${base-}" ] || . "$base"
+# shellcheck source=steps/base
+. "$(dirname "$0")/../base"
+knix=$WORKTREES_DIR/knix
+files=$(realpath "$(dirname "$0")/files")
+
+set -o xtrace
+mkdir --parents "$knix/guest" "$knix/tiny"
+cp "$files/guest/flake.nix" "$knix/guest/flake.nix"
+key=$(cat "$SSH_KEY.pub") envsubst "\$key" <"$files/guest/default.nix" >"$knix/guest/default.nix"
+HOME=$HOME envsubst "\$HOME" <"$files/guest/home.nix" >"$knix/guest/home.nix"
+install --mode=0755 "$files/tiny/init" "$knix/tiny/init"
