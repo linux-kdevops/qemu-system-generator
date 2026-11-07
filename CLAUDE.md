@@ -16,9 +16,11 @@ units that run them. The format is the deliverable; the man page in
 not published. Read the first entry before writing any commit message,
 doc or comment.
 
-- `notes/writing.md`: how commit messages, docs and comments are
-  written, the examples to read first, and what `scripts/check-prose.py`
-  refuses.
+- `docs/contributing/writing.rst`: how commit messages, docs and
+  comments are written, the examples to read first, and what
+  `scripts/check-prose.py` refuses; `docs/contributing/doc-guide.rst`
+  and `docs/contributing/development.rst` have the page rules and the
+  checks.
 - `notes/steps.md`: the rules for `steps/`, `dags/` and `.github/`.
 
 ## Principles
@@ -184,10 +186,11 @@ All commits must follow these six rules.
    ln --symbolic --relative scripts/commit-msg "$(git rev-parse --git-path hooks)/commit-msg"
    ```
 
-What a message, a doc or a comment says follows `notes/writing.md`, taken
-from how the kernel's maintainers write: read two of its example commits
-before writing one, and hand anything longer than a few lines to a
-fresh-context editor with the brief there. `scripts/check-prose.py`, run
+What a message, a doc or a comment says follows
+`docs/contributing/writing.rst`, taken from how the kernel's maintainers
+write: read two of its example commits before writing one, and hand
+anything longer than a few lines to a fresh-context editor with the
+brief there. `scripts/check-prose.py`, run
 by `check-style.sh` and the commit-msg hook, refuses the phrasing they
 almost never use.
 

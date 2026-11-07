@@ -8,8 +8,8 @@
 
 A commit's prose is its message, the lines it adds to .md, .rst and .scd
 files, and the comment and docstring lines it adds to .rs, .py, .sh, .nix,
-.qemu and .conf files. DENY fails, WARN only prints. The patterns and the
-rates that justify them are in notes/writing.md.
+.qemu and .conf files. DENY fails, WARN only prints. The rates that justify
+the patterns are in docs/contributing/writing.rst.
 """
 
 import argparse

@@ -74,6 +74,7 @@ These are linked from the icons in the top navigation bar too.
    :caption: Project
 
    roadmap
+   contributing/index
 
 .. _systemd: https://systemd.io
 .. _unit-file syntax: https://www.freedesktop.org/software/systemd/man/latest/systemd.syntax.html
