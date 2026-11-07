@@ -12,13 +12,12 @@ here="$(dirname "${BASH_SOURCE[0]}")"
 # trailer block counts, parsed without the patch divider so that a hunk
 # header quoted in the body hides nothing.
 check_trailers() {
-		local where="$1" msg="$2" committer="$3" trailers last
+		local where="$1" msg="$2" committer="$3" trailers tag last
 		trailers="$(printf '%s\n' "$msg" | git interpret-trailers --parse --no-divider)"
-		if ! printf '%s\n' "$trailers" | awk '
-			tolower($0) ~ /^assisted-by:/ { assisted = 1 }
-			tolower($0) ~ /^signed-off-by:/ && assisted { assisted = 0 }
-			END { exit assisted }'; then
-				echo "error: $where: 'Assisted-by:' must come before a 'Signed-off-by:'"
+		tag="$(printf '%s\n' "$trailers" | grep --ignore-case --only-matching --max-count=1 \
+				--extended-regexp '^(assisted-by|generated-by|co-authored-by):' || true)"
+		if [ -n "$tag" ]; then
+				echo "error: $where: '$tag' is refused: whoever signs off answers for the change"
 				status=1
 		fi
 		if ! printf '%s\n' "$trailers" | where="$where" committer="$committer" awk '
@@ -56,10 +55,6 @@ check_trailers() {
 				| tail --lines=1 | sed 's/^[^:]*:[[:space:]]*//' || true)"
 		if printf '%s\n' "$trailers" | grep --quiet --ignore-case '^Signed-off-by:[[:space:]]*$'; then
 				echo "error: $where: empty Signed-off-by"
-				status=1
-		fi
-		if printf '%s\n' "$trailers" | grep --quiet --ignore-case '^Generated-by:'; then
-				echo "error: $where: 'Generated-by:' is replaced by 'Assisted-by: LLM'"
 				status=1
 		fi
 		if [ -z "$last" ]; then

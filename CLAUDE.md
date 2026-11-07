@@ -140,48 +140,32 @@ All commits must follow these six rules.
    `git config user.name` and `git config user.email`, then add a
    `Signed-off-by` trailer (`git commit --signoff`).
 
-4. Mark AI-assisted work with an `Assisted-by: LLM` trailer ahead of the
-   `Signed-off-by` that closes the message, as the kernel places it:
+4. Close the message with a `Signed-off-by` in the committer's own
+   identity, a person's, who answers for the change under the Developer
+   Certificate of Origin. No trailer marks the use of a tool:
+   `Assisted-by`, `Generated-by` and `Co-authored-by` are refused. The
+   kernel dropped `Assisted-by` from its process documents and
+   checkpatch.pl in 1e035297ffda ("docs: remove Assisted-by
+   references"). As its Documentation/process/generated-content.rst
+   asks, a cover letter says how tools were used, and a commit message
+   names a tool that found the problem the commit fixes.
+
+   Credit other contributors as the kernel's
+   Documentation/process/submitting-patches.rst does ("When to use
+   Acked-by:, Cc:, and Co-developed-by:"). A co-author gets a
+   `Co-developed-by` immediately followed by their own `Signed-off-by`,
+   which only they can give, and the last sign-off is always the
+   committer's:
 
    ```text
    subsystem: summarise the change in the imperative mood
 
    Plain-English description of what changed and why, wrapped at 75 columns.
 
-   Assisted-by: LLM
-   Signed-off-by: User Name <user.name@domain.org>
-   ```
-
-   Credit other contributors as the kernel's
-   Documentation/process/submitting-patches.rst does ("When to use
-   Acked-by:, Cc:, and Co-developed-by:"). The commit author is the
-   primary author. A co-author gets a `Co-developed-by` immediately
-   followed by their own `Signed-off-by`, which only they can give; the
-   sign-offs run in the order the change passed through hands, so the
-   last is always the committer's. Someone who wrote none of it but
-   approves it gets an `Acked-by` or `Reviewed-by`, again only with
-   their permission:
-
-   ```text
    Co-developed-by: Co Author <co.author@domain.org>
    Signed-off-by: Co Author <co.author@domain.org>
-   Assisted-by: LLM
    Signed-off-by: User Name <user.name@domain.org>
    ```
-
-   This is the kernel's own tag, adopted here for the same reason rule 2
-   takes the kernel's subject limit: a contributor moving between this
-   repository and the kernel should not have to keep two conventions in
-   mind. The tag arrived in v7.0-rc1 with commit 78d979db6cef ("docs:
-   add AI Coding Assistants documentation"), which added
-   Documentation/process/coding-assistants.rst and defines the format
-   as `Assisted-by: LLM [TOOL1] [TOOL2]`; 6252e5c1c20e ("docs: add an
-   Assisted-by mention to submitting-patches.rst") then made the
-   acknowledgment a submission requirement. The optional tool names are
-   for specialized analysis tools actually run (coccinelle, sparse,
-   smatch, clang-tidy); basic tools such as git, cargo, clippy and
-   editors are never listed, so the bare `Assisted-by: LLM` is the
-   usual form. No Co-Authored-By trailer.
 
 5. No shopping-cart lists. Write the body as plain-English paragraphs,
    not bullet points or itemised lists, wrapped at 75 columns (trailers
