@@ -23,8 +23,7 @@ Zero tool at run time
 
 The generator runs at :cmd:`systemctl` ``daemon-reload`` and exits. The units
 it writes call only what the system ships: QEMU, virtiofsd, :cmd:`socat`,
-:cmd:`varlinkctl` and :cmd:`ssh`. Nothing of the project stays between systemd
-and the machine.
+:cmd:`varlinkctl` and :cmd:`ssh`.
 
 Names follow Podman's generator
 ===============================

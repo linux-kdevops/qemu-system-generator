@@ -68,6 +68,7 @@ These are linked from the icons in the top navigation bar too.
    :caption: Background
 
    background/motivation
+   background/principles
 
 .. toctree::
    :maxdepth: 1
