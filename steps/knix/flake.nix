@@ -1,8 +1,4 @@
 # SPDX-License-Identifier: copyleft-next-0.3.1
-#
-# The kernel and QEMU the knix machines boot, built as derivations
-# from the release tarballs, so equal inputs are built once, and the
-# static BusyBox of the fast machine's initramfs.
 {
   inputs = {
     knix.url = "github:linux-kdevops/knix";

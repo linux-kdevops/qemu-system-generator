@@ -32,7 +32,7 @@ done
 units=$HOME/.config/qemu/systemd
 files=$(realpath "$(dirname "$0")/files")
 
-# vsock context id, which also ends the LAN MAC and address, and CPUs
+# The vsock context id also ends the LAN MAC and address.
 case $name in
 bootstrap-direct) cid=47 cpus=4 ;;
 bootstrap-direct-peer) cid=48 cpus=2 ;;

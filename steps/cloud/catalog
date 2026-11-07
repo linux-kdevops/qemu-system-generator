@@ -2,11 +2,7 @@
 # shellcheck shell=bash
 # The step that reads this file sets name and version and uses the rest.
 # shellcheck disable=SC2034,SC2154
-# The machines the cloud guide boots, cloud-DISTRO and its peer
-# cloud-DISTRO-peer, looked up by $name: the vsock context id, which also
-# ends the LAN MAC and address; and the distribution release, looked up by
-# $distro and $version: where the image and its checksums are published,
-# and the command that checks them.
+# The vsock context id also ends the LAN MAC and address.
 
 case $name in
 cloud-debian) cid=43 ;;
