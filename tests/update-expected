@@ -1,11 +1,7 @@
 #!/bin/sh
 # SPDX-License-Identifier: copyleft-next-0.3.1
-#
-# Regenerate tests/expected/dryrun.txt from the examples. Review the
-# diff: this file is the conformance record of the format. Whatever
-# depends on the checkout or on the build environment (the same
-# variables build.rs reads) becomes a placeholder that tests/examples.rs
-# fills back in.
+# What depends on the checkout or on the variables build.rs reads becomes
+# a placeholder that tests/examples.rs fills back in.
 set -o errexit -o nounset
 cd "$(dirname "$0")/.."
 cargo build --quiet

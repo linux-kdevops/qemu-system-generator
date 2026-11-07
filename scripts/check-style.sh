@@ -1,25 +1,16 @@
 #!/usr/bin/env bash
 # SPDX-License-Identifier: copyleft-next-0.3.1
-# Style and commit-message checks. Run from the checkout:
-#   scripts/check-style.sh
-# Needs git, awk, sed, grep and python3. Hand-authored files only: the
-# license texts under LICENSES/ stay byte-for-byte and the images are
-# binary, so both are exempt.
 set -o errexit -o nounset -o pipefail
 
-# A patch keeps the whitespace of the lines it quotes.
+# LICENSES/ stays byte-for-byte, images are binary, and a patch keeps the
+# whitespace of the lines it quotes.
 scope=(-- . ':!LICENSES' ':!*.png' ':!*.ico' ':!*.patch')
 status=0
 here="$(dirname "${BASH_SOURCE[0]}")"
 
-# Commit message trailers, as the kernel's checkpatch.pl checks them: a
-# Signed-off-by is present and the last one is the committer's, an Assisted-by
-# (if any) comes before one, and every Co-developed-by is immediately followed
-# by the same person's Signed-off-by. Only the trailer block counts, read as
-# `git interpret-trailers` reads it (without its patch divider, so a quoted
-# hunk header in the body hides nothing), so a body line that quotes a tag is
-# prose; tags match case-insensitively, as checkpatch matches them. A
-# Generated-by is refused: Assisted-by replaced it.
+# Trailers as checkpatch.pl checks them, case-insensitively. Only the
+# trailer block counts, parsed without the patch divider so that a hunk
+# header quoted in the body hides nothing.
 check_trailers() {
 		local where="$1" msg="$2" committer="$3" trailers last
 		trailers="$(printf '%s\n' "$msg" | git interpret-trailers --parse --no-divider)"
@@ -80,12 +71,8 @@ check_trailers() {
 		fi
 }
 
-# `--commit-msg FILE` checks the trailers and the prose of the message in FILE
-# and nothing else: the commit-msg hook's shape (scripts/commit-msg), so a bad
-# message is refused before the commit exists rather than reported from HEAD
-# afterwards. A verbose commit template carries the diff below git's scissors
-# line, which stripspace keeps, so the file is cut there first, as git itself
-# cuts it.
+# A verbose commit template carries the diff below git's scissors line,
+# which stripspace keeps, so cut there first as git does.
 if [ "${1-}" = "--commit-msg" ]; then
 		[ $# -eq 2 ] && [ -r "$2" ] || { echo "usage: $0 [--commit-msg FILE]" >&2; exit 2; }
 		committer="$(git var GIT_COMMITTER_IDENT | sed 's/ [0-9]* [-+][0-9]*$//')"
@@ -95,14 +82,12 @@ if [ "${1-}" = "--commit-msg" ]; then
 		exit "$status"
 fi
 
-# 1. Trailing whitespace (spaces or tabs) and carriage returns.
 if git grep --line-number --perl-regexp '[ \t]+$|\r' "${scope[@]}" >/dev/null 2>&1; then
 		echo "error: trailing whitespace or a carriage return:"
 		git grep --line-number --perl-regexp '[ \t]+$|\r' "${scope[@]}"
 		status=1
 fi
 
-# 2. Missing newline at end of file.
 while IFS= read -r f; do
 		[ -s "$f" ] || continue
 		if [ -n "$(tail --bytes=1 "$f")" ]; then
@@ -111,18 +96,14 @@ while IFS= read -r f; do
 		fi
 done < <(git ls-files "${scope[@]}")
 
-# 3. HEAD's commit message trailers (check_trailers above) and prose: its
-#    message and the docs and comments it adds (scripts/check-prose.py,
-#    notes/writing.md).
 msg="$(git log --max-count=1 --format=%B 2>/dev/null || true)"
 if [ -n "$msg" ]; then
 		check_trailers HEAD "$msg" "$(git log --max-count=1 --format='%cn <%ce>')"
 		python3 "$here/check-prose.py" --commit HEAD || status=1
 fi
 
-# 4. Every source file declares an SPDX license within its first two lines,
-#    so a shebang may come first. scdoc pages cannot: their first line is
-#    the preamble, and a comment before it is a parse error.
+# Two lines, so a shebang may come first. Not .scd: a comment before
+# scdoc's preamble line is a parse error.
 while IFS= read -r f; do
 	if ! head --lines=2 "$f" | grep --quiet 'SPDX-License-Identifier: '; then
 		echo "error: $f: missing 'SPDX-License-Identifier:' in the first two lines"
