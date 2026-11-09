@@ -435,7 +435,7 @@ anything:
    ---virtiofsd@bootstrap-direct-store.service---
    ...
 
-:ref:`Regenerate <host-regenerate>` by hand after editing the drop-in.
+:ref:`Regenerate <host-regenerate>` after editing the drop-in.
 
 .. _direct-settings:
 

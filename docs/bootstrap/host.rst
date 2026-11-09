@@ -112,15 +112,14 @@ Regenerating
 ------------
 
 The generator turns the ``.qemu`` files into units. Its path unit runs it
-a moment after a ``.qemu`` file changes, but not after a change in a
-drop-in directory, so the guides regenerate by hand after every change:
+a moment after a ``.qemu`` file or a drop-in changes. The guides run it by
+hand after every change: the start returns only once the user manager has
+loaded the new units, and the next command needs them:
 
 .. code-block:: console
    :class: cmd-host
 
    $ systemctl --user start qemu-system-generator.service
-
-The start returns once the user manager has loaded the new units.
 
 .. _host-start:
 

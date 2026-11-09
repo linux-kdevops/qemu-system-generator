@@ -39,8 +39,9 @@ The service runs the generator with _$XDG_RUNTIME_DIR/systemd/user/_ as
 _normal-dir_, after removing what an earlier run wrote there, and then
 *systemctl --user daemon-reload*, even when a file failed. It starts at
 login and whenever the path unit sees a change in
-_$XDG_CONFIG_HOME/qemu/systemd/_. Changes in a drop-in directory are not
-seen; start the service by hand after those.
+_$XDG_CONFIG_HOME/qemu/systemd/_ or in a drop-in directory on the search
+path; the generator writes one *PathChanged=* per drop-in directory to
+_qemu-system-generator.path.d/50-dropin-dirs.conf_.
 
 With *--dryrun* nothing is written: every generated file is printed after
 a *---path---* line, and every symlink as *---path -> target---*. Together

@@ -171,10 +171,17 @@ fn dropin_stem(dir_name: &str) -> Option<&str> {
     unit_stem(base)
 }
 
+#[derive(Debug, PartialEq, Eq)]
+pub struct Discovery {
+    pub sources: Vec<Source>,
+    /// Every drop-in directory, whether or not a file uses it.
+    pub dropin_dirs: Vec<PathBuf>,
+}
+
 /// Find every `.qemu` file on the search path. The first directory that
 /// holds a name wins. Unreadable directories and unusable names are
 /// reported through `warn` and skipped.
-pub fn discover(dirs: &[PathBuf], mut warn: impl FnMut(String)) -> Vec<Source> {
+pub fn discover(dirs: &[PathBuf], mut warn: impl FnMut(String)) -> Discovery {
     let mut files: BTreeMap<String, PathBuf> = BTreeMap::new();
     // One map per search directory: the stem a drop-in directory applies
     // to, and its path.
@@ -210,7 +217,7 @@ pub fn discover(dirs: &[PathBuf], mut warn: impl FnMut(String)) -> Vec<Source> {
         dropin_dirs.push(found);
     }
 
-    files
+    let sources = files
         .into_iter()
         .filter_map(|(stem, path)| match stem.parse::<UnitName>() {
             Ok(name) => {
@@ -226,7 +233,14 @@ pub fn discover(dirs: &[PathBuf], mut warn: impl FnMut(String)) -> Vec<Source> {
                 None
             }
         })
-        .collect()
+        .collect();
+    Discovery {
+        sources,
+        dropin_dirs: dropin_dirs
+            .iter()
+            .flat_map(|found| found.values().cloned())
+            .collect(),
+    }
 }
 
 /// The name-specific drop-in stems of a unit, most specific first: its
@@ -389,9 +403,22 @@ mod tests {
         fs::write(low.join("fstests-xfs.qemu.d/10-a.conf"), "").unwrap();
 
         let mut warnings = Vec::new();
-        let sources = discover(&[high.clone(), low.clone()], |w| warnings.push(w));
+        let Discovery {
+            sources,
+            dropin_dirs,
+        } = discover(&[high.clone(), low.clone()], |w| warnings.push(w));
         assert_eq!(warnings.len(), 1, "{warnings:?}");
         assert!(warnings[0].contains("bad@name.qemu"), "{warnings:?}");
+        assert_eq!(
+            dropin_dirs,
+            [
+                high.join("fstests-.qemu.d"),
+                high.join("nixos.qemu.d"),
+                low.join("qemu.d"),
+                low.join("fstests-.qemu.d"),
+                low.join("fstests-xfs.qemu.d"),
+            ]
+        );
         let names: Vec<_> = sources.iter().map(|s| s.name.as_str()).collect();
         assert_eq!(names, ["fstests-xfs", "nixos"]);
 

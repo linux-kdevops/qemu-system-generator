@@ -255,6 +255,9 @@ fn write_output(dest: &Path, output: &Output) -> Result<(), GenerateError> {
     };
     for file in &output.files {
         let path = dest.join(&file.path);
+        if let Some(parent) = path.parent() {
+            fs::create_dir_all(parent).map_err(|e| failed(parent, e))?;
+        }
         fs::write(&path, &file.text).map_err(|e| failed(&path, e))?;
     }
     for link in &output.links {
@@ -301,19 +304,26 @@ fn run(options: &Options) -> ExitCode {
     let env = Environment::from_process();
     let scope = resolve_scope(options.scope, &env);
     let dirs = search::unit_dirs(scope, &env);
-    let sources = search::discover(&dirs, log);
+    let found = search::discover(&dirs, log);
     let stdout = io::stdout();
     let mut stdout = io::BufWriter::new(stdout.lock());
+    let mut deliver = |output: &Output| match &options.dir {
+        Some(dir) => write_output(dir, output),
+        None => print_output(output, &mut stdout).map_err(GenerateError::Stdout),
+    };
     let mut failed = false;
     let mut claimed = BTreeMap::new();
-    for source in &sources {
+    for source in &found.sources {
         let result = generate(source, scope)
             .and_then(|output| claim(&mut claimed, source, &output).map(|()| output))
-            .and_then(|output| match &options.dir {
-                Some(dir) => write_output(dir, &output),
-                None => print_output(&output, &mut stdout).map_err(GenerateError::Stdout),
-            });
+            .and_then(|output| deliver(&output));
         if let Err(err) = result {
+            log_error(&err);
+            failed = true;
+        }
+    }
+    if let Some(watch) = launcher::systemd::watch_dropin_dirs(scope, &found.dropin_dirs) {
+        if let Err(err) = deliver(&watch) {
             log_error(&err);
             failed = true;
         }

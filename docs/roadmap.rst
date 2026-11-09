@@ -45,24 +45,6 @@ Guides
       result decides whether the guide teaches both. Plan:
       ``designs/kernel-as-derivation.md``.
 
-Generator
-=========
-
-.. grid:: 1 1 2 2
-   :gutter: 3
-
-   .. grid-item-card:: Watch the drop-in directories
-
-      :bdg-warning:`research`
-
-      The path unit watches only the directory that holds the ``.qemu``
-      files, and inotify does not reach into its ``.qemu.d``
-      subdirectories, so a drop-in change needs a manual regenerate
-      (:ref:`host-regenerate`). The generator, which reads every drop-in
-      directory anyway, would write a drop-in for its own path unit with
-      a ``PathChanged=`` per directory. Plan:
-      ``designs/watch-drop-in-directories.md``.
-
 Upstream
 ========
 

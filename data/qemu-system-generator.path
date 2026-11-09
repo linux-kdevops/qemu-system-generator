@@ -1,8 +1,7 @@
 # SPDX-License-Identifier: copyleft-next-0.3.1
 #
-# Watches only the top directory: an edit inside a name.qemu.d/
-# drop-in directory needs systemctl --user start
-# qemu-system-generator.service.
+# inotify does not report from inside a subdirectory, so the generator
+# adds a PathChanged= per drop-in directory.
 
 [Unit]
 Description=QEMU System Unit Generator Directory Watch
