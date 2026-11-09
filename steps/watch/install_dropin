@@ -1,0 +1,27 @@
+#!/usr/bin/env bash
+# SPDX-License-Identifier: copyleft-next-0.3.1
+## Usage: steps/watch/install_dropin --description TEXT
+##
+## Write bootstrap-watch.qemu.d/10-description.conf, which sets the
+## machine's Description= to TEXT, to ~/.config/qemu/systemd, and leave
+## the regenerate to the generator's path unit:
+##
+##   nix develop --ignore-env --keep-env-var HOME \
+##       --command steps/watch/install_dropin --description first
+set -o errexit -o nounset -o pipefail
+
+while [ $# -gt 0 ]; do
+	case $1 in
+	--description) description=$2 ;;
+	*) sed --quiet 's/^## \{0,1\}//p' "$0" >&2 && exit 2 ;;
+	esac
+	shift 2
+done
+: "${description:?}"
+dropins=$HOME/.config/qemu/systemd/bootstrap-watch.qemu.d
+files=$(realpath "$(dirname "$0")/files")
+
+set -o xtrace
+mkdir --parents "$dropins"
+description=$description envsubst "\$description" \
+	<"$files/10-description.conf" >"$dropins/10-description.conf"

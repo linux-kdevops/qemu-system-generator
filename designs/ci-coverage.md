@@ -11,8 +11,10 @@ The guides' DAGs (`disk`, `uki`, `direct`, `knix`, `cloud`) boot their
 machines under the user manager. `nested` installs the generator for
 the system manager in a guest, and `runner` runs the CI workflow in a
 guest made like ubuntu-latest. `nvme` boots ten NVMe controllers, each
-set up its own way, `virtfs` a guest whose store and shares all come
-over 9p, and `test` runs `cargo test`. Machines talk to each other only
+set up its own way, and `virtfs` a guest whose store and shares all
+come over 9p. `watch` checks that the path unit follows edits in a
+drop-in directory with no manual regenerate, and `test` runs
+`cargo test`. Machines talk to each other only
 through `-netdev dgram` on a UDP multicast group (direct, knix, cloud),
 one `ping` each way.
 

@@ -1,0 +1,55 @@
+# SPDX-License-Identifier: copyleft-next-0.3.1
+description: >-
+  Write bootstrap-watch.qemu, a machine that is never started, then
+  create, edit and remove its drop-in directory without regenerating by
+  hand, and check that the user manager's unit follows each change: the
+  generator's path unit watches the drop-in directories it finds.
+working_dir: ..
+type: chain
+env:
+  - XDG_RUNTIME_DIR: ${XDG_RUNTIME_DIR}
+
+steps:
+  - id: generator_install
+    run: steps/generator/install
+
+  - id: watch_install
+    run: steps/watch/install
+
+  # The path unit regenerates a moment after a write; until then the
+  # check fails.
+  - id: watch_check_file
+    run: steps/watch/check --description file
+    retry_policy:
+      limit: 10
+      interval_sec: 1
+
+  - id: watch_install_dropin_first
+    run: steps/watch/install_dropin --description first
+
+  - id: watch_check_first
+    run: steps/watch/check --description first
+    retry_policy:
+      limit: 10
+      interval_sec: 1
+
+  - id: watch_install_dropin_second
+    run: steps/watch/install_dropin --description second
+
+  - id: watch_check_second
+    run: steps/watch/check --description second
+    retry_policy:
+      limit: 10
+      interval_sec: 1
+
+  - id: watch_remove_dropin
+    run: steps/watch/remove_dropin
+
+  - id: watch_check_removed
+    run: steps/watch/check --description file
+    retry_policy:
+      limit: 10
+      interval_sec: 1
+
+  - id: machine_remove
+    run: steps/machine/remove --name bootstrap-watch

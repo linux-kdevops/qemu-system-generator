@@ -103,7 +103,7 @@ Actions job; no tool from outside the flake.
 A step is a Bash executable, `steps/<subsystem>/<verb>`. A subsystem is
 a guide (`disk`, `uki`, `direct`, `knix`, `packages`, `cloud`), a concern
 the guides share (`host`, `ssh`, `generator`, `machine`, `github`), or a
-DAG of CI's own (`nested`, `nvme`, `runner`, `virtfs`). The verb is in
+DAG of CI's own (`nested`, `nvme`, `runner`, `virtfs`, `watch`). The verb is in
 the imperative, `verb_object` in snake_case when it takes an object
 (`generate_key`).
 

@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+# SPDX-License-Identifier: copyleft-next-0.3.1
+## Usage: steps/watch/install
+##
+## Write bootstrap-watch.qemu, a machine that is never started, to
+## ~/.config/qemu/systemd, and leave the regenerate to the generator's
+## path unit:
+##
+##   nix develop --ignore-env --keep-env-var HOME \
+##       --command steps/watch/install
+set -o errexit -o nounset -o pipefail
+
+if [ $# -gt 0 ]; then
+	sed --quiet 's/^## \{0,1\}//p' "$0" >&2 && exit 2
+fi
+units=$HOME/.config/qemu/systemd
+files=$(realpath "$(dirname "$0")/files")
+
+set -o xtrace
+mkdir --parents "$units"
+cp "$files/bootstrap-watch.qemu" "$units/bootstrap-watch.qemu"
