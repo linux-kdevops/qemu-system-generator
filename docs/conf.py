@@ -153,6 +153,15 @@ cmd_links = {
     "virt-install": "https://github.com/virt-manager/virt-manager/blob/main/man/virt-install.rst",
     "make": "https://www.gnu.org/software/make/manual/make.html",
     "apt": "https://manpages.debian.org/unstable/apt/apt.8.en.html",
+    "mkosi(1)": "https://github.com/systemd/mkosi/blob/v27/mkosi/resources/man/mkosi.1.md",
+    "virt-customize": "https://libguestfs.org/virt-customize.1.html",
+    "systemd-firstboot(1)": f"{_SYSTEMD}/systemd-firstboot.html",
+    "bootctl": f"{_SYSTEMD}/bootctl.html",
+    "systemd-repart": f"{_SYSTEMD}/systemd-repart.html",
+    "gpgv": "https://manpages.debian.org/unstable/gpgv/gpgv.1.en.html",
+    "dpkg": "https://manpages.debian.org/unstable/dpkg/dpkg.1.en.html",
+    "bash": f"{_MAN1}/bash.1.html",
+    "sh": f"{_MAN1}/sh.1p.html",
     "dpkg-query": "https://manpages.debian.org/unstable/dpkg/dpkg-query.1.en.html",
     "dnf": "https://dnf5.readthedocs.io/en/latest/dnf5.8.html",
     "rpm": "https://rpm.org/docs/latest/man/rpm.8",
@@ -175,6 +184,7 @@ cmd_links = {
     "nix profile add": f"{_NIX}/nix3-profile-add",
     "nix profile upgrade": f"{_NIX}/nix3-profile-upgrade",
     "nix store add": f"{_NIX}/nix3-store-add",
+    "nix shell": f"{_NIX}/nix3-shell",
 }
 
 

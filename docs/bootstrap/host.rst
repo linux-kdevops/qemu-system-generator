@@ -72,6 +72,10 @@ it through :cmd:`systemd-ssh-proxy(1)`:
        HostName vsock/52
    Host cloud-ubuntu-peer
        HostName vsock/53
+   Host bootstrap-mkosi
+       HostName vsock/59
+   Host bootstrap-libguestfs
+       HostName vsock/60
 
    Host bootstrap-* cloud-*
        ProxyCommand /usr/lib/systemd/systemd-ssh-proxy %h %p

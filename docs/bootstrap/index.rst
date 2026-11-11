@@ -37,6 +37,38 @@ the guest costs.
      - SeaBIOS and the image's GRUB
      - `Debian`_, `Fedora`_ and `Ubuntu`_ cloud images, set up by `cloud-init`_
      - Change it inside the guest, with its package manager
+   * - :doc:`mkosi`
+     - OVMF and systemd-boot
+     - A Debian image that `mkosi`_ builds, with Debian's kernel
+     - Rebuild the image from mkosi's cache
+   * - :doc:`libguestfs`
+     - SeaBIOS and the image's GRUB
+     - Debian's cloud image, changed by `libguestfs`_
+     - Rebuild the changed package inside the disk
+
+Three guides build xfsprogs and xfstests from their git trees, and an
+upgrade of either to its next release rebuilds a different part of the
+guest in each. In seconds, the build plus the start to SSH:
+
+.. list-table::
+   :header-rows: 1
+
+   * - Guide
+     - What the upgrade rebuilds
+     - xfsprogs v7.1.1 to v7.2.0
+     - xfstests v2026.09.22 to v2026.10.15
+   * - :ref:`mkosi <mkosi-upgrade>`
+     - Both packages, then the disk
+     - 108.9 + 7.7
+     - 126.7 + 8.5
+   * - :ref:`libguestfs <libguestfs-upgrade>`
+     - That package, in the disk
+     - 75.7 + 7.2
+     - 30.4 + 7.2
+   * - :ref:`packages <packages-xfsprogs>`
+     - The package, xfstests too after xfsprogs, then the system
+     - 97.3 + 8.2
+     - 58.7 + 8.3
 
 :doc:`disk` is the closest to a physical machine. :doc:`direct` covers most
 of the format: `vsock`_, SSH poweroff, consoles, drop-ins, systemd
@@ -72,6 +104,8 @@ keep nothing there; the cloud guests keep their disks there.
    direct
    knix
    cloud
+   mkosi
+   libguestfs
    home
    nixos
    packages
@@ -96,3 +130,5 @@ keep nothing there; the cloud guests keep their disks there.
 .. _Fedora: https://fedoraproject.org
 .. _Ubuntu: https://ubuntu.com
 .. _cloud-init: https://cloudinit.readthedocs.io
+.. _mkosi: https://github.com/systemd/mkosi
+.. _libguestfs: https://libguestfs.org
