@@ -32,8 +32,9 @@ The kernel
 
 Inside the ``build-kernel`` shell (:cmd:`nix develop`), configure the
 release as a `KVM`_ guest with virtiofs built in, build it in ``build/``
-and install its modules in ``destdir/``, both in the tree. Then leave the
-shell:
+in the tree, and install it with its modules in ``build/tar-install/``.
+Then leave the shell, add the install to the Nix store and link it as
+``~/bootstrap/knix/result-kernel``:
 
 .. code-block:: console
    :class: cmd-host
@@ -48,16 +49,19 @@ shell:
        --enable VSOCKETS --enable VIRTIO_VSOCKETS
    $ make O=build olddefconfig
    $ make O=build --jobs=$(nproc)
-   $ make O=build INSTALL_MOD_PATH=../destdir modules_install
+   $ make O=build dir-pkg
    $ exit
+   $ nix build "$(nix store add --name linux build/tar-install)" --out-link ../result-kernel
 
 ``kvm_guest.config`` turns on the virtio drivers; the
-`kernel build documentation`_ covers ``O=`` and the configuration targets.
-kbuild writes a ``.gitignore`` into ``build/``, so git ignores it. Under
-``O=``, :cmd:`make` runs from ``build/``, so ``INSTALL_MOD_PATH`` is
-relative to it. The kernel is
-``~/bootstrap/knix/linux/build/arch/x86/boot/bzImage``, and the modules
-are under ``~/bootstrap/knix/linux/destdir/lib/modules/``.
+`kernel build documentation`_ covers ``O=`` and the configuration targets,
+and ``make help`` lists ``dir-pkg``. kbuild writes a ``.gitignore`` into
+``build/``, so git ignores it. :cmd:`nix store add` copies the install
+into the store and prints its path, and :cmd:`nix build` links that path,
+which keeps it from garbage collection. The kernel is
+``~/bootstrap/knix/result-kernel/boot/vmlinuz-7.3.0``, named after its
+release, and the modules are under
+``~/bootstrap/knix/result-kernel/lib/modules/``.
 
 QEMU
 ----
@@ -73,15 +77,42 @@ Build the release inside the ``build-qemu`` shell and install it in
        https://gitlab.com/qemu-project/qemu.git ~/bootstrap/knix/qemu
    $ cd ~/bootstrap/knix/qemu
    $ nix develop github:linux-kdevops/knix#build-qemu
-   $ ./configure --prefix=$HOME/bootstrap/knix/qemu/destdir \
-       --target-list=x86_64-softmmu --enable-kvm --enable-slirp --disable-docs
-   $ make --jobs=$(nproc) install
+   $ ./configure --target-list=x86_64-softmmu --enable-kvm --enable-slirp --disable-docs
+   $ make --jobs=$(nproc)
+   $ make install DESTDIR=$PWD/destdir
    $ exit
+
+QEMU's binaries load libraries from the store, and :cmd:`nix store add`
+records no store path a copy needs, so a garbage collection could delete
+them. Copy the install in a derivation that takes the ``build-qemu``
+shell's inputs as an input instead: Nix records each of them the copy
+names.
+
+.. code-block:: nix
+   :caption: ~/bootstrap/knix/store.nix
+
+   { destdir }:
+   let
+     knix = builtins.getFlake "github:linux-kdevops/knix";
+     system = builtins.currentSystem;
+     pkgs = knix.inputs.nixpkgs.legacyPackages.${system};
+   in
+   pkgs.runCommandLocal "qemu" {
+     inherit (knix.devShells.${system}.build-qemu) inputDerivation;
+     src = builtins.path {
+       path = destdir;
+       name = "qemu-destdir";
+     };
+   } "cp --recursive $src $out"
+
+``--impure`` lets it fetch knix and read the host's system:
 
 .. code-block:: console
    :class: cmd-host
 
-   $ ~/bootstrap/knix/qemu/destdir/bin/qemu-system-x86_64 --version
+   $ nix build --impure --file ../store.nix \
+       --argstr destdir $PWD/destdir/usr/local --out-link ../result-qemu
+   $ ~/bootstrap/knix/result-qemu/bin/qemu-system-x86_64 --version
    QEMU emulator version 11.1.0 (v11.1.0)
 
 The guest
@@ -191,7 +222,7 @@ home:
    smp=2
    nographic=
    serial=mon:stdio
-   kernel=%h/bootstrap/knix/linux/build/arch/x86/boot/bzImage
+   kernel=%h/bootstrap/knix/result-kernel/boot/vmlinuz-7.3.0
    netdev=user,id=net0,hostfwd=tcp:127.0.0.1:10049-:22
    device=virtio-net-pci-non-transitional,netdev=net0,romfile=
    device=vhost-vsock-pci-non-transitional,guest-cid=49
@@ -204,7 +235,7 @@ home:
    gid-map=:0:%G:1:
 
    [virtiofsd]
-   shared-dir=%h/bootstrap/knix/linux/destdir/lib/modules
+   shared-dir=%h/bootstrap/knix/result-kernel/lib/modules
    tag=modules
    sandbox=namespace
    uid-map=:0:%U:1:
@@ -273,8 +304,8 @@ look at the shares:
    /lib/modules modules virtiofs
    /home/user   home    virtiofs
 
-After a kernel rebuild, ``make modules_install`` again and
-:ref:`restart <host-start>`. After a closure rebuild, put the new paths
+After a kernel rebuild, ``make dir-pkg`` and add it to the store again,
+then :ref:`restart <host-start>`. After a closure rebuild, put the new paths
 from ``boot.json`` in the drop-in, :ref:`regenerate <host-regenerate>`
 and :ref:`restart <host-start>`; :ref:`step 4 <knix-links>` replaces that
 with links.
@@ -294,7 +325,7 @@ the first word of :cmd:`ExecStart=`:
    +++ b/.config/qemu/systemd/bootstrap-knix.qemu
    @@ -1,4 +1,5 @@
     [VM]
-   +QEMUBinary=%h/bootstrap/knix/qemu/destdir/bin/qemu-system-x86_64
+   +QEMUBinary=%h/bootstrap/knix/result-qemu/bin/qemu-system-x86_64
     SSHPrivateKey=%h/bootstrap/system/ssh/id_ed25519
 
     [QEMU]
@@ -308,7 +339,7 @@ check which binary runs:
    $ systemctl --user start qemu-system-generator.service
    $ systemctl --user restart qemu-system@bootstrap-knix.service
    $ readlink /proc/$(systemctl --user show --property=MainPID --value qemu-system@bootstrap-knix.service)/exe
-   /home/user/bootstrap/knix/qemu/destdir/bin/qemu-system-x86_64
+   /nix/store/lm33v87kwaj0s7g4y2rrc97vaxfg39rn-qemu/bin/qemu-system-x86_64
 
 The guest boots in about 9 seconds and stops in 2.
 
@@ -363,7 +394,7 @@ Give ``bootstrap-knix`` its card:
    --- a/.config/qemu/systemd/bootstrap-knix.qemu
    +++ b/.config/qemu/systemd/bootstrap-knix.qemu
    @@ -14,6 +14,8 @@ serial=mon:stdio
-    kernel=%h/bootstrap/knix/linux/build/arch/x86/boot/bzImage
+    kernel=%h/bootstrap/knix/result-kernel/boot/vmlinuz-7.3.0
     netdev=user,id=net0,hostfwd=tcp:127.0.0.1:10049-:22
     device=virtio-net-pci-non-transitional,netdev=net0,romfile=
    +netdev=dgram,id=lan,remote.type=inet,remote.host=239.255.0.1,remote.port=5557,local.type=inet,local.host=127.0.0.1,local.port=0
@@ -380,7 +411,7 @@ context id of its own and no forwarded port, since ``bootstrap-knix`` holds
    :caption: ~/.config/qemu/systemd/bootstrap-knix-peer.qemu
 
    [VM]
-   QEMUBinary=%h/bootstrap/knix/qemu/destdir/bin/qemu-system-x86_64
+   QEMUBinary=%h/bootstrap/knix/result-qemu/bin/qemu-system-x86_64
    SSHPrivateKey=%h/bootstrap/system/ssh/id_ed25519
 
    [QEMU]
@@ -392,7 +423,7 @@ context id of its own and no forwarded port, since ``bootstrap-knix`` holds
    smp=2
    nographic=
    serial=mon:stdio
-   kernel=%h/bootstrap/knix/linux/build/arch/x86/boot/bzImage
+   kernel=%h/bootstrap/knix/result-kernel/boot/vmlinuz-7.3.0
    netdev=user,id=net0
    device=virtio-net-pci-non-transitional,netdev=net0,romfile=
    netdev=dgram,id=lan,remote.type=inet,remote.host=239.255.0.1,remote.port=5557,local.type=inet,local.host=127.0.0.1,local.port=0
@@ -407,7 +438,7 @@ context id of its own and no forwarded port, since ``bootstrap-knix`` holds
    gid-map=:0:%G:1:
 
    [virtiofsd]
-   shared-dir=%h/bootstrap/knix/linux/destdir/lib/modules
+   shared-dir=%h/bootstrap/knix/result-kernel/lib/modules
    tag=modules
    sandbox=namespace
    uid-map=:0:%U:1:
@@ -583,14 +614,14 @@ What this machine needs beyond them goes in a fragment of your own:
 
 Merge it with the fragments for a systemd guest with virtiofs, virtio-net
 and vsock built in (`kfragments`_ has the merge rules). The kernel
-replaces the first one in ``build/`` and ``destdir/``, so remove both
-first, and both machines boot it from then on:
+replaces the first one in ``build/`` and ``result-kernel``, so remove
+``build/`` first, and both machines boot it from then on:
 
 .. code-block:: console
    :class: cmd-host
 
    $ cd ~/bootstrap/knix/linux
-   $ rm --recursive build destdir
+   $ rm --recursive build
    $ nix develop github:linux-kdevops/knix#build-kernel
    $ make O=build allnoconfig
    $ scripts/kconfig/merge_config.sh -y -n -O build build/.config \
@@ -612,8 +643,9 @@ first, and both machines boot it from then on:
        ../fast.config
    $ make O=build olddefconfig
    $ make O=build --jobs=$(nproc)
-   $ make O=build INSTALL_MOD_PATH=../destdir modules_install
+   $ make O=build dir-pkg
    $ exit
+   $ nix build "$(nix store add --name linux build/tar-install)" --out-link ../result-kernel
 
 It builds in about a minute and a half, into a 4.4 MB image.
 :ref:`Restart <host-start>`: 7.6 seconds. The kernel's share falls from
@@ -872,7 +904,7 @@ parallel start:
    +smp=4
     nographic=
     serial=mon:stdio
-    kernel=%h/bootstrap/knix/linux/build/arch/x86/boot/bzImage
+    kernel=%h/bootstrap/knix/result-kernel/boot/vmlinuz-7.3.0
 
 1.5 seconds again, a little less: the middle of ten boots is 1.49. That
 is a fifth of where this section started. Eight vCPUs gain nothing more,

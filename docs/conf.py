@@ -174,6 +174,7 @@ cmd_links = {
     "nix log": f"{_NIX}/nix3-log",
     "nix profile add": f"{_NIX}/nix3-profile-add",
     "nix profile upgrade": f"{_NIX}/nix3-profile-upgrade",
+    "nix store add": f"{_NIX}/nix3-store-add",
 }
 
 
