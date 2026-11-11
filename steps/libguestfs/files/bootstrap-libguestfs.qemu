@@ -1,0 +1,14 @@
+# SPDX-License-Identifier: copyleft-next-0.3.1
+[VM]
+SSHPrivateKey=$SSH_KEY
+
+[QEMU]
+machine=q35
+accel=kvm
+cpu=host
+m=2G
+smp=4
+nographic=
+serial=mon:stdio
+drive=file=bootstrap.qcow2,if=virtio,format=qcow2,snapshot=on
+device=vhost-vsock-pci-non-transitional,guest-cid=60

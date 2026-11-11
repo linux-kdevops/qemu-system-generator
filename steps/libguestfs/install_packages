@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+# SPDX-License-Identifier: copyleft-next-0.3.1
+## Usage: steps/libguestfs/install_packages
+##
+## Install the packages of steps/libguestfs/files/packages in
+## bootstrap-libguestfs's disk. Run it in the shell of
+## steps/libguestfs/flake.nix:
+##
+##   nix develop ./steps/libguestfs --ignore-env --keep-env-var HOME \
+##       --command steps/libguestfs/install_packages
+set -o errexit -o nounset -o pipefail
+
+if [ $# -gt 0 ]; then
+	sed --quiet 's/^## \{0,1\}//p' "$0" >&2 && exit 2
+fi
+
+disk=$HOME/.local/state/qemu-system/bootstrap-libguestfs/bootstrap.qcow2
+packages=$(sed '/^#/d' "$(dirname "$0")/files/packages" | paste --serial --delimiters=,)
+
+set -o xtrace
+virt-customize --format qcow2 --add "$disk" --memsize 4096 --smp "$(nproc)" --install "$packages"

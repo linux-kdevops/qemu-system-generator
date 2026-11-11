@@ -1,0 +1,31 @@
+#!/usr/bin/env bash
+# SPDX-License-Identifier: copyleft-next-0.3.1
+## Usage: steps/libguestfs/build --name TREE [--base FILE]
+##
+## Build TREE, xfsprogs-dev or xfstests-dev, from WORKTREES_DIR/libguestfs/src
+## inside bootstrap-libguestfs's disk with the guide's build script, and
+## install it there. Run it in the shell of steps/libguestfs/flake.nix:
+##
+##   nix develop ./steps/libguestfs --ignore-env --keep-env-var HOME \
+##       --command steps/libguestfs/build --name xfsprogs-dev
+set -o errexit -o nounset -o pipefail
+
+while [ $# -gt 0 ]; do
+	case $1 in
+	--name | --base) declare "${1#--}=$2" ;;
+	*) sed --quiet 's/^## \{0,1\}//p' "$0" >&2 && exit 2 ;;
+	esac
+	shift 2
+done
+: "${name:?}"
+# shellcheck source=/dev/null
+[ -z "${base-}" ] || . "$base"
+# shellcheck source=steps/base
+. "$(dirname "$0")/../base"
+disk=$HOME/.local/state/qemu-system/bootstrap-libguestfs/bootstrap.qcow2
+dir=$WORKTREES_DIR/libguestfs
+
+set -o xtrace
+virt-customize --format qcow2 --add "$disk" --memsize 4096 --smp "$(nproc)" \
+	--mkdir /work --copy-in "$dir/src/$name:/work" --copy-in "$dir/build:/work" \
+	--run-command "bash /work/build ${name%-dev}" --delete /work

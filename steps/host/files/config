@@ -35,6 +35,10 @@ Host bootstrap-virtfs
     HostName vsock/57
 Host bootstrap-packages
     HostName vsock/58
+Host bootstrap-mkosi
+    HostName vsock/59
+Host bootstrap-libguestfs
+    HostName vsock/60
 
 Host bootstrap-* cloud-*
     ProxyCommand $proxy %h %p

@@ -1,0 +1,104 @@
+# SPDX-License-Identifier: copyleft-next-0.3.1
+description: >-
+  Fetch the pinned Debian testing cloud image, set it up with
+  virt-customize, build xfsprogs v7.1.1 and xfstests v2026.09.22 from
+  their git trees inside the disk, boot bootstrap-libguestfs and check
+  xfsprogs' version, then rebuild only xfsprogs at v7.2.0 in the disk,
+  boot it and check again.
+working_dir: ..
+type: chain
+env:
+  - XDG_RUNTIME_DIR: ${XDG_RUNTIME_DIR}
+
+handler_on:
+  exit:
+    run: steps/machine/stop --name bootstrap-libguestfs
+
+steps:
+  - id: host_check
+    run: steps/host/check
+
+  - id: ssh_generate_key
+    run: steps/ssh/generate_key
+
+  - id: host_install
+    run: steps/host/install
+
+  - id: generator_install
+    run: steps/generator/install
+
+  - id: libguestfs_fetch
+    run: steps/libguestfs/fetch
+
+  - id: libguestfs_install
+    run: steps/libguestfs/install
+
+  - id: libguestfs_customize
+    run: steps/libguestfs/customize
+    with:
+      shell: nix develop ./steps/libguestfs --ignore-env --keep-env-var HOME --command bash
+
+  - id: libguestfs_install_packages
+    run: steps/libguestfs/install_packages
+    with:
+      shell: nix develop ./steps/libguestfs --ignore-env --keep-env-var HOME --command bash
+
+  - id: xfs_clone_xfsprogs_dev
+    run: steps/xfs/clone --name xfsprogs-dev --tag v7.1.1 --guide libguestfs
+
+  - id: xfs_clone_xfstests_dev
+    run: steps/xfs/clone --name xfstests-dev --tag v2026.09.22 --guide libguestfs
+
+  - id: libguestfs_build_xfsprogs_dev
+    run: steps/libguestfs/build --name xfsprogs-dev
+    with:
+      shell: nix develop ./steps/libguestfs --ignore-env --keep-env-var HOME --command bash
+
+  - id: libguestfs_build_xfstests_dev
+    run: steps/libguestfs/build --name xfstests-dev
+    with:
+      shell: nix develop ./steps/libguestfs --ignore-env --keep-env-var HOME --command bash
+
+  - id: generator_run
+    run: steps/generator/run
+
+  - id: machine_start
+    run: steps/machine/start --name bootstrap-libguestfs
+
+  - id: machine_wait
+    run: steps/machine/wait --name bootstrap-libguestfs
+    retry_policy:
+      limit: 60
+      interval_sec: 2
+
+  - id: xfs_check
+    run: steps/xfs/check --name bootstrap-libguestfs --version 7.1.1
+
+  - id: machine_stop
+    run: steps/machine/stop --name bootstrap-libguestfs
+
+  - id: xfs_clone_xfsprogs_dev_upgrade
+    run: steps/xfs/clone --name xfsprogs-dev --tag v7.2.0 --guide libguestfs
+
+  - id: libguestfs_build_xfsprogs_dev_upgrade
+    run: steps/libguestfs/build --name xfsprogs-dev
+    with:
+      shell: nix develop ./steps/libguestfs --ignore-env --keep-env-var HOME --command bash
+
+  - id: machine_start_upgrade
+    run: steps/machine/start --name bootstrap-libguestfs
+
+  - id: machine_wait_upgrade
+    run: steps/machine/wait --name bootstrap-libguestfs
+    retry_policy:
+      limit: 60
+      interval_sec: 2
+
+  - id: xfs_check_upgrade
+    run: steps/xfs/check --name bootstrap-libguestfs --version 7.2.0
+
+  - id: machine_stop_upgrade
+    run: steps/machine/stop --name bootstrap-libguestfs
+
+  - id: machine_remove
+    run: steps/machine/remove --name bootstrap-libguestfs

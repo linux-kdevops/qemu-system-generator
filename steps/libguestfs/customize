@@ -1,0 +1,29 @@
+#!/usr/bin/env bash
+# SPDX-License-Identifier: copyleft-next-0.3.1
+## Usage: steps/libguestfs/customize [--base FILE]
+##
+## Remove cloud-init from bootstrap-libguestfs's disk, and set the host
+## name, root's key from SSH_KEY and the SSH host keys it would have set.
+## Run it in the shell of steps/libguestfs/flake.nix:
+##
+##   nix develop ./steps/libguestfs --ignore-env --keep-env-var HOME \
+##       --command steps/libguestfs/customize
+set -o errexit -o nounset -o pipefail
+
+while [ $# -gt 0 ]; do
+	case $1 in
+	--base) base=$2 ;;
+	*) sed --quiet 's/^## \{0,1\}//p' "$0" >&2 && exit 2 ;;
+	esac
+	shift 2
+done
+# shellcheck source=/dev/null
+[ -z "${base-}" ] || . "$base"
+# shellcheck source=steps/base
+. "$(dirname "$0")/../base"
+disk=$HOME/.local/state/qemu-system/bootstrap-libguestfs/bootstrap.qcow2
+
+set -o xtrace
+virt-customize --format qcow2 --add "$disk" \
+	--uninstall cloud-init --hostname bootstrap-libguestfs \
+	--ssh-inject "root:file:$SSH_KEY.pub" --run-command 'ssh-keygen -A'

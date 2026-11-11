@@ -1,0 +1,19 @@
+#!/bin/bash
+# SPDX-License-Identifier: copyleft-next-0.3.1
+# Build xfsprogs or xfstests from /work and install it in the image.
+set -o errexit -o nounset -o pipefail
+build=$(mktemp --directory)
+case $1 in
+xfsprogs)
+	cp --recursive /work/xfsprogs-dev "$build/xfsprogs"
+	(cd "$build/xfsprogs" && DEB_BUILD_OPTIONS="parallel=$(nproc) nocheck" dpkg-buildpackage --build=binary --no-sign)
+	dpkg --install "$build"/xfsprogs_*.deb
+	;;
+xfstests)
+	cp --recursive /work/xfstests-dev "$build/xfstests"
+	make --directory="$build/xfstests" --jobs="$(nproc)"
+	rm --recursive --force /var/lib/xfstests
+	make --directory="$build/xfstests" install
+	;;
+esac
+rm --recursive "$build"

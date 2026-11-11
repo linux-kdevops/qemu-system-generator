@@ -1,0 +1,27 @@
+# SPDX-License-Identifier: copyleft-next-0.3.1
+# What xfsprogs and xfstests build with, and five of the tools xfstests runs.
+acl
+attr
+bc
+gawk
+psmisc
+build-essential
+debhelper
+gettext
+libacl1-dev
+libaio-dev
+libblkid-dev
+libcap-dev
+libdevmapper-dev
+libedit-dev
+libgdbm-compat-dev
+libgdbm-dev
+libicu-dev
+libinih-dev
+libtool-bin
+liburcu-dev
+liburing-dev
+pkgconf
+systemd-dev
+uuid-dev
+xfslibs-dev

@@ -1,0 +1,29 @@
+#!/usr/bin/env bash
+# SPDX-License-Identifier: copyleft-next-0.3.1
+## Usage: steps/libguestfs/install [--base FILE]
+##
+## Write the libguestfs guide's build script in WORKTREES_DIR/libguestfs
+## and bootstrap-libguestfs.qemu in ~/.config/qemu/systemd:
+##
+##   nix develop --ignore-env --keep-env-var HOME \
+##       --command steps/libguestfs/install
+set -o errexit -o nounset -o pipefail
+
+while [ $# -gt 0 ]; do
+	case $1 in
+	--base) base=$2 ;;
+	*) sed --quiet 's/^## \{0,1\}//p' "$0" >&2 && exit 2 ;;
+	esac
+	shift 2
+done
+# shellcheck source=/dev/null
+[ -z "${base-}" ] || . "$base"
+# shellcheck source=steps/base
+. "$(dirname "$0")/../base"
+files=$(realpath "$(dirname "$0")/files")
+
+set -o xtrace
+mkdir --parents "$WORKTREES_DIR/libguestfs" "$HOME/.config/qemu/systemd"
+cp "$files/build" "$WORKTREES_DIR/libguestfs/build"
+SSH_KEY=$SSH_KEY envsubst "\$SSH_KEY" \
+	<"$files/bootstrap-libguestfs.qemu" >"$HOME/.config/qemu/systemd/bootstrap-libguestfs.qemu"

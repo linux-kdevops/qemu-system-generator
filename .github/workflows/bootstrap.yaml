@@ -18,7 +18,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        dag: [test, disk, uki, direct, knix, packages, cloud, nested, nvme, virtfs, watch]
+        dag: [test, disk, uki, direct, knix, packages, cloud, mkosi, libguestfs, nested, nvme, virtfs, watch]
     name: ${{ matrix.dag }}
     steps:
       - uses: actions/checkout@v5

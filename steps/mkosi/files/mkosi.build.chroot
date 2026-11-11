@@ -1,0 +1,14 @@
+#!/bin/bash
+# SPDX-License-Identifier: copyleft-next-0.3.1
+set -o errexit -o nounset -o pipefail
+build=$(mktemp --directory)
+
+cp --recursive "$SRCDIR/xfsprogs-dev" "$build/xfsprogs"
+(cd "$build/xfsprogs" && DEB_BUILD_OPTIONS="parallel=$(nproc) nocheck" dpkg-buildpackage --build=binary --no-sign)
+cp "$build"/xfsprogs_*.deb "$PACKAGEDIR"
+
+cp --recursive "$SRCDIR/xfstests-dev" "$build/xfstests"
+make --directory="$build/xfstests" --jobs="$(nproc)"
+env --unset=DESTDIR make --directory="$build/xfstests" install
+mkdir --parents "$DESTDIR/var/lib"
+cp --archive /var/lib/xfstests "$DESTDIR/var/lib/"

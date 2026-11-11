@@ -1,0 +1,85 @@
+# SPDX-License-Identifier: copyleft-next-0.3.1
+description: >-
+  Build a Debian testing image with mkosi, with xfsprogs v7.1.1 and
+  xfstests v2026.09.22 built from their git trees, boot bootstrap-mkosi
+  under OVMF and check xfsprogs' version, then move xfsprogs to v7.2.0,
+  build the image again from mkosi's cache, boot it and check again.
+working_dir: ..
+type: chain
+env:
+  - XDG_RUNTIME_DIR: ${XDG_RUNTIME_DIR}
+
+handler_on:
+  exit:
+    run: steps/machine/stop --name bootstrap-mkosi
+
+steps:
+  - id: host_check
+    run: steps/host/check
+
+  - id: ssh_generate_key
+    run: steps/ssh/generate_key
+
+  - id: host_install
+    run: steps/host/install
+
+  - id: generator_install
+    run: steps/generator/install
+
+  - id: mkosi_install
+    run: steps/mkosi/install
+
+  - id: xfs_clone_xfsprogs_dev
+    run: steps/xfs/clone --name xfsprogs-dev --tag v7.1.1 --guide mkosi
+
+  - id: xfs_clone_xfstests_dev
+    run: steps/xfs/clone --name xfstests-dev --tag v2026.09.22 --guide mkosi
+
+  - id: mkosi_build
+    run: steps/mkosi/build
+    with:
+      shell: nix develop ./steps/mkosi --ignore-env --keep-env-var HOME --command bash
+
+  - id: generator_run
+    run: steps/generator/run
+
+  - id: machine_start
+    run: steps/machine/start --name bootstrap-mkosi
+
+  - id: machine_wait
+    run: steps/machine/wait --name bootstrap-mkosi
+    retry_policy:
+      limit: 60
+      interval_sec: 2
+
+  - id: xfs_check
+    run: steps/xfs/check --name bootstrap-mkosi --version 7.1.1
+
+  - id: machine_stop
+    run: steps/machine/stop --name bootstrap-mkosi
+
+  - id: xfs_clone_xfsprogs_dev_upgrade
+    run: steps/xfs/clone --name xfsprogs-dev --tag v7.2.0 --guide mkosi
+
+  - id: mkosi_build_upgrade
+    run: steps/mkosi/build
+    with:
+      shell: nix develop ./steps/mkosi --ignore-env --keep-env-var HOME --command bash
+
+  - id: machine_start_upgrade
+    run: steps/machine/start --name bootstrap-mkosi
+
+  - id: machine_wait_upgrade
+    run: steps/machine/wait --name bootstrap-mkosi
+    retry_policy:
+      limit: 60
+      interval_sec: 2
+
+  - id: xfs_check_upgrade
+    run: steps/xfs/check --name bootstrap-mkosi --version 7.2.0
+
+  - id: machine_stop_upgrade
+    run: steps/machine/stop --name bootstrap-mkosi
+
+  - id: machine_remove
+    run: steps/machine/remove --name bootstrap-mkosi
