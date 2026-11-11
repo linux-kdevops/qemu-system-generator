@@ -138,9 +138,14 @@ html .highlight-diff div.highlight .gd {
 }
 
 /* The cheatsheet's commands break anywhere, not only at spaces, so that
-   its four columns fit the page. */
+   its four columns fit the page. Sphinx puts each word of a literal in a
+   span.pre that does not wrap, which keeps a long word whole. */
 table.cheatsheet code {
     overflow-wrap: anywhere;
+}
+
+table.cheatsheet code span.pre {
+    white-space: normal;
 }
 
 /* Man pages rendered by mandoc (docs/conf.py). The page title already names
