@@ -3,9 +3,9 @@
 ## Usage: steps/packages/install [--base FILE]
 ##
 ## Write bootstrap-packages' files: in WORKTREES_DIR/packages, a NixOS
-## flake whose overlay changes fio and xfstests and adds damo, nfstest,
-## pynfs and xdrlib3, with the public key of SSH_KEY for root; and in
-## ~/.config/qemu/systemd, bootstrap-packages.qemu, which boots its
+## flake whose overlay changes fio, xfsprogs and xfstests and adds damo,
+## nfstest, pynfs and xdrlib3, with the public key of SSH_KEY for root;
+## and in ~/.config/qemu/systemd, bootstrap-packages.qemu, which boots its
 ## closure directly with the host's Nix store and the home over virtiofs,
 ## and a drop-in whose init= follows the result link through the home,
 ## so WORKTREES_DIR must lie in it:

@@ -2,10 +2,10 @@
 description: >-
   Build a NixOS closure for bootstrap-packages from a flake whose overlay
   builds fio 3.43 with gnuplot, t/io_uring and a patch from upstream,
-  xfstests from its for-next branch with that fio, and damo, nfstest,
-  pynfs and the xdrlib3 library pynfs needs, which nixpkgs lacks. Boot it
-  directly with the host's Nix store and home over virtiofs and run each
-  tool in the guest.
+  xfsprogs and xfstests from their for-next branches, xfstests with that
+  fio, and damo, nfstest, pynfs and the xdrlib3 library pynfs needs,
+  which nixpkgs lacks. Boot it directly with the host's Nix store and home
+  over virtiofs and run each tool in the guest.
 working_dir: ..
 type: chain
 env:

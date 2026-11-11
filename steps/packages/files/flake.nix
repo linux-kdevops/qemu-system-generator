@@ -2,6 +2,10 @@
 {
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
+    xfsprogs = {
+      url = "git+https://git.kernel.org/pub/scm/fs/xfs/xfsprogs-dev.git?ref=for-next";
+      flake = false;
+    };
     xfstests = {
       url = "git+https://git.kernel.org/pub/scm/fs/xfs/xfstests-dev.git?ref=for-next";
       flake = false;
@@ -28,6 +32,7 @@
           fio
           nfstest
           pynfs
+          xfsprogs
           xfstests
           ;
       };

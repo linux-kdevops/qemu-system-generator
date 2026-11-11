@@ -23,6 +23,19 @@ inputs: final: prev:
     }
   );
 
+  xfsprogs = prev.xfsprogs.overrideAttrs (previousAttrs: {
+    version =
+      let
+        date = start: length: prev.lib.substring start length inputs.xfsprogs.lastModifiedDate;
+      in
+      "0-unstable-${date 0 4}-${date 4 2}-${date 6 2}";
+    src = inputs.xfsprogs;
+    postConfigure = (previousAttrs.postConfigure or "") + ''
+      cp include/install-sh install-sh
+      patchShebangs install-sh
+    '';
+  });
+
   xfstests = prev.xfstests.overrideAttrs {
     version =
       let
