@@ -5,8 +5,8 @@ Installation
 ============
 
 The generator is built with `Nix`_ and installs per user without root,
-system-wide, or through a `NixOS`_ module. Each starts from a
-checkout of `this repository`_:
+system-wide, or through a `NixOS`_ module. On `Debian`_ it also builds as
+a package, without Nix. Each starts from a checkout of `this repository`_:
 
 .. code-block:: console
    :caption: host
@@ -121,6 +121,28 @@ user's manager from ``~/.config/qemu/systemd/``;
 :doc:`qemu-systemd.unit(5) </man/qemu-systemd.unit.5>` has the full search
 path.
 
+.. _install-debian:
+
+On Debian
+=========
+
+``debian/`` builds a package with Debian's own :cmd:`cargo`. The
+generator has no crate dependency, so the build downloads nothing:
+
+.. code-block:: console
+   :class: cmd-host
+
+   $ sudo apt install build-essential debhelper cargo scdoc
+   $ dpkg-buildpackage --no-sign --build=binary
+   $ sudo apt install ../qemu-system-generator_0.1.0_amd64.deb
+
+The package installs the generator for the system manager and every user
+manager, under ``/usr/lib/systemd/system-generators/`` and
+``/usr/lib/systemd/user-generators/``, with the manual pages and the
+examples. A user manager picks it up at its next ``daemon-reload`` or
+login. As with the system-wide installation, leave out the user units of
+the :ref:`per-user installation <install-user>`.
+
 On NixOS
 ========
 
@@ -140,6 +162,7 @@ enable it:
 configuration, by name, as text or as a path.
 
 .. _this repository: https://github.com/linux-kdevops/qemu-system-generator
+.. _Debian: https://www.debian.org
 .. _NixOS: https://nixos.org/manual/nixos/stable/
 .. _use-xdg-base-directories: https://nix.dev/manual/nix/latest/command-ref/conf-file.html#conf-use-xdg-base-directories
 .. _Nix: https://nix.dev/manual/nix/latest/

@@ -160,6 +160,7 @@ cmd_links = {
     "systemd-repart": f"{_SYSTEMD}/systemd-repart.html",
     "gpgv": "https://manpages.debian.org/unstable/gpgv/gpgv.1.en.html",
     "dpkg": "https://manpages.debian.org/unstable/dpkg/dpkg.1.en.html",
+    "cargo": "https://doc.rust-lang.org/cargo/",
     "bash": f"{_MAN1}/bash.1.html",
     "sh": f"{_MAN1}/sh.1p.html",
     "dpkg-query": "https://manpages.debian.org/unstable/dpkg/dpkg-query.1.en.html",

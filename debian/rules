@@ -1,0 +1,22 @@
+#!/usr/bin/make -f
+# SPDX-License-Identifier: copyleft-next-0.3.1
+# The crate has no dependency, so cargo builds it with no registry.
+export CARGO_HOME = $(CURDIR)/debian/cargo
+export CARGO_TARGET_DIR = $(CURDIR)/debian/target
+
+%:
+	dh $@
+
+override_dh_auto_build:
+	cargo build --release --offline --locked
+	scdoc <man/qemu-systemd.unit.5.scd >debian/qemu-systemd.unit.5
+	scdoc <man/qemu-system-generator.8.scd >debian/qemu-system-generator.8
+
+override_dh_auto_test:
+	cargo test --release --offline --locked
+
+override_dh_auto_clean:
+	rm --recursive --force debian/cargo debian/target \
+		debian/qemu-systemd.unit.5 debian/qemu-system-generator.8
+
+override_dh_auto_install:

@@ -1,0 +1,2 @@
+usr/bin/qemu-system-generator usr/lib/systemd/system-generators/qemu-system-system-generator
+usr/bin/qemu-system-generator usr/lib/systemd/user-generators/qemu-system-user-generator

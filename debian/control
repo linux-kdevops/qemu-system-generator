@@ -1,0 +1,17 @@
+Source: qemu-system-generator
+Section: admin
+Priority: optional
+Maintainer: Daniel Gomez <da.gomez@kernel.org>
+Build-Depends: debhelper-compat (= 13), cargo, rustc (>= 1.85), scdoc
+Standards-Version: 4.7.2
+Homepage: https://github.com/linux-kdevops/qemu-system-generator
+Rules-Requires-Root: no
+
+Package: qemu-system-generator
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}, socat, systemd
+Recommends: qemu-system, virtiofsd
+Description: systemd generator that turns .qemu files into QEMU services
+ Reads .qemu files, systemd unit-file syntax with a [QEMU] section that
+ passes QEMU's command line through, and generates the service, socket
+ and virtiofsd units that run the machine under systemd.

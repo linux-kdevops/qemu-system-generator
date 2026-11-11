@@ -1,0 +1,8 @@
+Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+Upstream-Name: qemu-system-generator
+Source: https://github.com/linux-kdevops/qemu-system-generator
+
+Files: *
+Copyright: The qemu-system-generator authors
+License: copyleft-next-0.3.1
+ The full text is in LICENSES/copyleft-next-0.3.1.txt of the source.

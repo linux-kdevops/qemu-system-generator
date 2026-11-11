@@ -55,10 +55,10 @@ A commit makes one change; a spelling fix does not ride along with code. Its
 subject is ``subsystem: summary`` in the imperative, at most 75 characters,
 the subsystem naming the area changed: ``generator``, ``backend``,
 ``launcher``, ``unitfile``, ``search``, ``plan``, ``examples``, ``tests``,
-``docs``, ``designs``, ``nix``, ``scripts``, ``steps``, ``dags``, ``github``,
-``README``, ``AGENTS.md``, or ``qemu-system-generator`` for a change across
-the tree. Its body is plain paragraphs wrapped at 75 columns, with no list
-(:doc:`writing`).
+``docs``, ``designs``, ``nix``, ``debian``, ``scripts``, ``steps``, ``dags``,
+``github``, ``README``, ``AGENTS.md``, or ``qemu-system-generator`` for a
+change across the tree. Its body is plain paragraphs wrapped at 75
+columns, with no list (:doc:`writing`).
 
 The message closes with a ``Signed-off-by`` in your Git identity, a
 person's, who answers for the change under the Developer Certificate of

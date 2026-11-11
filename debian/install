@@ -1,0 +1,2 @@
+debian/target/release/qemu-system-generator usr/bin
+data/qmp-powerdown usr/share/qemu/systemd
