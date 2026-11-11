@@ -27,24 +27,6 @@ Machines
       open. It costs no measurable boot time, and it is what hotplug over
       the machine's QMP socket needs. Plan: ``designs/pcie-root-ports.md``.
 
-Guides
-======
-
-.. grid:: 1 1 2 2
-   :gutter: 3
-
-   .. grid-item-card:: The kernel as a Nix derivation
-
-      :bdg-warning:`research`
-
-      Measure the knix guide's ``make`` build against nixpkgs'
-      ``linuxManualConfig`` on the same tree after a one-line change, and
-      try a plain NixOS closure that carries that kernel, with no
-      ``modules`` share. The derivation is cached and shareable; ``make``
-      is incremental and keeps the tree a kernel developer works in. The
-      result decides whether the guide teaches both. Plan:
-      ``designs/kernel-as-derivation.md``.
-
 Upstream
 ========
 
