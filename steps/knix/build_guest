@@ -1,14 +1,14 @@
 #!/usr/bin/env bash
 # SPDX-License-Identifier: copyleft-next-0.3.1
-## Usage: steps/knix/build [--base FILE]
+## Usage: steps/knix/build_guest [--base FILE]
 ##
-## Build, in WORKTREES_DIR/knix, what both knix machines boot: the fast
-## kernel, QEMU and BusyBox from steps/knix/flake.nix, linked from nix/,
-## the guest's closure, linked as guest/result, and the BusyBox
-## initramfs, tiny.cpio:
+## Build, in WORKTREES_DIR/knix, what both knix machines boot besides the
+## kernel: the guest's closure, linked as guest/result, and the BusyBox
+## initramfs, tiny.cpio, with BusyBox from steps/knix/flake.nix linked
+## from nix/:
 ##
 ##   nix develop --ignore-env --keep-env-var HOME \
-##       --command steps/knix/build
+##       --command steps/knix/build_guest
 set -o errexit -o nounset -o pipefail
 
 while [ $# -gt 0 ]; do
@@ -27,9 +27,6 @@ flake=$(realpath "$(dirname "$0")")
 set -o xtrace
 cd "$WORKTREES_DIR/knix"
 mkdir --parents nix tiny/bin
-# A kernel's modules are an output of their own, linked as -modules.
-nix build "$flake#fast-kernel^out,modules" --out-link nix/fast-kernel
-nix build "$flake#qemu" --out-link nix/qemu
 nix build "$flake#busybox" --out-link nix/busybox
 (cd guest && nix build .#toplevel)
 install --mode=0755 nix/busybox/bin/busybox tiny/bin/busybox

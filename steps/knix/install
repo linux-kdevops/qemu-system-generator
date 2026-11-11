@@ -4,8 +4,8 @@
 ##
 ## Write one knix machine, bootstrap-knix or bootstrap-knix-peer, in
 ## ~/.config/qemu/systemd: VM.qemu, which powers it down over SSH with
-## SSH_KEY and boots the fast kernel and QEMU that steps/knix/build links
-## into WORKTREES_DIR/knix/nix, with the store, the kernel's modules and
+## SSH_KEY and boots the kernel and QEMU linked as result-kernel and
+## result-qemu in WORKTREES_DIR/knix, with the store, the kernel's modules and
 ## the home over virtiofs and a LAN between the two machines; and its
 ## drop-in, which hands it the guest's closure, bootstrap-knix through
 ## the BusyBox initramfs and bootstrap-knix-peer through result/initrd

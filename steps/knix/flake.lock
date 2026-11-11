@@ -1,21 +1,5 @@
 {
   "nodes": {
-    "kfragments": {
-      "flake": false,
-      "locked": {
-        "lastModified": 1792872010,
-        "narHash": "sha256-mDpgjmeuq1zXmbLIwFeHCaWnBkSvH9sshcVIITtb85c=",
-        "owner": "linux-kdevops",
-        "repo": "kfragments",
-        "rev": "724ad2df91be74615bb7f37fadfe95bbfa8138cf",
-        "type": "github"
-      },
-      "original": {
-        "owner": "linux-kdevops",
-        "repo": "kfragments",
-        "type": "github"
-      }
-    },
     "knix": {
       "inputs": {
         "nixpkgs": "nixpkgs",
@@ -69,7 +53,6 @@
     },
     "root": {
       "inputs": {
-        "kfragments": "kfragments",
         "knix": "knix"
       }
     }

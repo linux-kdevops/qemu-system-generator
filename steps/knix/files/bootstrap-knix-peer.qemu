@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: copyleft-next-0.3.1
 [VM]
-QEMUBinary=$WORKTREES_DIR/knix/nix/qemu/bin/qemu-system-x86_64
+QEMUBinary=$WORKTREES_DIR/knix/result-qemu/bin/qemu-system-x86_64
 SSHPrivateKey=$SSH_KEY
 
 [QEMU]
@@ -12,7 +12,7 @@ m=2G
 smp=2
 nographic=
 serial=mon:stdio
-kernel=$WORKTREES_DIR/knix/nix/fast-kernel/bzImage
+kernel=$WORKTREES_DIR/knix/result-kernel/boot/vmlinuz-7.3.0
 netdev=user,id=net0
 device=virtio-net-pci-non-transitional,netdev=net0,romfile=
 netdev=dgram,id=lan,remote.type=inet,remote.host=239.255.0.1,remote.port=5557,local.type=inet,local.host=127.0.0.1,local.port=0
@@ -27,7 +27,7 @@ uid-map=:0:%U:1:
 gid-map=:0:%G:1:
 
 [virtiofsd]
-shared-dir=$WORKTREES_DIR/knix/nix/fast-kernel-modules/lib/modules
+shared-dir=$WORKTREES_DIR/knix/result-kernel/lib/modules
 tag=modules
 sandbox=namespace
 uid-map=:0:%U:1:

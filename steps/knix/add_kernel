@@ -1,0 +1,26 @@
+#!/usr/bin/env bash
+# SPDX-License-Identifier: copyleft-next-0.3.1
+## Usage: steps/knix/add_kernel [--base FILE]
+##
+## Add the kernel and modules that steps/knix/build_kernel installed to the
+## Nix store, linked as WORKTREES_DIR/knix/result-kernel:
+##
+##   nix develop --ignore-env --keep-env-var HOME \
+##       --command steps/knix/add_kernel
+set -o errexit -o nounset -o pipefail
+
+while [ $# -gt 0 ]; do
+	case $1 in
+	--base) base=$2 ;;
+	*) sed --quiet 's/^## \{0,1\}//p' "$0" >&2 && exit 2 ;;
+	esac
+	shift 2
+done
+# shellcheck source=/dev/null
+[ -z "${base-}" ] || . "$base"
+# shellcheck source=steps/base
+. "$(dirname "$0")/../base"
+
+set -o xtrace
+cd "$WORKTREES_DIR/knix/linux"
+nix build "$(nix store add --name linux build/tar-install)" --out-link ../result-kernel

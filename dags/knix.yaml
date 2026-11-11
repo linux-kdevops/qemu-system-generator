@@ -1,10 +1,10 @@
 # SPDX-License-Identifier: copyleft-next-0.3.1
 description: >-
-  Build a kernel and QEMU from their release tarballs and a knix
-  imageless NixOS guest with the devel profile, boot bootstrap-knix
-  through a BusyBox initramfs and bootstrap-knix-peer through the
-  guest's own initrd, both on that kernel, log in, and have each machine
-  ping the other.
+  Clone a kernel and QEMU release, build each with make in knix's shell
+  for it and add it to the Nix store, build a knix imageless NixOS guest
+  with the devel profile, boot bootstrap-knix through a BusyBox
+  initramfs and bootstrap-knix-peer through the guest's own initrd, both
+  on that kernel, log in, and have each machine ping the other.
 working_dir: ..
 type: chain
 env:
@@ -35,8 +35,33 @@ steps:
   - id: knix_install_guest
     run: steps/knix/install_guest
 
-  - id: knix_build
-    run: steps/knix/build
+  - id: knix_clone_linux
+    run: steps/knix/clone --name linux
+
+  - id: knix_clone_kfragments
+    run: steps/knix/clone --name kfragments
+
+  - id: knix_build_kernel
+    run: steps/knix/build_kernel
+    with:
+      shell: nix develop ./steps/knix#build-kernel --ignore-env --keep-env-var HOME --command bash
+
+  - id: knix_add_kernel
+    run: steps/knix/add_kernel
+
+  - id: knix_clone_qemu
+    run: steps/knix/clone --name qemu
+
+  - id: knix_build_qemu
+    run: steps/knix/build_qemu
+    with:
+      shell: nix develop ./steps/knix#build-qemu --ignore-env --keep-env-var HOME --command bash
+
+  - id: knix_add_qemu
+    run: steps/knix/add_qemu
+
+  - id: knix_build_guest
+    run: steps/knix/build_guest
 
   - id: knix_install_bootstrap_knix
     run: steps/knix/install --name bootstrap-knix

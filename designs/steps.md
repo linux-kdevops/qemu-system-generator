@@ -11,13 +11,12 @@ has the terms.
 ## 1. Who owns what
 
 - Nix owns every tool and every download, pinned with its hash (a
-  machine's image, as `steps/cloud/files/images.nix`), and the builds a
-  run repeats. A DAG builds the kernel and QEMU a guide builds as
-  derivations (`steps/knix/flake.nix` through knix's `lib.buildKernel`
-  and `lib.buildQemu`), so equal inputs build once and a later run reuses
-  the store path; the guide keeps teaching `make` in a `nix develop`
-  shell, which registers nothing it builds, and `curl`, which downloads
-  the newest image. The two then match in function, not in paths.
+  machine's image, as `steps/cloud/files/images.nix`), except a source
+  tree a guide clones and builds: Git clones it at the guide's release,
+  and the steps build it with the guide's `make` and add it to the store
+  as the guide does (`designs/builds.md`). A guide teaches `curl`, which
+  downloads the newest image, so a guide and its steps match in
+  function, not in paths.
 - systemd owns whatever runs for a while: the machines, the generator's
   units, and waiting on a unit.
 - Dagu owns control flow: order, retries (`retry_policy`), what runs as a
@@ -145,7 +144,10 @@ nix develop --ignore-env --keep-env-var HOME --keep-env-var XDG_RUNTIME_DIR
 ```
 
 No step or DAG calls `nix develop`, and none uses a tool that happens to
-be on the host's `PATH`. A step that only strings commands together is
+be on the host's `PATH`, but for a node that runs a guide's commands in
+a shell the guide enters: it names that shell in its `with.shell`, from the
+flake under `steps/` that pins it, as `dags/knix.yaml` builds the kernel
+in `steps/knix#build-kernel`. A step that only strings commands together is
 Bash; a program that does what no handful of commands can may be Python,
 as `scripts/check-prose.py` is, but stays out of `steps/`.
 
