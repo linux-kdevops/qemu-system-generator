@@ -802,7 +802,7 @@ and ``pynfs`` to ``packages``.
 8. In the guest
 ===============
 
-The files as they end up:
+The files at this point:
 
 .. code-block:: nix
    :caption: ~/bootstrap/direct/flake.nix
@@ -973,6 +973,101 @@ override adds, delete the override.
 
 :doc:`cheatsheet` puts the package commands of Debian, Ubuntu and
 Fedora beside the Nix commands that do the same.
+
+.. _packages-xfsprogs:
+
+10. Your own xfsprogs
+=====================
+
+xfsprogs takes its tree the way xfstests does in :ref:`packages-tree`,
+with one more step. A release tarball ships xfsprogs' ``install-sh`` at
+its root and a git tree does not, so autoreconf writes a standard one
+there, which xfsprogs' install cannot use. The tree keeps its own in
+``include/``; copy it over after configure:
+
+.. code-block:: diff
+   :caption: ~/bootstrap/direct/flake.nix
+
+   --- a/bootstrap/direct/flake.nix
+   +++ b/bootstrap/direct/flake.nix
+   @@ -1,6 +1,10 @@
+    {
+      inputs = {
+        nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
+   +    xfsprogs = {
+   +      url = "git+https://git.kernel.org/pub/scm/fs/xfs/xfsprogs-dev.git?ref=for-next";
+   +      flake = false;
+   +    };
+        xfstests = {
+          url = "git+https://git.kernel.org/pub/scm/fs/xfs/xfstests-dev.git?ref=for-next";
+          flake = false;
+   @@ -27,6 +31,7 @@
+              fio
+              nfstest
+              pynfs
+   +          xfsprogs
+              xfstests
+              ;
+          };
+
+.. code-block:: diff
+   :caption: ~/bootstrap/direct/overlay.nix
+
+   --- a/bootstrap/direct/overlay.nix
+   +++ b/bootstrap/direct/overlay.nix
+   @@ -22,6 +22,19 @@ inputs: final: prev:
+        }
+      );
+
+   +  xfsprogs = prev.xfsprogs.overrideAttrs (previousAttrs: {
+   +    version =
+   +      let
+   +        date = start: length: prev.lib.substring start length inputs.xfsprogs.lastModifiedDate;
+   +      in
+   +      "0-unstable-${date 0 4}-${date 4 2}-${date 6 2}";
+   +    src = inputs.xfsprogs;
+   +    postConfigure = (previousAttrs.postConfigure or "") + ''
+   +      cp include/install-sh install-sh
+   +      patchShebangs install-sh
+   +    '';
+   +  });
+   +
+      xfstests = prev.xfstests.overrideAttrs {
+        version =
+          let
+
+xfstests links xfsprogs' libraries, so a new xfsprogs builds xfstests
+again, and then the system. Build from your clones, at the release each
+has checked out, and :ref:`restart <host-start>` the machine:
+
+.. code-block:: console
+   :class: cmd-host
+
+   $ nix build --override-input xfsprogs git+file:///path/to/xfsprogs-dev \
+       --override-input xfstests git+file:///path/to/xfstests-dev
+
+nixpkgs carries a patch for `glibc`_ 2.44 on xfstests v2026.09.22,
+which v2026.10.15 has upstream. The overlay's ``patches = [ ];`` drops
+it, so a tree older than v2026.10.15 needs it back. An upgrade from one
+release to the next, each time the middle of three, timed as
+:ref:`fast-measure` does:
+
+.. list-table::
+   :header-rows: 1
+
+   * - Upgrade
+     - Build
+     - Start to SSH
+   * - xfsprogs v7.1.1 to v7.2.0
+     - 97.3 s
+     - 8.2 s
+   * - xfstests v2026.09.22 to v2026.10.15
+     - 58.7 s
+     - 8.3 s
+
+The store keeps the old system until a garbage collection: with
+``result`` pointed back at it, the machine boots it again with nothing
+to build.
 
 .. _NixOS: https://nixos.org/manual/nixos/stable/
 .. _nixpkgs: https://github.com/NixOS/nixpkgs
