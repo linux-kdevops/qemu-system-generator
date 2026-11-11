@@ -1,5 +1,7 @@
 .. SPDX-License-Identifier: copyleft-next-0.3.1
 
+:html_theme.sidebar_secondary.remove: true
+
 ========
 Machines
 ========
