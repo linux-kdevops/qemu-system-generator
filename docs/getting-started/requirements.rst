@@ -71,6 +71,21 @@ every boot from then on. Both need root, once, through :cmd:`usermod` and
 
 Log out and back in for the group to take effect.
 
+.. _debian-archive-keyring:
+
+Debian's archive keyring
+========================
+
+Skip this section unless the :doc:`mkosi </bootstrap/mkosi>` guide builds
+its image on this host. mkosi looks for the keyring of the image's
+distribution on the host, before its sandbox starts (:cmd:`mkosi(1)`),
+so it comes from the distribution, not Nix. On Debian and Ubuntu:
+
+.. code-block:: console
+   :class: cmd-host
+
+   $ sudo apt install --yes debian-archive-keyring
+
 PCI passthrough
 ===============
 

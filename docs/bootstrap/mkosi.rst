@@ -16,10 +16,13 @@ The tools
 
 mkosi runs as your user. Before the image, it builds a tools tree: a
 Debian root with Debian's own :cmd:`apt`, :cmd:`bootctl` and
-:cmd:`systemd-repart`, in which every later step runs. It bootstraps that
-tree with the host's :cmd:`apt`, :cmd:`dpkg` and :cmd:`gpgv`, which Nix
-provides, and checks Debian's archive against Debian's keyring. Link the
-keyring into the directory the image is built from:
+:cmd:`systemd-repart`, in which every later step runs. It bootstraps
+that tree with the host's :cmd:`apt`, :cmd:`dpkg` and :cmd:`gpgv`, which
+Nix provides, and checks Debian's archive against the archive keyring.
+The host needs that keyring as the distribution's package
+(:ref:`Debian's archive keyring <debian-archive-keyring>`); inside the
+sandbox the tools read it from a link in the directory the image is
+built from:
 
 .. code-block:: console
    :class: cmd-host
