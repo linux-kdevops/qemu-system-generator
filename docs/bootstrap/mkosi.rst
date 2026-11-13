@@ -78,12 +78,15 @@ it:
 
    [Build]
    ToolsTree=default
+   ToolsTreeDistribution=debian
    ToolsTreePackages=udev
    SandboxTrees=keyring/share/keyrings:/usr/share/keyrings
 
 Debian ships systemd-boot's EFI binary apart from the tool, in
 ``systemd-boot-efi``. The default tools tree leaves out ``udev``, and
 without it nixpkgs' mkosi stops at ``systemd-hwdb not found``.
+``ToolsTreeDistribution=debian`` pins the tools tree to the image's
+distribution; by default the host's distribution decides it.
 
 A file under ``mkosi.extra/`` is copied into the image at the same path.
 Root takes the key from :ref:`host-ssh`:
@@ -171,7 +174,7 @@ installed in ``CacheDirectory=``, and a later build starts from there:
 
    --- a/bootstrap/mkosi/mkosi.conf
    +++ b/bootstrap/mkosi/mkosi.conf
-   @@ -21,8 +21,40 @@ Packages=
+   @@ -21,9 +21,41 @@ Packages=
             udev
             dbus
             openssh-server
@@ -208,6 +211,7 @@ installed in ``CacheDirectory=``, and a later build starts from there:
    +        src/xfsprogs-dev:xfsprogs-dev
    +        src/xfstests-dev:xfstests-dev
     ToolsTree=default
+    ToolsTreeDistribution=debian
     ToolsTreePackages=udev
     SandboxTrees=keyring/share/keyrings:/usr/share/keyrings
    +Incremental=yes

@@ -86,6 +86,13 @@ so it comes from the distribution, not Nix. On Debian and Ubuntu:
 
    $ sudo apt install --yes debian-archive-keyring
 
+Fedora packages it under the same name:
+
+.. code-block:: console
+   :class: cmd-host
+
+   $ sudo dnf install --assumeyes debian-archive-keyring
+
 PCI passthrough
 ===============
 
